@@ -301,6 +301,16 @@ function onPreviewTouchEnd(e) {
 function onFileSelected(input) {
   const file = input.files[0];
   if (!file) return;
+
+  // Validate file type
+  var ext = file.name.toLowerCase().split('.').pop();
+  var supported = ['pdf','doc','docx','xls','xlsx','jpg','jpeg','png','gif','webp','bmp'];
+  var isImage = file.type.startsWith('image/');
+  if (supported.indexOf(ext) === -1 && !isImage) {
+    toast('不支持的文件格式 (.{})'.replace('{}', ext));
+    input.value = '';
+    return;
+  }
   selectedFile = file;
   document.getElementById('selected-file-info').classList.remove('hidden');
   document.getElementById('selected-file-name').textContent = file.name;
