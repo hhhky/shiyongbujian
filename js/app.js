@@ -65,7 +65,7 @@ function renderWidgets() {
   if (!grid) return;
   var filesCount = 0;
   grid.innerHTML = WIDGETS.map(function(w) {
-    return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-2xl p-6 cursor-pointer shadow-lg card-hover" style="box-shadow: 0 4px 24px ${w.color}40;">
+    return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[28px] p-6 cursor-pointer shadow-lg card-hover" style="box-shadow: 0 4px 24px ${w.color}40;">
       <div class="text-4xl mb-3">${w.icon}</div>
       <h3 class="font-bold text-white text-base mb-1 drop-shadow">${esc(w.name)}</h3>
       <p class="text-xs text-white/80">${w.desc}</p>
@@ -139,7 +139,7 @@ function renderSidebarTabs(w) {
   var container = document.getElementById('sidebar-tabs-container');
   if (!container) return;
   container.innerHTML = w.tabs.map(function(t, i) {
-    return '<button onclick="switchTab(\'' + t.id + '\')" class="sidebar-tab flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ' + (i === 0 ? 'active font-semibold' : 'font-medium text-gray-500') + '" data-tab="' + t.id + '">'
+    return '<button onclick="switchTab(\'' + t.id + '\')" class="sidebar-tab flex items-center gap-3 px-3 py-2.5 rounded-[20px] text-sm ' + (i === 0 ? 'active font-semibold' : 'font-medium text-gray-500') + '" data-tab="' + t.id + '">'
       + '<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + t.svg + '</svg>'
       + '<span class="hidden lg:inline">' + esc(t.name) + '</span>'
     + '</button>';
@@ -150,7 +150,7 @@ function renderBottomNavTabs(w) {
   var container = document.getElementById('bottom-nav-tabs-container');
   if (!container) return;
   container.innerHTML = w.tabs.map(function(t, i) {
-    return '<button onclick="switchTab(\'' + t.id + '\')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-2xl transition-all' + (i === 0 ? ' active' : ' text-gray-400') + '" style="' + (i === 0 ? 'color: #7c3aed;' : '') + '" data-tab="' + t.id + '">'
+    return '<button onclick="switchTab(\'' + t.id + '\')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-[28px] transition-all' + (i === 0 ? ' active' : ' text-gray-400') + '" style="' + (i === 0 ? 'color: #7c3aed;' : '') + '" data-tab="' + t.id + '">'
       + '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + t.svg + '</svg>'
       + '<span class="text-xs font-medium">' + esc(t.shortName) + '</span>'
     + '</button>';
@@ -278,7 +278,7 @@ function hideCategoryModal() {
 function renderColorPicker() {
   const container = document.getElementById('color-picker');
   container.innerHTML = COLORS.map(c =>
-    `<button type="button" onclick="selectColor('${c}')" class="w-10 h-10 rounded-full transition-all active:scale-90 flex items-center justify-center shadow-md hover:scale-110 hover:shadow-xl" style="background:${c}; box-shadow: 0 2px 8px ${c}66, 0 0 16px ${c}33">${
+    `<button type="button" onclick="selectColor('${c}')" class="w-10 h-10 rounded-full transition-all btn-jelly flex items-center justify-center shadow-md hover:scale-110 hover:shadow-xl" style="background:${c}; box-shadow: 0 2px 8px ${c}66, 0 0 16px ${c}33">${
       selectedColor === c ? '<svg class="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''
     }</button>`
   ).join('');
@@ -306,7 +306,7 @@ async function renderCategories() {
   }
   container.innerHTML = cats.map(c => {
     const count = files.filter(f => f.categoryId === c.id).length;
-    return `<div class="rounded-xl p-4 flex items-center gap-3 cursor-pointer shadow-sm card-hover" style="background:${c.color}; color:#fff;" onclick="goToCategory(${c.id})">
+    return `<div class="rounded-[20px] p-4 flex items-center gap-3 cursor-pointer shadow-sm card-hover" style="background:${c.color}; color:#fff;" onclick="goToCategory(${c.id})">
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-sm" style="color:#fff;">${esc(c.name)}</p>
         <p class="text-xs" style="color:rgba(255,255,255,0.75);">${count} 份资料</p>
@@ -346,7 +346,7 @@ async function renderFiles() {
   container.innerHTML = filtered.sort((a,b) => b.createdAt - a.createdAt).map(f => {
     var icon = getFileIcon(f.type, f.name);
     var sizeStr = f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1)+'MB' : (f.size/1024).toFixed(0)+'KB';
-    return `<div class="bg-white/80 backdrop-blur rounded-xl p-4 flex items-center gap-3 card-hover cursor-pointer shadow-sm" onclick="previewFile(${f.id})">
+    return `<div class="bg-white/80 backdrop-blur rounded-[20px] p-4 flex items-center gap-3 card-hover cursor-pointer shadow-sm" onclick="previewFile(${f.id})">
       <span class="text-2xl shrink-0">${icon}</span>
       <div class="flex-1 min-w-0">
         <span id="fname-${f.id}" class="font-medium text-gray-800 text-sm truncate block">${esc(f.name)}</span>
@@ -377,10 +377,10 @@ async function renderCategoryFilter() {
   const cats = await getCategories();
   const bar = document.getElementById('category-filter-bar');
   const files = await getFiles();
-  bar.innerHTML = `<button onclick="filterFiles(null)" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold text-white btn-gradient shadow-md active:scale-95 transition-all" data-cat="all">全部 (${files.length})</button>` +
+  bar.innerHTML = `<button onclick="filterFiles(null)" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold text-white btn-gradient shadow-md btn-jelly transition-all" data-cat="all">全部 (${files.length})</button>` +
     cats.map(c => {
       const count = files.filter(f => f.categoryId === c.id).length;
-      return `<button onclick="filterFiles(${c.id})" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 active:scale-95 transition-transform" data-cat="${c.id}">${esc(c.name)} (${count})</button>`;
+      return `<button onclick="filterFiles(${c.id})" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 btn-jelly transition-transform" data-cat="${c.id}">${esc(c.name)} (${count})</button>`;
     }).join('');
 }
 
@@ -397,7 +397,7 @@ function startRename(id) {
   var el = document.getElementById('fname-' + id);
   if (!el || el.querySelector('input')) return;
   var oldName = el.textContent;
-  el.innerHTML = '<input id="rename-input-' + id + '" value="' + esc(oldName) + '" class="w-full text-sm font-medium text-gray-800 bg-gray-100 rounded px-2 py-0.5 outline-none border border-primary-500">';
+  el.innerHTML = '<input id="rename-input-' + id + '" value="' + esc(oldName) + '" class="w-full text-sm font-medium text-gray-800 bg-gray-100 rounded-[10px] px-2 py-0.5 outline-none border border-primary-500">';
   var inp = document.getElementById('rename-input-' + id);
   inp.focus();
   inp.select();
@@ -573,7 +573,7 @@ async function renderUploadCategories() {
     container.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm col-span-full">请先到"分类"页面创建分类</div>';
     return;
   }
-  container.innerHTML = cats.map(c => `<div onclick="selectUploadCategory(${c.id})" class="upload-cat-option bg-white/80 backdrop-blur rounded-xl p-3 flex items-center gap-3 card-hover cursor-pointer transition-all shadow-sm" data-cat="${c.id}">
+  container.innerHTML = cats.map(c => `<div onclick="selectUploadCategory(${c.id})" class="upload-cat-option bg-white/80 backdrop-blur rounded-[20px] p-3 flex items-center gap-3 card-hover cursor-pointer transition-all shadow-sm" data-cat="${c.id}">
     <span class="cat-color" style="background:${c.color}"></span>
     <span class="text-sm font-medium text-gray-700">${esc(c.name)}</span>
   </div>`).join('');
@@ -736,7 +736,7 @@ function renderImage(data, type) {
   var blob = new Blob([data], { type: type });
   var url = URL.createObjectURL(blob);
   var container = document.getElementById('preview-content');
-  container.innerHTML = '<img src="' + url + '" class="max-w-full max-h-full object-contain rounded" style="transition: transform 0.15s ease; transform: scale(1); transform-origin: center center" alt="preview">';
+  container.innerHTML = '<img src="' + url + '" class="max-w-full max-h-full object-contain rounded-[10px]" style="transition: transform 0.15s ease; transform: scale(1); transform-origin: center center" alt="preview">';
 }
 
 async function renderWord(data, name) {
@@ -744,7 +744,7 @@ async function renderWord(data, name) {
   container.innerHTML = '<div class="text-white text-sm">正在加载 Word 预览组件...</div>';
   var ext = (name || '').toLowerCase().split('.').pop();
   if (ext !== 'docx') {
-    container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-gray-600 text-sm">.doc 格式无法直接在浏览器中预览</p><p class="text-gray-400 text-xs mt-2">请用 Word 打开后另存为 .docx 格式再上传</p></div>';
+    container.innerHTML = '<div class="bg-white rounded-[20px] p-6 max-w-lg mx-auto text-center"><p class="text-gray-600 text-sm">.doc 格式无法直接在浏览器中预览</p><p class="text-gray-400 text-xs mt-2">请用 Word 打开后另存为 .docx 格式再上传</p></div>';
     return;
   }
   try {
@@ -759,15 +759,15 @@ async function renderWord(data, name) {
         "r[style-name='Emphasis'] => em"
       ]
     }).then(function(result) {
-      container.innerHTML = '<div class="bg-white rounded-xl p-4 md:p-6 max-w-3xl mx-auto word-preview" style="zoom:' + zoomLevel + '">' + result.value + '</div>';
+      container.innerHTML = '<div class="bg-white rounded-[20px] p-4 md:p-6 max-w-3xl mx-auto word-preview" style="zoom:' + zoomLevel + '">' + result.value + '</div>';
       if (result.messages && result.messages.length > 0) {
         console.warn('Mammoth warnings:', result.messages);
       }
     }).catch(function(err) {
-      container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Word 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(err)) + '</p></div>';
+      container.innerHTML = '<div class="bg-white rounded-[20px] p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Word 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(err)) + '</p></div>';
     });
   } catch (e) {
-    container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Word 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(e)) + '</p></div>';
+    container.innerHTML = '<div class="bg-white rounded-[20px] p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Word 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(e)) + '</p></div>';
   }
 }
 
@@ -781,7 +781,7 @@ async function renderExcel(data, name) {
     var sheetName = wb.SheetNames[0];
     var sheet = wb.Sheets[sheetName];
     var html = XLSX.utils.sheet_to_html(sheet, { id: 'excel-table', editable: false });
-    container.innerHTML = '<div class="bg-white rounded-xl p-2 md:p-4 max-w-full mx-auto excel-preview" style="zoom:' + zoomLevel + '">' + html + '</div>';
+    container.innerHTML = '<div class="bg-white rounded-[20px] p-2 md:p-4 max-w-full mx-auto excel-preview" style="zoom:' + zoomLevel + '">' + html + '</div>';
     // Style the generated table
     var tbl = container.querySelector('#excel-table');
     if (tbl) {
@@ -798,7 +798,7 @@ async function renderExcel(data, name) {
       });
     }
   } catch (e) {
-    container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Excel 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(e)) + '</p></div>';
+    container.innerHTML = '<div class="bg-white rounded-[20px] p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Excel 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(e)) + '</p></div>';
   }
 }
 
@@ -972,7 +972,7 @@ async function renderMemos() {
     var info = getDaysInfo(m);
     var preview = (m.content || '').substring(0, 80);
     if ((m.content || '').length > 80) preview += '...';
-    return '<div class="bg-white/80 backdrop-blur rounded-xl p-4 card-hover shadow-sm memo-card">'
+    return '<div class="bg-white/80 backdrop-blur rounded-[20px] p-4 card-hover shadow-sm memo-card">'
       + '<div class="flex items-start justify-between mb-2">'
         + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(m.title) + '</h4>'
         + '<div class="flex gap-0.5 shrink-0 ml-2">'
@@ -1079,7 +1079,7 @@ async function renderCalendar() {
         var info = getDaysInfo(m);
         var preview = (m.content || '').substring(0, 80);
         if ((m.content || '').length > 80) preview += '...';
-        return '<div class="bg-white/80 backdrop-blur rounded-xl p-4 card-hover shadow-sm memo-card mb-2">'
+        return '<div class="bg-white/80 backdrop-blur rounded-[20px] p-4 card-hover shadow-sm memo-card mb-2">'
           + '<div class="flex items-start justify-between mb-2">'
             + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(m.title) + '</h4>'
             + '<div class="flex gap-0.5 shrink-0 ml-2">'
@@ -1233,7 +1233,7 @@ async function renderWorkflows() {
     var nodes = await getWorkflowNodes(w.id);
     var total = nodes.length;
     var div = document.createElement('div');
-    div.className = 'bg-white/80 backdrop-blur rounded-xl p-4 card-hover cursor-pointer shadow-sm';
+    div.className = 'bg-white/80 backdrop-blur rounded-[20px] p-4 card-hover cursor-pointer shadow-sm';
     div.onclick = function(wf) { return function() { enterWorkflow(wf.id); }; }(w);
     var infoHtml = '';
     if (isKnowledge) {
@@ -1880,7 +1880,7 @@ async function exportMindmapPDF() {
     var dataUrl = result.canvas.toDataURL('image/png');
     w.document.open();
     w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + result.name + '</title>');
-    w.document.write('<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;margin:30px;text-align:center;color:#333}img{max-width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1)}h1{margin-bottom:20px;font-size:20px}@media print{body{margin:0}img{max-width:100%;box-shadow:none;border-radius:0}}</style>');
+    w.document.write('<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;margin:30px;text-align:center;color:#333}img{max-width:100%;height:auto;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1)}h1{margin-bottom:20px;font-size:20px}@media print{body{margin:0}img{max-width:100%;box-shadow:none;border-radius:0}}</style>');
     w.document.write('</head><body><h1>' + result.name + '</h1><img src="' + dataUrl + '" /></body></html>');
     w.document.close();
     w.focus();
@@ -1932,7 +1932,7 @@ async function exportMindmapWord() {
 
     var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
     html += '<head><meta charset="utf-8"><title>' + result.name + '</title>';
-    html += '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:30px;color:#333}h1{font-size:22px;border-bottom:2px solid #7c3aed;padding-bottom:8px}h2{font-size:16px;margin-top:24px;color:#7c3aed}img{max-width:100%;border-radius:8px}ul{margin-left:20px}li{margin:2px 0}</style>';
+    html += '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:30px;color:#333}h1{font-size:22px;border-bottom:2px solid #7c3aed;padding-bottom:8px}h2{font-size:16px;margin-top:24px;color:#7c3aed}img{max-width:100%;border-radius:12px}ul{margin-left:20px}li{margin:2px 0}</style>';
     html += '</head><body>';
     html += '<h1>' + result.name + '</h1>';
     html += '<p style="color:#888">类型：' + (result.isKnowledge ? '知识导图' : '工作流思维导图') + ' | 节点数：' + nodes.length + ' | 导出时间：' + new Date().toLocaleString() + '</p>';
@@ -2035,11 +2035,11 @@ function quickAddNode(parentId, direction) {
   popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
     + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
     + '<div style="display:flex; gap:6px; margin:6px 0;" id="quick-shape-select">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:12px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
     + '</div>'
     + '<div style="display:flex; gap:6px; margin:0 0 6px 0;" id="quick-size-select" data-size="' + (currentMindmapType === 'knowledge' ? 'large' : 'medium') + '">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn" data-size="small" style="flex:1; padding:3px; border-radius:6px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">小</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn" data-size="small" style="flex:1; padding:3px; border-radius:10px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">小</button>'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? '' : ' active') + '" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#e5e7eb' : '#8b5cf6') + '; background:' + (currentMindmapType === 'knowledge' ? '#fff' : '#ede9fe') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#6b7280' : '#7c3aed') + '; cursor:pointer;">中</button>'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? ' active' : '') + '" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#8b5cf6' : '#e5e7eb') + '; background:' + (currentMindmapType === 'knowledge' ? '#ede9fe' : '#fff') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#7c3aed' : '#6b7280') + '; cursor:pointer;">大</button>'
     + '</div>'
