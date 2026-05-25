@@ -1707,7 +1707,7 @@ function wrapText(ctx, text, maxWidth) {
   return lines.length ? lines : [text];
 }
 
-async function renderMindmapToCanvas() {
+async function renderMindmapToCanvas(scale) {
   var nodes = await getWorkflowNodes(currentWorkflowId);
   if (!nodes.length) return null;
   var isKnowledge = currentMindmapType === 'knowledge';
@@ -1715,7 +1715,7 @@ async function renderMindmapToCanvas() {
   var positions = layout.positions;
   var canvasW = Math.max(layout.w, 600);
   var canvasH = Math.max(layout.h, 520);
-  var scale = 2;
+  scale = scale || 2;
   var canvas = document.createElement('canvas');
   canvas.width = canvasW * scale;
   canvas.height = canvasH * scale;
@@ -1842,20 +1842,24 @@ async function exportMindmapImage(format) {
 }
 
 async function exportMindmapPDF() {
+  // Open window synchronously (before any await) to avoid popup blocker
+  var w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { toast('请允许浏览器弹窗后重试'); return; }
+  w.document.write('<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#888"><p>正在生成...</p></body></html>');
   try {
     var result = await renderMindmapToCanvas();
-    if (!result) { toast('没有可导出的节点'); return; }
+    if (!result) { w.close(); toast('没有可导出的节点'); return; }
     var dataUrl = result.canvas.toDataURL('image/png');
-    var w = window.open('', '_blank', 'width=900,height=700');
-    if (!w) { toast('请允许浏览器弹窗后重试'); return; }
+    w.document.open();
     w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + result.name + '</title>');
-    w.document.write('<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;margin:30px;text-align:center;color:#333}img{max-width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1)}h1{margin-bottom:20px;font-size:20px}</style>');
+    w.document.write('<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;margin:30px;text-align:center;color:#333}img{max-width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1)}h1{margin-bottom:20px;font-size:20px}@media print{body{margin:0}img{max-width:100%;box-shadow:none;border-radius:0}}</style>');
     w.document.write('</head><body><h1>' + result.name + '</h1><img src="' + dataUrl + '" /></body></html>');
     w.document.close();
     w.focus();
-    setTimeout(function() { w.print(); }, 600);
+    setTimeout(function() { w.print(); }, 800);
     toast('请在打印对话框中保存为 PDF');
   } catch (err) {
+    w.close();
     console.error('exportMindmapPDF error:', err);
     toast('导出失败: ' + (err.message || String(err)));
   }
@@ -1863,12 +1867,14 @@ async function exportMindmapPDF() {
 
 async function exportMindmapWord() {
   try {
-    var result = await renderMindmapToCanvas();
+    // Use 1x scale for smaller image size in Word
+    var result = await renderMindmapToCanvas(1);
     if (!result) { toast('没有可导出的节点'); return; }
-    var dataUrl = result.canvas.toDataURL('image/png');
+    // Use JPEG for much smaller data URL than PNG
+    var dataUrl = result.canvas.toDataURL('image/jpeg', 0.85);
     var nodes = result.nodes;
 
-    // Build hierarchical outline
+    // Build hierarchical outline (text-only, no image dependency)
     var childrenMap = {};
     nodes.forEach(function(n) {
       var pid = n.parentId;
@@ -1907,7 +1913,7 @@ async function exportMindmapWord() {
     html += outline;
     html += '</body></html>';
 
-    var blob = new Blob([html], { type: 'application/msword' });
+    var blob = new Blob(['﻿' + html], { type: 'application/octet-stream' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
