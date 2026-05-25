@@ -86,6 +86,7 @@ function goHome() {
 
   // Sidebar
   document.getElementById('sidebar-back-btn').classList.add('hidden');
+  document.querySelectorAll('#sidebar-nav .sidebar-sub').forEach(function(s){ s.classList.add('hidden'); });
 
   closePreview();
   renderWidgets();
