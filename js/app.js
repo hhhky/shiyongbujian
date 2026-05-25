@@ -1106,6 +1106,18 @@ function showAddWorkflow() {
   document.getElementById('workflow-name-input').focus();
 }
 
+function selectNodeShape(shape) {
+  document.querySelectorAll('.node-shape-btn').forEach(function(b) {
+    if (b.dataset.shape === shape) {
+      b.classList.add('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.remove('border-gray-200','text-gray-500');
+    } else {
+      b.classList.remove('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.add('border-gray-200','text-gray-500');
+    }
+  });
+}
+
 function showEditNode(nodeId) {
   workflowModalMode = 'edit-node';
   editingNodeId = nodeId;
@@ -1117,6 +1129,7 @@ function showEditNode(nodeId) {
     document.getElementById('workflow-node-fields').classList.remove('hidden');
     document.getElementById('node-title-input').value = n.title;
     document.getElementById('node-desc-input').value = n.description || '';
+    selectNodeShape(n.shape || 'rounded');
     document.getElementById('workflow-modal').classList.remove('hidden');
     document.getElementById('node-title-input').focus();
   });
@@ -1141,7 +1154,9 @@ async function confirmWorkflowModal() {
     var title = document.getElementById('node-title-input').value.trim();
     if (!title) { toast('请输入节点标题'); return; }
     var desc = document.getElementById('node-desc-input').value.trim();
-    await updateWorkflowNode(editingNodeId, { title: title, description: desc });
+    var selShapeBtn = document.querySelector('.node-shape-btn.border-dopa-purple-400');
+    var shape = selShapeBtn ? selShapeBtn.dataset.shape : 'rounded';
+    await updateWorkflowNode(editingNodeId, { title: title, description: desc, shape: shape });
     toast('节点已更新');
     hideWorkflowModal();
     await renderMindMap(currentWorkflowId);
@@ -1383,10 +1398,12 @@ async function renderMindMap(workflowId) {
     var isRoot = n.parentId == null;
     var doneClass = n.done ? ' done' : '';
     var rootClass = isRoot ? ' root' : '';
+    var shape = n.shape || 'rounded';
+    var shapeClass = shape !== 'rounded' ? ' shape-' + shape : '';
     var descSnippet = (n.description || '').substring(0, 30);
     if ((n.description || '').length > 30) descSnippet += '...';
 
-    return '<div class="mindmap-node' + doneClass + rootClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
+    return '<div class="mindmap-node' + doneClass + rootClass + shapeClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
       + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
       + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
       + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
@@ -1459,6 +1476,11 @@ function quickAddNode(parentId, direction) {
 
   popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
     + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
+    + '<div style="display:flex; gap:6px; margin:6px 0;" id="quick-shape-select">'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'diamond\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="diamond" style="flex:1; padding:3px; border-radius:4px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);">◇</button>'
+    + '</div>'
     + '<div class="mindmap-quick-add-btns">'
       + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
       + '<button class="mindmap-quick-add-cancel" onclick="cancelQuickAdd()">取消</button>'
@@ -1476,13 +1498,34 @@ function quickAddNode(parentId, direction) {
   }, 50);
 }
 
+function renderQuickShapeBtns() {
+  var container = document.getElementById('quick-shape-select');
+  if (!container) return;
+  var selected = container.dataset.shape || 'rounded';
+  var btns = container.querySelectorAll('.quick-shape-btn');
+  btns.forEach(function(b) {
+    if (b.dataset.shape === selected) {
+      b.style.border = '2px solid #8b5cf6';
+      b.style.background = '#ede9fe';
+      b.style.color = '#7c3aed';
+    } else {
+      b.style.border = '2px solid #e5e7eb';
+      b.style.background = '#fff';
+      b.style.color = '#6b7280';
+    }
+  });
+}
+
 async function confirmQuickAdd() {
   var inp = document.getElementById('quick-add-input');
   var title = inp ? inp.value.trim() : '';
   if (!title) { toast('请输入节点标题'); return; }
   if (quickAddParentId == null) return;
 
-  await addWorkflowNode(currentWorkflowId, quickAddParentId, quickAddDirection, title, '');
+  var shapeContainer = document.getElementById('quick-shape-select');
+  var shape = shapeContainer ? (shapeContainer.dataset.shape || 'rounded') : 'rounded';
+
+  await addWorkflowNode(currentWorkflowId, quickAddParentId, quickAddDirection, title, '', shape);
   cancelQuickAdd();
   await renderMindMap(currentWorkflowId);
   var nodes = await getWorkflowNodes(currentWorkflowId);

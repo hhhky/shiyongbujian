@@ -62,13 +62,16 @@
       position: absolute; width: 160px; background: rgba(255,255,255,0.9);
       backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
       border-radius: 12px; padding: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-      border: 2px solid #e5e7eb; cursor: pointer; z-index: 2;
+      border: 2px solid #f43f5e; cursor: pointer; z-index: 2;
       transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
-    .mindmap-node:hover { box-shadow: 0 4px 20px rgba(139,92,246,0.15); border-color: #a78bfa; }
-    .mindmap-node.root { border-color: #8b5cf6; border-width: 3px; background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(236,72,153,0.04)); }
-    .mindmap-node.done { border-left: 4px solid #10b981; opacity: 0.85; background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02)); }
+    .mindmap-node:hover { box-shadow: 0 4px 20px rgba(244,63,94,0.15); border-color: #e11d48; }
+    .mindmap-node.root { border-width: 3px; background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(236,72,153,0.04)); }
+    .mindmap-node.done { border-color: #10b981; opacity: 0.85; background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02)); }
+    .mindmap-node.done:hover { border-color: #059669; box-shadow: 0 4px 20px rgba(16,185,129,0.15); }
     .mindmap-node.done .mindmap-node-title { text-decoration: line-through; color: #9ca3af; }
+    .mindmap-node.shape-pill { border-radius: 50px; }
+    .mindmap-node.shape-diamond { border-radius: 4px; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
     .mindmap-node-title { font-size: 0.8125rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; word-break: break-word; }
     .mindmap-dir-btn {
       position: absolute; width: 20px; height: 20px; border-radius: 50%;
@@ -453,7 +456,13 @@
         <input type="text" id="workflow-name-input" placeholder="工作流名称" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
         <div id="workflow-node-fields" class="hidden">
           <input type="text" id="node-title-input" placeholder="节点标题" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
-          <textarea id="node-desc-input" rows="2" placeholder="节点描述（可选）" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-4 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50 resize-none"></textarea>
+          <textarea id="node-desc-input" rows="2" placeholder="节点描述（可选）" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50 resize-none"></textarea>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">节点形状</label>
+          <div class="flex gap-2 mb-4" id="node-shape-select">
+            <button onclick="selectNodeShape('rounded')" class="node-shape-btn flex-1 py-2 rounded-xl text-xs font-medium border-2 border-dopa-purple-400 bg-dopa-purple-50 text-dopa-purple-500" data-shape="rounded">圆角矩形</button>
+            <button onclick="selectNodeShape('pill')" class="node-shape-btn flex-1 py-2 rounded-full text-xs font-medium border-2 border-gray-200 text-gray-500" data-shape="pill">胶囊形</button>
+            <button onclick="selectNodeShape('diamond')" class="node-shape-btn flex-1 py-2 rounded text-xs font-medium border-2 border-gray-200 text-gray-500" data-shape="diamond">◇ 菱形</button>
+          </div>
         </div>
         <div class="flex gap-3">
           <button onclick="hideWorkflowModal()" class="flex-1 py-3 rounded-xl font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
