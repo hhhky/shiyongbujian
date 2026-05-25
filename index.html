@@ -64,6 +64,8 @@
       border-radius: 12px; padding: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       border: 2px solid #f43f5e; cursor: pointer; z-index: 2;
       transition: box-shadow 0.2s ease, border-color 0.2s ease;
+      user-select: none; -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
     .mindmap-node:hover { box-shadow: 0 4px 20px rgba(244,63,94,0.15); border-color: #e11d48; }
     .mindmap-node.root { border-width: 3px; background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(236,72,153,0.04)); }
@@ -71,6 +73,12 @@
     .mindmap-node.done:hover { border-color: #059669; box-shadow: 0 4px 20px rgba(16,185,129,0.15); }
     .mindmap-node.done .mindmap-node-title { text-decoration: line-through; color: #9ca3af; }
     .mindmap-node.shape-pill { border-radius: 50px; }
+    .mindmap-node.size-small { width: 120px; padding: 8px; }
+    .mindmap-node.size-small .mindmap-node-title { font-size: 0.7rem; }
+    .mindmap-node.size-medium { width: 160px; padding: 12px; }
+    .mindmap-node.size-large { width: 210px; padding: 16px; }
+    .mindmap-node.size-large .mindmap-node-title { font-size: 0.9375rem; }
+    .mindmap-node.dragging { cursor: grabbing; z-index: 20; box-shadow: 0 8px 30px rgba(139,92,246,0.3); opacity: 0.9; }
     .mindmap-node-title { font-size: 0.8125rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; word-break: break-word; }
     .mindmap-dir-btn {
       position: absolute; width: 20px; height: 20px; border-radius: 50%;
@@ -468,6 +476,12 @@
           <div class="flex gap-2 mb-4" id="node-shape-select">
             <button onclick="selectNodeShape('rounded')" class="node-shape-btn flex-1 py-2 rounded-xl text-xs font-medium border-2 border-dopa-purple-400 bg-dopa-purple-50 text-dopa-purple-500" data-shape="rounded">圆角矩形</button>
             <button onclick="selectNodeShape('pill')" class="node-shape-btn flex-1 py-2 rounded-full text-xs font-medium border-2 border-gray-200 text-gray-500" data-shape="pill">胶囊形</button>
+          </div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">节点大小</label>
+          <div class="flex gap-2 mb-4" id="node-size-select">
+            <button onclick="selectNodeSize('small')" class="node-size-btn flex-1 py-2 rounded-xl text-xs font-medium border-2 border-gray-200 text-gray-500" data-size="small">小</button>
+            <button onclick="selectNodeSize('medium')" class="node-size-btn flex-1 py-2 rounded-xl text-xs font-medium border-2 border-dopa-purple-400 bg-dopa-purple-50 text-dopa-purple-500" data-size="medium">中</button>
+            <button onclick="selectNodeSize('large')" class="node-size-btn flex-1 py-2 rounded-xl text-xs font-medium border-2 border-gray-200 text-gray-500" data-size="large">大</button>
           </div>
         </div>
         <div class="flex gap-3">

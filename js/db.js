@@ -213,7 +213,7 @@ async function updateMemo(id, updates) {
 async function addWorkflow(name) {
   var id = await dbOp('workflows', 'readwrite', (s) => s.add({ name, createdAt: Date.now() }));
   // Auto-create root node
-  await dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId: id, parentId: null, direction: null, title: name, description: '', shape: 'rounded', done: false, createdAt: Date.now() }));
+  await dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId: id, parentId: null, direction: null, title: name, description: '', shape: 'rounded', size: 'medium', posX: null, posY: null, done: false, createdAt: Date.now() }));
   return id;
 }
 
@@ -230,8 +230,8 @@ async function deleteWorkflow(id) {
 }
 
 // ── Workflow Node operations ────────────────────
-async function addWorkflowNode(workflowId, parentId, direction, title, desc, shape) {
-  return dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId, parentId, direction, title, description: desc || '', shape: shape || 'rounded', done: false, createdAt: Date.now() }));
+async function addWorkflowNode(workflowId, parentId, direction, title, desc, shape, size) {
+  return dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId, parentId, direction, title, description: desc || '', shape: shape || 'rounded', size: size || 'medium', posX: null, posY: null, done: false, createdAt: Date.now() }));
 }
 
 async function getWorkflowNodes(workflowId) {
@@ -256,6 +256,9 @@ async function updateWorkflowNode(id, updates) {
         if (updates.parentId !== undefined) node.parentId = updates.parentId;
         if (updates.direction !== undefined) node.direction = updates.direction;
         if (updates.shape !== undefined) node.shape = updates.shape;
+        if (updates.size !== undefined) node.size = updates.size;
+        if (updates.posX !== undefined) node.posX = updates.posX;
+        if (updates.posY !== undefined) node.posY = updates.posY;
         store.put(node);
       };
       getReq.onerror = function() { db.close(); reject(getReq.error); };

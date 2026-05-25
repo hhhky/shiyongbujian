@@ -1098,6 +1098,7 @@ let quickAddDirection = null;
 let mindmapZoom = 1;
 let mmPinchDist0 = 0;
 let mmPinchZoom0 = 1;
+let mmDragInfo = null; // { nodeId, nodeEl, startX, startY, nodeLeft, nodeTop, timer, isDragging }
 
 function showAddWorkflow() {
   workflowModalMode = 'create-workflow';
@@ -1121,6 +1122,18 @@ function selectNodeShape(shape) {
   });
 }
 
+function selectNodeSize(size) {
+  document.querySelectorAll('.node-size-btn').forEach(function(b) {
+    if (b.dataset.size === size) {
+      b.classList.add('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.remove('border-gray-200','text-gray-500');
+    } else {
+      b.classList.remove('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.add('border-gray-200','text-gray-500');
+    }
+  });
+}
+
 function showEditNode(nodeId) {
   workflowModalMode = 'edit-node';
   editingNodeId = nodeId;
@@ -1133,6 +1146,7 @@ function showEditNode(nodeId) {
     document.getElementById('node-title-input').value = n.title;
     document.getElementById('node-desc-input').value = n.description || '';
     selectNodeShape(n.shape || 'rounded');
+    selectNodeSize(n.size || 'medium');
     document.getElementById('workflow-modal').classList.remove('hidden');
     document.getElementById('node-title-input').focus();
   });
@@ -1159,7 +1173,9 @@ async function confirmWorkflowModal() {
     var desc = document.getElementById('node-desc-input').value.trim();
     var selShapeBtn = document.querySelector('.node-shape-btn.border-dopa-purple-400');
     var shape = selShapeBtn ? selShapeBtn.dataset.shape : 'rounded';
-    await updateWorkflowNode(editingNodeId, { title: title, description: desc, shape: shape });
+    var selSizeBtn = document.querySelector('.node-size-btn.border-dopa-purple-400');
+    var size = selSizeBtn ? selSizeBtn.dataset.size : 'medium';
+    await updateWorkflowNode(editingNodeId, { title: title, description: desc, shape: shape, size: size });
     toast('节点已更新');
     hideWorkflowModal();
     await renderMindMap(currentWorkflowId);
@@ -1245,16 +1261,26 @@ function calcLayout(nodes) {
   var root = nodes.find(function(n) { return n.parentId == null; });
   if (!root) return { positions: {}, rootId: null, w: 0, h: 0 };
 
-  var NODE_W = 160, NODE_H = 70;
+  var NODE_H = 70;
   var H_GAP = 60, V_GAP = 30;
 
+  function nodeW(n) {
+    var s = n.size || 'medium';
+    if (s === 'small') return 120;
+    if (s === 'large') return 210;
+    return 160;
+  }
+
   var positions = {};
-  positions[root.id] = { x: 0, y: 0 };
+  // Use custom position if set, otherwise default to 0,0 for root
+  positions[root.id] = { x: (root.posX != null) ? root.posX : 0, y: (root.posY != null) ? root.posY : 0 };
 
   function getBounds(nodeId) {
     var p = positions[nodeId];
-    if (!p) return { minX: 0, maxX: NODE_W, minY: 0, maxY: NODE_H };
-    var minX = p.x, maxX = p.x + NODE_W, minY = p.y, maxY = p.y + NODE_H;
+    var n = nodes.find(function(x) { return x.id === nodeId; });
+    var w = n ? nodeW(n) : 160;
+    if (!p) return { minX: 0, maxX: w, minY: 0, maxY: NODE_H };
+    var minX = p.x, maxX = p.x + w, minY = p.y, maxY = p.y + NODE_H;
     var children = nodes.filter(function(n) { return n.parentId === nodeId; });
     children.forEach(function(c) {
       var b = getBounds(c.id);
@@ -1269,6 +1295,8 @@ function calcLayout(nodes) {
   function layoutChildren(nodeId) {
     var p = positions[nodeId];
     if (!p) return;
+    var parentNode = nodes.find(function(x) { return x.id === nodeId; });
+    var pw = parentNode ? nodeW(parentNode) : 160;
     var children = nodes.filter(function(n) { return n.parentId === nodeId; });
 
     var groups = { up: [], down: [], left: [], right: [] };
@@ -1280,37 +1308,61 @@ function calcLayout(nodes) {
     // Right: stack vertically, extend right
     var ry = p.y;
     groups.right.forEach(function(c) {
-      positions[c.id] = { x: p.x + NODE_W + H_GAP, y: ry };
+      var cw = nodeW(c);
+      if (c.posX != null && c.posY != null) {
+        positions[c.id] = { x: c.posX, y: c.posY };
+      } else {
+        positions[c.id] = { x: p.x + pw + H_GAP, y: ry };
+        layoutChildren(c.id);
+        var b = getBounds(c.id);
+        ry = b.maxY + V_GAP;
+      }
       layoutChildren(c.id);
-      var b = getBounds(c.id);
-      ry = b.maxY + V_GAP;
     });
 
     // Left: stack vertically, extend left
     var ly = p.y;
     groups.left.forEach(function(c) {
-      positions[c.id] = { x: p.x - NODE_W - H_GAP, y: ly };
+      var cw = nodeW(c);
+      if (c.posX != null && c.posY != null) {
+        positions[c.id] = { x: c.posX, y: c.posY };
+      } else {
+        positions[c.id] = { x: p.x - cw - H_GAP, y: ly };
+        layoutChildren(c.id);
+        var b = getBounds(c.id);
+        ly = b.maxY + V_GAP;
+      }
       layoutChildren(c.id);
-      var b = getBounds(c.id);
-      ly = b.maxY + V_GAP;
     });
 
     // Down: stack horizontally, extend down
     var dx = p.x;
     groups.down.forEach(function(c) {
-      positions[c.id] = { x: dx, y: p.y + NODE_H + V_GAP };
+      var cw = nodeW(c);
+      if (c.posX != null && c.posY != null) {
+        positions[c.id] = { x: c.posX, y: c.posY };
+      } else {
+        positions[c.id] = { x: dx, y: p.y + NODE_H + V_GAP };
+        layoutChildren(c.id);
+        var b = getBounds(c.id);
+        dx = b.maxX + V_GAP;
+      }
       layoutChildren(c.id);
-      var b = getBounds(c.id);
-      dx = b.maxX + V_GAP;
     });
 
     // Up: stack horizontally, extend up
     var ux = p.x;
     groups.up.forEach(function(c) {
-      positions[c.id] = { x: ux, y: p.y - NODE_H - V_GAP };
+      var cw = nodeW(c);
+      if (c.posX != null && c.posY != null) {
+        positions[c.id] = { x: c.posX, y: c.posY };
+      } else {
+        positions[c.id] = { x: ux, y: p.y - NODE_H - V_GAP };
+        layoutChildren(c.id);
+        var b = getBounds(c.id);
+        ux = b.maxX + V_GAP;
+      }
       layoutChildren(c.id);
-      var b = getBounds(c.id);
-      ux = b.maxX + V_GAP;
     });
   }
 
@@ -1322,6 +1374,8 @@ function calcLayout(nodes) {
   var offsetY = -bounds.minY + pad;
 
   Object.keys(positions).forEach(function(id) {
+    var node = nodes.find(function(n) { return n.id === parseInt(id) || n.id === id; });
+    if (node && node.posX != null && node.posY != null) return;
     positions[id].x += offsetX;
     positions[id].y += offsetY;
   });
@@ -1335,7 +1389,13 @@ function calcLayout(nodes) {
 }
 
 function drawConnections(nodes, positions) {
-  var NODE_W = 160, NODE_H = 70;
+  var NODE_H = 70;
+  function nw(n) {
+    var s = n.size || 'medium';
+    if (s === 'small') return 120;
+    if (s === 'large') return 210;
+    return 160;
+  }
   var lines = '';
   nodes.forEach(function(n) {
     if (n.parentId == null) return;
@@ -1346,28 +1406,45 @@ function drawConnections(nodes, positions) {
     // Start from edge of parent
     var x1, y1, x2, y2;
     var dir = n.direction || 'right';
+    var parentNode = nodes.find(function(x) { return x.id === n.parentId; });
+    var pw = parentNode ? nw(parentNode) : 160;
+    var cw = nw(n);
 
     if (dir === 'right') {
-      x1 = parentPos.x + NODE_W; y1 = parentPos.y + NODE_H / 2;
+      x1 = parentPos.x + pw; y1 = parentPos.y + NODE_H / 2;
       x2 = childPos.x; y2 = childPos.y + NODE_H / 2;
     } else if (dir === 'left') {
       x1 = parentPos.x; y1 = parentPos.y + NODE_H / 2;
-      x2 = childPos.x + NODE_W; y2 = childPos.y + NODE_H / 2;
+      x2 = childPos.x + cw; y2 = childPos.y + NODE_H / 2;
     } else if (dir === 'down') {
-      x1 = parentPos.x + NODE_W / 2; y1 = parentPos.y + NODE_H;
-      x2 = childPos.x + NODE_W / 2; y2 = childPos.y;
+      x1 = parentPos.x + pw / 2; y1 = parentPos.y + NODE_H;
+      x2 = childPos.x + cw / 2; y2 = childPos.y;
     } else {
-      x1 = parentPos.x + NODE_W / 2; y1 = parentPos.y;
-      x2 = childPos.x + NODE_W / 2; y2 = childPos.y + NODE_H;
+      x1 = parentPos.x + pw / 2; y1 = parentPos.y;
+      x2 = childPos.x + cw / 2; y2 = childPos.y + NODE_H;
     }
 
-    var cx1 = x1 + (x2 - x1) * 0.4;
-    var cy1 = y1;
-    var cx2 = x2 - (x2 - x1) * 0.4;
-    var cy2 = y2;
-    var strokeColor = n.done ? '#a7f3d0' : '#d1d5db';
+    var strokeColor = n.done ? '#a7f3d0' : '#fecdd3';
+    // Auto-judge: straight line if nearly aligned, otherwise curve
+    var dx = Math.abs(x2 - x1);
+    var dy = Math.abs(y2 - y1);
+    var path;
+    if (dy < 25) {
+      // nearly horizontal → straight line
+      path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
+    } else if (dx < 40) {
+      // nearly vertical → straight line
+      path = 'M' + x1 + ',' + y1 + ' L' + x2 + ',' + y2;
+    } else {
+      // diagonal → bezier curve
+      var cx1 = x1 + (x2 - x1) * 0.4;
+      var cy1 = y1;
+      var cx2 = x2 - (x2 - x1) * 0.4;
+      var cy2 = y2;
+      path = 'M' + x1 + ',' + y1 + ' C' + cx1 + ',' + cy1 + ' ' + cx2 + ',' + cy2 + ' ' + x2 + ',' + y2;
+    }
 
-    lines += '<path d="M' + x1 + ',' + y1 + ' C' + cx1 + ',' + cy1 + ' ' + cx2 + ',' + cy2 + ' ' + x2 + ',' + y2 + '" stroke="' + strokeColor + '" stroke-width="2" fill="none"/>';
+    lines += '<path d="' + path + '" stroke="' + strokeColor + '" stroke-width="2" fill="none"/>';
   });
   return lines;
 }
@@ -1392,7 +1469,6 @@ async function renderMindMap(workflowId) {
   var positions = layout.positions;
   var canvasW = Math.max(layout.w, 600);
   var canvasH = Math.max(layout.h, 520);
-  var NODE_W = 160;
 
   var svgLines = drawConnections(nodes, positions);
 
@@ -1407,7 +1483,8 @@ async function renderMindMap(workflowId) {
     var descSnippet = (n.description || '').substring(0, 30);
     if ((n.description || '').length > 30) descSnippet += '...';
 
-    return '<div class="mindmap-node' + doneClass + rootClass + shapeClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
+    var sizeClass = ' size-' + (n.size || 'medium');
+    return '<div class="mindmap-node' + doneClass + rootClass + shapeClass + sizeClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
       + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
       + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
       + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
@@ -1439,13 +1516,33 @@ async function renderMindMap(workflowId) {
   canvas.ontouchmove = onMindmapTouchMove;
   canvas.ontouchend = onMindmapTouchEnd;
 
+  // Attach drag handlers to nodes
+  var nodeEls = canvas.querySelectorAll('.mindmap-node');
+  nodeEls.forEach(function(nodeEl) {
+    var nid = parseInt(nodeEl.getAttribute('data-node-id'));
+    if (!nid) return;
+    nodeEl.addEventListener('mousedown', function(e) { onNodePointerDown(e, nid, nodeEl); });
+    nodeEl.addEventListener('touchstart', function(e) { onNodePointerDown(e, nid, nodeEl); }, { passive: false });
+  });
+  // Document-level move/up for drag (attached once)
+  if (!document._mmDragBound) {
+    document._mmDragBound = true;
+    document.addEventListener('mousemove', onNodePointerMove);
+    document.addEventListener('mouseup', onNodePointerUp);
+    document.addEventListener('touchmove', onNodePointerMove, { passive: false });
+    document.addEventListener('touchend', onNodePointerUp);
+  }
+
   var badge = document.getElementById('header-badge');
   if (badge) badge.textContent = nodes.length + ' 个节点';
 
   // Scroll to root
   var rootPos = positions[layout.rootId];
   if (rootPos) {
-    canvas.scrollLeft = rootPos.x - canvas.clientWidth / 2 + NODE_W / 2;
+    var rootNode = nodes.find(function(n) { return n.id === layout.rootId; });
+    var rSize = rootNode ? (rootNode.size || 'medium') : 'medium';
+    var rootW = rSize === 'small' ? 120 : rSize === 'large' ? 210 : 160;
+    canvas.scrollLeft = rootPos.x - canvas.clientWidth / 2 + rootW / 2;
     canvas.scrollTop = rootPos.y - canvas.clientHeight / 2 + 35;
   }
 
@@ -1555,8 +1652,13 @@ function quickAddNode(parentId, direction) {
   popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
     + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
     + '<div style="display:flex; gap:6px; margin:6px 0;" id="quick-shape-select">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角矩形</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊形</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
+    + '</div>'
+    + '<div style="display:flex; gap:6px; margin:0 0 6px 0;" id="quick-size-select">'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn" data-size="small" style="flex:1; padding:3px; border-radius:6px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">小</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn active" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.6rem; color:#7c3aed; cursor:pointer;">中</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">大</button>'
     + '</div>'
     + '<div class="mindmap-quick-add-btns">'
       + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
@@ -1593,6 +1695,24 @@ function renderQuickShapeBtns() {
   });
 }
 
+function renderQuickSizeBtns() {
+  var container = document.getElementById('quick-size-select');
+  if (!container) return;
+  var selected = container.dataset.size || 'medium';
+  var btns = container.querySelectorAll('.quick-size-btn');
+  btns.forEach(function(b) {
+    if (b.dataset.size === selected) {
+      b.style.border = '2px solid #8b5cf6';
+      b.style.background = '#ede9fe';
+      b.style.color = '#7c3aed';
+    } else {
+      b.style.border = '2px solid #e5e7eb';
+      b.style.background = '#fff';
+      b.style.color = '#6b7280';
+    }
+  });
+}
+
 async function confirmQuickAdd() {
   var inp = document.getElementById('quick-add-input');
   var title = inp ? inp.value.trim() : '';
@@ -1601,8 +1721,10 @@ async function confirmQuickAdd() {
 
   var shapeContainer = document.getElementById('quick-shape-select');
   var shape = shapeContainer ? (shapeContainer.dataset.shape || 'rounded') : 'rounded';
+  var sizeContainer = document.getElementById('quick-size-select');
+  var size = sizeContainer ? (sizeContainer.dataset.size || 'medium') : 'medium';
 
-  await addWorkflowNode(currentWorkflowId, quickAddParentId, quickAddDirection, title, '', shape);
+  await addWorkflowNode(currentWorkflowId, quickAddParentId, quickAddDirection, title, '', shape, size);
   cancelQuickAdd();
   await renderMindMap(currentWorkflowId);
   var nodes = await getWorkflowNodes(currentWorkflowId);
@@ -1615,6 +1737,61 @@ function cancelQuickAdd() {
   if (el) el.remove();
   quickAddParentId = null;
   quickAddDirection = null;
+}
+
+// ── Node Drag (long-press) ───────────────────
+function onNodePointerDown(e, nodeId, nodeEl) {
+  if (e.button !== undefined && e.button !== 0) return;
+  if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+  var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  mmDragInfo = {
+    nodeId: nodeId,
+    nodeEl: nodeEl,
+    startX: clientX,
+    startY: clientY,
+    nodeLeft: parseFloat(nodeEl.style.left) || 0,
+    nodeTop: parseFloat(nodeEl.style.top) || 0,
+    timer: setTimeout(function() {
+      mmDragInfo.isDragging = true;
+      nodeEl.classList.add('dragging');
+    }, 400),
+    isDragging: false
+  };
+}
+
+function onNodePointerMove(e) {
+  if (!mmDragInfo) return;
+  var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  if (!mmDragInfo.isDragging) {
+    var dx = Math.abs(clientX - mmDragInfo.startX);
+    var dy = Math.abs(clientY - mmDragInfo.startY);
+    if (dx > 5 || dy > 5) { clearTimeout(mmDragInfo.timer); mmDragInfo = null; }
+    return;
+  }
+  e.preventDefault();
+  var dx = (clientX - mmDragInfo.startX) / mindmapZoom;
+  var dy = (clientY - mmDragInfo.startY) / mindmapZoom;
+  mmDragInfo.nodeEl.style.left = (mmDragInfo.nodeLeft + dx) + 'px';
+  mmDragInfo.nodeEl.style.top = (mmDragInfo.nodeTop + dy) + 'px';
+}
+
+async function onNodePointerUp(e) {
+  if (!mmDragInfo) return;
+  if (mmDragInfo.isDragging) {
+    var el = mmDragInfo.nodeEl;
+    var nid = mmDragInfo.nodeId;
+    el.classList.remove('dragging');
+    var newX = Math.round(parseFloat(el.style.left) || 0);
+    var newY = Math.round(parseFloat(el.style.top) || 0);
+    mmDragInfo = null;
+    await updateWorkflowNode(nid, { posX: newX, posY: newY });
+    await renderMindMap(currentWorkflowId);
+  } else {
+    clearTimeout(mmDragInfo.timer);
+    mmDragInfo = null;
+  }
 }
 
 // ── Node Actions ────────────────────────────
