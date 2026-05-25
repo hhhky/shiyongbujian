@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection', function(e) {
   toast('系统错误: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
 });
 
-const COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316'];
+const COLORS = ['#8b5cf6','#ec4899','#f97316','#10b981','#3b82f6','#f43f5e','#0ea5e9','#84cc16'];
 let selectedColor = COLORS[0];
 let selectedFile = null;
 let selectedUploadCat = null;
@@ -43,17 +43,17 @@ function switchTab(tab) {
 
   // Bottom nav buttons (mobile)
   document.querySelectorAll('.nav-tab').forEach(b => {
-    b.classList.remove('text-primary-500'); b.classList.add('text-gray-400');
+    b.style.color = ''; b.classList.add('text-gray-400'); b.classList.remove('active');
   });
   var navBtn = document.querySelector('.nav-tab[data-tab="' + tab + '"]');
-  if (navBtn) { navBtn.classList.remove('text-gray-400'); navBtn.classList.add('text-primary-500'); }
+  if (navBtn) { navBtn.classList.remove('text-gray-400'); navBtn.classList.add('active'); navBtn.style.color = '#7c3aed'; }
 
   // Sidebar nav buttons (tablet+)
   document.querySelectorAll('.sidebar-tab').forEach(b => {
-    b.classList.remove('text-primary-500','bg-primary-50'); b.classList.add('text-gray-500');
+    b.classList.remove('active'); b.classList.add('text-gray-500'); b.classList.remove('font-semibold'); b.classList.add('font-medium');
   });
   var sideBtn = document.querySelector('.sidebar-tab[data-tab="' + tab + '"]');
-  if (sideBtn) { sideBtn.classList.remove('text-gray-500'); sideBtn.classList.add('text-primary-500','bg-primary-50'); }
+  if (sideBtn) { sideBtn.classList.remove('text-gray-500','font-medium'); sideBtn.classList.add('active','font-semibold'); }
 
   var titles = { categories:'分类管理', files:'资料列表', upload:'上传资料' };
   document.getElementById('header-title').textContent = titles[tab] || '复习资料';
@@ -91,7 +91,7 @@ function hideCategoryModal() {
 function renderColorPicker() {
   const container = document.getElementById('color-picker');
   container.innerHTML = COLORS.map(c =>
-    `<button onclick="selectColor('${c}')" class="w-9 h-9 rounded-full transition-transform active:scale-90 flex items-center justify-center" style="background:${c}">
+    `<button onclick="selectColor('${c}')" class="w-10 h-10 rounded-full transition-all active:scale-90 flex items-center justify-center shadow-md hover:scale-110 hover:shadow-lg" style="background:${c}">
       ${selectedColor === c ? '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
     </button>`
   ).join('');
@@ -119,13 +119,13 @@ async function renderCategories() {
   }
   container.innerHTML = cats.map(c => {
     const count = files.filter(f => f.categoryId === c.id).length;
-    return `<div class="bg-white rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform">
-      <span class="cat-color" style="background:${c.color}"></span>
+    return `<div class="bg-white/80 backdrop-blur rounded-xl p-4 flex items-center gap-3 card-hover cursor-default shadow-sm" style="border-left: 4px solid ${c.color}">
+      <span class="cat-color" style="background:${c.color}; color:${c.color};"></span>
       <div class="flex-1 min-w-0">
-        <p class="font-medium text-gray-800 text-sm">${esc(c.name)}</p>
+        <p class="font-semibold text-gray-800 text-sm">${esc(c.name)}</p>
         <p class="text-xs text-gray-400">${count} 份资料</p>
       </div>
-      <button onclick="removeCategory(${c.id})" class="text-gray-300 hover:text-red-400 text-xs px-2 py-1 active:scale-90 transition-transform">删除</button>
+      <button onclick="removeCategory(${c.id})" class="text-gray-300 hover:text-dopa-coral-400 text-xs px-2 py-1 active:scale-90 transition-all">删除</button>
     </div>`;
   }).join('');
 }
@@ -154,14 +154,14 @@ async function renderFiles() {
   container.innerHTML = filtered.sort((a,b) => b.createdAt - a.createdAt).map(f => {
     var icon = getFileIcon(f.type, f.name);
     var sizeStr = f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1)+'MB' : (f.size/1024).toFixed(0)+'KB';
-    return `<div class="bg-white rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform" onclick="previewFile(${f.id})">
+    return `<div class="bg-white/80 backdrop-blur rounded-xl p-4 flex items-center gap-3 card-hover cursor-pointer shadow-sm" onclick="previewFile(${f.id})">
       <span class="text-2xl shrink-0">${icon}</span>
       <div class="flex-1 min-w-0">
         <span id="fname-${f.id}" class="font-medium text-gray-800 text-sm truncate block">${esc(f.name)}</span>
         <p class="text-xs text-gray-400">${sizeStr} · ${new Date(f.createdAt).toLocaleDateString('zh-CN')}</p>
       </div>
-      <button onclick="event.stopPropagation();startRename(${f.id})" class="text-gray-300 hover:text-blue-400 text-sm px-1 py-1 active:scale-90 transition-transform shrink-0" title="重命名">✎</button>
-      <button onclick="event.stopPropagation();removeFile(${f.id})" class="text-gray-300 hover:text-red-400 text-xs px-1 py-1 active:scale-90 transition-transform shrink-0">🗑</button>
+      <button onclick="event.stopPropagation();startRename(${f.id})" class="text-gray-300 hover:text-dopa-purple-400 text-sm px-1 py-1 active:scale-90 transition-all shrink-0" title="重命名">✎</button>
+      <button onclick="event.stopPropagation();removeFile(${f.id})" class="text-gray-300 hover:text-dopa-coral-400 text-xs px-1 py-1 active:scale-90 transition-all shrink-0">🗑</button>
     </div>`;
   }).join('');
 }
@@ -171,11 +171,11 @@ function filterFiles(catId) {
   document.querySelectorAll('.cat-filter-btn').forEach(b => {
     var matchAll = catId === null && b.dataset.cat === 'all';
     var matchCat = catId !== null && Number(b.dataset.cat) === catId;
-    b.classList.remove('bg-primary-500','text-white','bg-gray-100','text-gray-600');
+    b.className = b.className.replace(/btn-gradient|shadow-md|text-white|bg-gray-100|text-gray-600|font-semibold/g,'');
     if (matchAll || matchCat) {
-      b.classList.add('bg-primary-500','text-white');
+      b.classList.add('btn-gradient','shadow-md','text-white','font-semibold');
     } else {
-      b.classList.add('bg-gray-100','text-gray-600');
+      b.classList.add('bg-gray-100','text-gray-600','font-medium');
     }
   });
   renderFiles();
@@ -185,7 +185,7 @@ async function renderCategoryFilter() {
   const cats = await getCategories();
   const bar = document.getElementById('category-filter-bar');
   const files = await getFiles();
-  bar.innerHTML = `<button onclick="filterFiles(null)" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-primary-500 text-white active:scale-95 transition-transform" data-cat="all">全部 (${files.length})</button>` +
+  bar.innerHTML = `<button onclick="filterFiles(null)" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold text-white btn-gradient shadow-md active:scale-95 transition-all" data-cat="all">全部 (${files.length})</button>` +
     cats.map(c => {
       const count = files.filter(f => f.categoryId === c.id).length;
       return `<button onclick="filterFiles(${c.id})" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 active:scale-95 transition-transform" data-cat="${c.id}">${esc(c.name)} (${count})</button>`;
@@ -344,8 +344,10 @@ function clearSelectedFile() {
 function selectUploadCategory(catId) {
   selectedUploadCat = catId;
   document.querySelectorAll('.upload-cat-option').forEach(el => {
-    el.classList.toggle('ring-2', Number(el.dataset.cat) === catId);
-    el.classList.toggle('ring-primary-500', Number(el.dataset.cat) === catId);
+    var sel = Number(el.dataset.cat) === catId;
+    el.classList.toggle('ring-2', sel);
+    el.classList.toggle('ring-dopa-purple-400', sel);
+    el.style.transform = sel ? 'scale(1.02)' : '';
   });
   updateUploadBtn();
 }
@@ -355,10 +357,11 @@ function updateUploadBtn() {
   if (selectedFile && selectedUploadCat !== null) {
     btn.disabled = false;
     btn.classList.remove('bg-gray-300');
-    btn.classList.add('bg-primary-500', 'active:scale-95');
+    btn.classList.add('btn-gradient','shadow-lg'); btn.style.background='linear-gradient(135deg, #8b5cf6, #ec4899)';
   } else {
     btn.disabled = true;
-    btn.classList.remove('bg-primary-500');
+    btn.style.background = '';
+    btn.className = btn.className.replace('btn-gradient','').replace('shadow-lg','');
     btn.classList.add('bg-gray-300');
   }
 }
@@ -370,7 +373,7 @@ async function renderUploadCategories() {
     container.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm col-span-full">请先到"分类"页面创建分类</div>';
     return;
   }
-  container.innerHTML = cats.map(c => `<div onclick="selectUploadCategory(${c.id})" class="upload-cat-option bg-white rounded-xl p-3 flex items-center gap-3 active:scale-[0.98] transition-all" data-cat="${c.id}">
+  container.innerHTML = cats.map(c => `<div onclick="selectUploadCategory(${c.id})" class="upload-cat-option bg-white/80 backdrop-blur rounded-xl p-3 flex items-center gap-3 card-hover cursor-pointer transition-all shadow-sm" data-cat="${c.id}">
     <span class="cat-color" style="background:${c.color}"></span>
     <span class="text-sm font-medium text-gray-700">${esc(c.name)}</span>
   </div>`).join('');
@@ -414,7 +417,7 @@ async function uploadFile() {
     toast('✅ 上传成功！id=' + id);
     clearSelectedFile();
     selectedUploadCat = null;
-    document.querySelectorAll('.upload-cat-option').forEach(el => el.classList.remove('ring-2','ring-primary-500'));
+    document.querySelectorAll('.upload-cat-option').forEach(el => { el.classList.remove('ring-2','ring-dopa-purple-400'); el.style.transform = ''; });
     updateUploadBtn();
     btn.textContent = '上传资料';
     await refreshAll();
