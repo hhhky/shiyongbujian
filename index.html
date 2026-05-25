@@ -54,6 +54,16 @@
       transform: translateY(-3px);
       box-shadow: 0 8px 30px rgba(139,92,246,0.35) !important;
     }
+    .flow-line-container { position: relative; padding-left: 6px; }
+    .flow-line-container::before { content: ''; position: absolute; left: 10px; top: 16px; bottom: 16px; width: 3px; background: linear-gradient(180deg, #10b981, #34d399, #10b981); border-radius: 2px; }
+    .flow-node { position: relative; padding-bottom: 4px; }
+    .flow-node:last-child { padding-bottom: 0; }
+    .flow-node-dot { position: absolute; left: -2px; top: 24px; width: 14px; height: 14px; border-radius: 50%; background: #d1d5db; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(139,92,246,0.15); z-index: 2; transition: all 0.3s ease; }
+    .flow-node-done .flow-node-dot { background: #10b981; border-color: #d1fae5; box-shadow: 0 0 0 3px rgba(16,185,129,0.2), 0 0 12px rgba(16,185,129,0.3); }
+    .flow-node-done .flow-node-card { opacity: 0.85; border-left: 3px solid #10b981; }
+    .flow-node-card { transition: all 0.3s ease; }
+    .memo-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
+    .memo-card:hover { border-left-color: #10b981; box-shadow: 0 4px 16px rgba(16,185,129,0.08); }
     .preview-overlay { z-index: 9999; }
     .cat-color { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
 
@@ -153,21 +163,10 @@
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             <span class="hidden lg:inline">实用部件</span>
           </button>
-          <button onclick="switchTab('categories')" class="sidebar-sub sidebar-tab active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold" data-tab="categories">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-            <span class="hidden lg:inline">分类管理</span>
-          </button>
-          <button onclick="switchTab('files')" class="sidebar-sub sidebar-tab flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500" data-tab="files">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span class="hidden lg:inline">资料列表</span>
-          </button>
-          <button onclick="switchTab('upload')" class="sidebar-sub sidebar-tab flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500" data-tab="upload">
-            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            <span class="hidden lg:inline">上传资料</span>
-          </button>
+          <div id="sidebar-tabs-container" class="flex flex-col gap-1"></div>
         </nav>
-        <div class="sidebar-sub p-3" style="border-top: 1px solid rgba(139,92,246,0.1);">
-          <span class="text-xs text-gray-400" id="sidebar-file-count">共 0 份资料</span>
+        <div id="sidebar-footer" class="hidden p-3" style="border-top: 1px solid rgba(139,92,246,0.1);">
+          <span class="text-xs text-gray-400" id="sidebar-footer-text"></span>
         </div>
       </aside>
 
@@ -251,23 +250,59 @@
           </div>
         </div>
 
+
+
+        <!-- Memos Page -->
+        <div id="page-memos" class="page p-4 md:p-6 lg:p-8">
+          <div class="flex items-center justify-between mb-5 md:mb-7">
+            <div>
+              <h2 class="text-lg md:text-xl font-bold" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">备忘录</h2>
+              <p class="text-xs text-gray-400 mt-0.5">记录待办事项，设置截止日期</p>
+            </div>
+            <button onclick="showAddMemo()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
+          </div>
+          <div id="memos-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有备忘录，点击上方按钮创建</div>
+          </div>
+        </div>
+
+        <!-- Workflows Page -->
+        <div id="page-workflows" class="page p-4 md:p-6 lg:p-8">
+          <!-- List View -->
+          <div id="workflows-list-view">
+            <div class="flex items-center justify-between mb-5 md:mb-7">
+              <div>
+                <h2 class="text-lg md:text-xl font-bold" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">工作流</h2>
+                <p class="text-xs text-gray-400 mt-0.5">创建顺序流程，逐步推进任务</p>
+              </div>
+              <button onclick="showAddWorkflow()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建工作流</button>
+            </div>
+            <div id="workflows-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有工作流，点击上方按钮创建</div>
+            </div>
+          </div>
+          <!-- Detail View -->
+          <div id="workflow-detail-view" class="hidden">
+            <div class="flex items-center gap-3 mb-5 md:mb-7">
+              <button onclick="backToWorkflowsList()" class="text-gray-400 hover:text-dopa-purple-500 active:scale-90 transition-all p-1">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <h2 id="workflow-detail-title" class="text-lg md:text-xl font-bold flex-1" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></h2>
+              <button onclick="showAddNode()" class="btn-gradient text-white text-sm px-4 py-2 rounded-full font-semibold shadow-lg">＋ 添加节点</button>
+              <button onclick="deleteCurrentWorkflow()" class="text-gray-300 hover:text-dopa-coral-400 text-sm px-1 py-1 active:scale-90 transition-all">🗑</button>
+            </div>
+            <div id="workflow-nodes" class="ml-2 md:ml-4">
+              <div class="text-center text-gray-400 py-12 text-sm">还没有节点，点击上方按钮添加</div>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
 
     <!-- Bottom Navigation (mobile only, shown inside widgets) -->
-    <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 flex justify-around py-1.5 z-50 mx-auto max-w-sm hidden" style="background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 4px 24px rgba(139,92,246,0.15), 0 1px 4px rgba(0,0,0,0.05);">
-      <button onclick="switchTab('categories')" class="nav-tab active flex flex-col items-center gap-0.5 py-1 px-4 rounded-2xl transition-all" style="color: #7c3aed;" data-tab="categories">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-        <span class="text-xs font-medium">分类</span>
-      </button>
-      <button onclick="switchTab('files')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-2xl transition-all text-gray-400" data-tab="files">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <span class="text-xs font-medium">资料</span>
-      </button>
-      <button onclick="switchTab('upload')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-2xl transition-all text-gray-400" data-tab="upload">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-        <span class="text-xs font-medium">上传</span>
-      </button>
+    <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 z-50 mx-auto max-w-sm hidden" style="background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 4px 24px rgba(139,92,246,0.15), 0 1px 4px rgba(0,0,0,0.05);">
+      <div id="bottom-nav-tabs-container" class="flex justify-around py-1.5"></div>
     </nav>
 
     <!-- Preview Overlay -->
@@ -307,6 +342,37 @@
         <div class="flex gap-3">
           <button onclick="hideCategoryModal()" class="flex-1 py-3 rounded-xl font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
           <button onclick="confirmAddCategory()" class="flex-1 py-3 rounded-xl font-semibold text-white text-sm btn-gradient">确认创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memo Modal -->
+    <div id="memo-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+      <div class="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); animation: fadeIn 0.25s ease;">
+        <h3 id="memo-modal-title" class="text-lg font-bold mb-4" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">新建备忘录</h3>
+        <input type="text" id="memo-title-input" placeholder="标题" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
+        <textarea id="memo-content-input" rows="3" placeholder="内容（可选）" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50 resize-none"></textarea>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">截止日期（可选）</label>
+        <input type="datetime-local" id="memo-deadline-input" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-5 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
+        <div class="flex gap-3">
+          <button onclick="hideMemoModal()" class="flex-1 py-3 rounded-xl font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
+          <button onclick="confirmMemo()" id="memo-confirm-btn" class="flex-1 py-3 rounded-xl font-semibold text-white text-sm btn-gradient">确认创建</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workflow Modal -->
+    <div id="workflow-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+      <div class="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); animation: fadeIn 0.25s ease;">
+        <h3 id="workflow-modal-title" class="text-lg font-bold mb-4" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">新建工作流</h3>
+        <input type="text" id="workflow-name-input" placeholder="工作流名称" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
+        <div id="workflow-node-fields" class="hidden">
+          <input type="text" id="node-title-input" placeholder="节点标题" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
+          <textarea id="node-desc-input" rows="2" placeholder="节点描述（可选）" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-4 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50 resize-none"></textarea>
+        </div>
+        <div class="flex gap-3">
+          <button onclick="hideWorkflowModal()" class="flex-1 py-3 rounded-xl font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
+          <button onclick="confirmWorkflowModal()" class="flex-1 py-3 rounded-xl font-semibold text-white text-sm btn-gradient">确认</button>
         </div>
       </div>
     </div>

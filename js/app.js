@@ -22,9 +22,27 @@ let pinchZoom0 = 1;
 
 // ── Widget Registry ────────────────────────
 const WIDGETS = [
-  { id: 'review', name: '资料管理', icon: '📁', desc: '分类管理、上传和预览各类资料', color: '#8b5cf6' }
+  {
+    id: 'review', name: '资料管理', icon: '📁', desc: '分类管理、上传和预览各类资料', color: '#8b5cf6',
+    tabs: [
+      { id: 'categories', name: '分类管理', shortName: '分类', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>' },
+      { id: 'files', name: '资料列表', shortName: '资料', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
+      { id: 'upload', name: '上传资料', shortName: '上传', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>' }
+    ]
+  },
+  {
+    id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，管理工作流程', color: '#10b981',
+    tabs: [
+      { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
+      { id: 'workflows', name: '工作流', shortName: '流程', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' }
+    ]
+  }
 ];
 let currentWidget = null;
+let currentWorkflowId = null;
+let editingMemoId = null;
+let workflowModalMode = null;
+let editingNodeId = null;
 
 function renderWidgets() {
   var grid = document.getElementById('widgets-grid');
@@ -47,7 +65,9 @@ function enterWidget(id) {
   // Show widget pages
   document.getElementById('page-home').classList.remove('active');
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  document.getElementById('page-categories').classList.add('active');
+  var firstTabId = w.tabs[0].id;
+  var firstPage = document.getElementById('page-' + firstTabId);
+  if (firstPage) firstPage.classList.add('active');
 
   // Header
   document.getElementById('header-back-btn').classList.remove('hidden');
@@ -60,16 +80,20 @@ function enterWidget(id) {
 
   // Sidebar: show back link + widget nav
   document.getElementById('sidebar-back-btn').classList.remove('hidden');
-  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.style.display = ''; });
+  document.getElementById('sidebar-footer').classList.remove('hidden');
+  renderSidebarTabs(w);
+  renderBottomNavTabs(w);
 
-  // Reset to categories tab
-  switchTab('categories');
+  // Activate first tab
+  switchTab(firstTabId);
   refreshAll();
-  renderColorPicker();
+  if (id === 'review') renderColorPicker();
+  if (id === 'memo') { currentWorkflowId = null; backToWorkflowsList(true); }
 }
 
 function goHome() {
   currentWidget = null;
+  currentWorkflowId = null;
 
   // Hide widget pages, show home
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
@@ -86,10 +110,34 @@ function goHome() {
 
   // Sidebar
   document.getElementById('sidebar-back-btn').classList.add('hidden');
-  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.style.display = 'none'; });
+  document.getElementById('sidebar-footer').classList.add('hidden');
+  document.getElementById('sidebar-tabs-container').innerHTML = '';
+  document.getElementById('bottom-nav-tabs-container').innerHTML = '';
 
   closePreview();
   renderWidgets();
+}
+
+function renderSidebarTabs(w) {
+  var container = document.getElementById('sidebar-tabs-container');
+  if (!container) return;
+  container.innerHTML = w.tabs.map(function(t, i) {
+    return '<button onclick="switchTab(\'' + t.id + '\')" class="sidebar-tab flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm ' + (i === 0 ? 'active font-semibold' : 'font-medium text-gray-500') + '" data-tab="' + t.id + '">'
+      + '<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + t.svg + '</svg>'
+      + '<span class="hidden lg:inline">' + esc(t.name) + '</span>'
+    + '</button>';
+  }).join('');
+}
+
+function renderBottomNavTabs(w) {
+  var container = document.getElementById('bottom-nav-tabs-container');
+  if (!container) return;
+  container.innerHTML = w.tabs.map(function(t, i) {
+    return '<button onclick="switchTab(\'' + t.id + '\')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-2xl transition-all' + (i === 0 ? ' active' : ' text-gray-400') + '" style="' + (i === 0 ? 'color: #7c3aed;' : '') + '" data-tab="' + t.id + '">'
+      + '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + t.svg + '</svg>'
+      + '<span class="text-xs font-medium">' + esc(t.shortName) + '</span>'
+    + '</button>';
+  }).join('');
 }
 
 function updateHomeBadge() {
@@ -101,51 +149,74 @@ function updateHomeBadge() {
 async function init() {
   renderWidgets();
   updateHomeBadge();
+  await cleanupExpiredMemos();
   var el;
   el = document.getElementById('header-back-btn'); if (el) el.classList.add('hidden');
   el = document.getElementById('header-title'); if (el) el.textContent = '实用部件';
   el = document.getElementById('bottom-nav'); if (el) el.classList.add('hidden');
   el = document.querySelector('.main-content'); if (el) el.classList.remove('has-nav');
   el = document.getElementById('sidebar-back-btn'); if (el) el.classList.add('hidden');
+  el = document.getElementById('sidebar-footer'); if (el) el.classList.add('hidden');
   el = document.getElementById('page-home'); if (el) el.classList.add('active');
-  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.style.display = 'none'; });
+  if (document.getElementById('sidebar-tabs-container')) document.getElementById('sidebar-tabs-container').innerHTML = '';
+  if (document.getElementById('bottom-nav-tabs-container')) document.getElementById('bottom-nav-tabs-container').innerHTML = '';
 }
 
 async function refreshAll() {
-  const [cats, files] = await Promise.all([getCategories(), getFiles()]);
-  const count = files.length;
-  var badge = document.getElementById('header-badge');
-  if (badge && currentWidget) badge.textContent = count + ' 份资料';
-  var sc = document.getElementById('sidebar-file-count');
-  if (sc) sc.textContent = '共 ' + count + ' 份资料';
-  renderCategories();
-  renderFiles();
-  renderUploadCategories();
-  renderCategoryFilter();
+  if (!currentWidget) return;
+  if (currentWidget === 'review') {
+    var _a = await Promise.all([getCategories(), getFiles()]);
+    var cats = _a[0]; var files = _a[1];
+    var count = files.length;
+    var badge = document.getElementById('header-badge');
+    if (badge) badge.textContent = count + ' 份资料';
+    var sc = document.getElementById('sidebar-footer-text');
+    if (sc) sc.textContent = '共 ' + count + ' 份资料';
+    renderCategories();
+    renderFiles();
+    renderUploadCategories();
+    renderCategoryFilter();
+  } else if (currentWidget === 'memo') {
+    await cleanupExpiredMemos();
+    var _b = await Promise.all([getMemos(), getWorkflows()]);
+    var memos = _b[0]; var workflows = _b[1];
+    var badge = document.getElementById('header-badge');
+    if (badge) badge.textContent = memos.length + ' 条备忘';
+    var sc = document.getElementById('sidebar-footer-text');
+    if (sc) sc.textContent = memos.length + ' 条备忘 · ' + workflows.length + ' 个工作流';
+    renderMemos();
+    renderWorkflows();
+  }
 }
 
 // ── Tab Navigation ────────────────────────
 function switchTab(tab) {
   if (!currentWidget) return;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + tab).classList.add('active');
+  var page = document.getElementById('page-' + tab);
+  if (page) page.classList.add('active');
 
   // Bottom nav buttons (mobile)
-  document.querySelectorAll('.nav-tab').forEach(b => {
+  document.querySelectorAll('.nav-tab').forEach(function(b) {
     b.style.color = ''; b.classList.add('text-gray-400'); b.classList.remove('active');
   });
   var navBtn = document.querySelector('.nav-tab[data-tab="' + tab + '"]');
   if (navBtn) { navBtn.classList.remove('text-gray-400'); navBtn.classList.add('active'); navBtn.style.color = '#7c3aed'; }
 
   // Sidebar nav buttons (tablet+)
-  document.querySelectorAll('.sidebar-tab').forEach(b => {
+  document.querySelectorAll('.sidebar-tab').forEach(function(b) {
     b.classList.remove('active'); b.classList.add('text-gray-500'); b.classList.remove('font-semibold'); b.classList.add('font-medium');
   });
   var sideBtn = document.querySelector('.sidebar-tab[data-tab="' + tab + '"]');
   if (sideBtn) { sideBtn.classList.remove('text-gray-500','font-medium'); sideBtn.classList.add('active','font-semibold'); }
 
-  if (tab === 'files') { renderCategoryFilter(); renderFiles(); }
-  if (tab === 'upload') renderUploadCategories();
+  if (currentWidget === 'review') {
+    if (tab === 'files') { renderCategoryFilter(); renderFiles(); }
+    if (tab === 'upload') renderUploadCategories();
+  } else if (currentWidget === 'memo') {
+    if (tab === 'memos') renderMemos();
+    if (tab === 'workflows') renderWorkflows();
+  }
 }
 
 // ── Toast ─────────────────────────────────
@@ -752,6 +823,329 @@ function getFileIcon(type, name) {
   if (cat === 'word') return '📝';
   if (cat === 'excel') return '📊';
   return '📎';
+}
+
+// ── Memo ───────────────────────────────────
+function showAddMemo() {
+  editingMemoId = null;
+  document.getElementById('memo-modal-title').textContent = '新建备忘录';
+  document.getElementById('memo-confirm-btn').textContent = '确认创建';
+  document.getElementById('memo-title-input').value = '';
+  document.getElementById('memo-content-input').value = '';
+  document.getElementById('memo-deadline-input').value = '';
+  document.getElementById('memo-modal').classList.remove('hidden');
+  document.getElementById('memo-title-input').focus();
+}
+
+function showEditMemo(id) {
+  editingMemoId = id;
+  getMemos().then(function(memos) {
+    var m = memos.find(function(x) { return x.id === id; });
+    if (!m) return;
+    document.getElementById('memo-modal-title').textContent = '编辑备忘录';
+    document.getElementById('memo-confirm-btn').textContent = '确认更新';
+    document.getElementById('memo-title-input').value = m.title;
+    document.getElementById('memo-content-input').value = m.content || '';
+    if (m.deadline) {
+      var d = new Date(m.deadline);
+      document.getElementById('memo-deadline-input').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+    } else {
+      document.getElementById('memo-deadline-input').value = '';
+    }
+    document.getElementById('memo-modal').classList.remove('hidden');
+    document.getElementById('memo-title-input').focus();
+  });
+}
+
+function hideMemoModal() {
+  document.getElementById('memo-modal').classList.add('hidden');
+  editingMemoId = null;
+}
+
+async function confirmMemo() {
+  var title = document.getElementById('memo-title-input').value.trim();
+  if (!title) { toast('请输入备忘录标题'); return; }
+  var content = document.getElementById('memo-content-input').value.trim();
+  var deadlineVal = document.getElementById('memo-deadline-input').value;
+  var deadline = deadlineVal ? new Date(deadlineVal).getTime() : null;
+
+  if (editingMemoId) {
+    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline });
+    toast('备忘录已更新');
+  } else {
+    await addMemo(title, content, deadline);
+    toast('备忘录已创建');
+  }
+  hideMemoModal();
+  await refreshAll();
+}
+
+async function deleteMemoById(id) {
+  if (!await confirmDialog('确定删除这条备忘录？')) return;
+  await deleteMemo(id);
+  toast('备忘录已删除');
+  await refreshAll();
+}
+
+async function cleanupExpiredMemos() {
+  try {
+    var memos = await getMemos();
+    var now = Date.now();
+    var GRACE = 7 * 24 * 60 * 60 * 1000;
+    for (var i = 0; i < memos.length; i++) {
+      if (memos[i].deadline && (memos[i].deadline + GRACE) < now) {
+        await deleteMemo(memos[i].id);
+      }
+    }
+  } catch(e) { /* silent */ }
+}
+
+function getDaysInfo(memo) {
+  if (!memo.deadline) return { label: '无截止日期', color: '#9ca3af', urgent: false };
+  var now = Date.now();
+  var deadline = memo.deadline;
+  var deletionTime = deadline + 7 * 24 * 60 * 60 * 1000;
+  var msRemaining = deletionTime - now;
+  if (msRemaining <= 0) return { label: '即将删除...', color: '#ef4444', urgent: true };
+  var days = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+  if (now > deadline) return { label: '已过期 · ' + days + '天后自动删除', color: '#f97316', urgent: true };
+  var daysToDeadline = Math.ceil((deadline - now) / (24 * 60 * 60 * 1000));
+  if (daysToDeadline <= 1) return { label: '即将到期 · ' + days + '天后删除', color: '#e11d48', urgent: true };
+  if (daysToDeadline <= 3) return { label: daysToDeadline + '天后到期 · ' + days + '天后删除', color: '#f97316', urgent: false };
+  return { label: daysToDeadline + '天后到期', color: '#6b7280', urgent: false };
+}
+
+async function renderMemos() {
+  await cleanupExpiredMemos();
+  var memos = await getMemos();
+  var container = document.getElementById('memos-list');
+  if (memos.length === 0) {
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有备忘录，点击上方按钮创建</div>';
+    return;
+  }
+  container.innerHTML = memos.sort(function(a,b){ return b.createdAt - a.createdAt; }).map(function(m) {
+    var info = getDaysInfo(m);
+    var preview = (m.content || '').substring(0, 80);
+    if ((m.content || '').length > 80) preview += '...';
+    return '<div class="bg-white/80 backdrop-blur rounded-xl p-4 card-hover shadow-sm memo-card">'
+      + '<div class="flex items-start justify-between mb-2">'
+        + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(m.title) + '</h4>'
+        + '<div class="flex gap-0.5 shrink-0 ml-2">'
+          + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="text-gray-300 hover:text-dopa-purple-400 text-sm px-1 py-0 active:scale-90 transition-all">✎</button>'
+          + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="text-gray-300 hover:text-dopa-coral-400 text-sm px-1 py-0 active:scale-90 transition-all">🗑</button>'
+        + '</div>'
+      + '</div>'
+      + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
+      + '<div class="flex items-center justify-between text-xs">'
+        + '<span class="text-gray-400">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + '</span>'
+        + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+// ── Workflow ───────────────────────────────
+function showAddWorkflow() {
+  workflowModalMode = 'create-workflow';
+  document.getElementById('workflow-modal-title').textContent = '新建工作流';
+  document.getElementById('workflow-name-input').value = '';
+  document.getElementById('workflow-name-input').style.display = '';
+  document.getElementById('workflow-node-fields').classList.add('hidden');
+  document.getElementById('workflow-modal').classList.remove('hidden');
+  document.getElementById('workflow-name-input').focus();
+}
+
+function showAddNode() {
+  workflowModalMode = 'add-node';
+  editingNodeId = null;
+  document.getElementById('workflow-modal-title').textContent = '添加节点';
+  document.getElementById('workflow-name-input').style.display = 'none';
+  document.getElementById('workflow-node-fields').classList.remove('hidden');
+  document.getElementById('node-title-input').value = '';
+  document.getElementById('node-desc-input').value = '';
+  document.getElementById('workflow-modal').classList.remove('hidden');
+  document.getElementById('node-title-input').focus();
+}
+
+function showEditNode(nodeId) {
+  workflowModalMode = 'edit-node';
+  editingNodeId = nodeId;
+  getWorkflowNodes(currentWorkflowId).then(function(nodes) {
+    var n = nodes.find(function(x) { return x.id === nodeId; });
+    if (!n) return;
+    document.getElementById('workflow-modal-title').textContent = '编辑节点';
+    document.getElementById('workflow-name-input').style.display = 'none';
+    document.getElementById('workflow-node-fields').classList.remove('hidden');
+    document.getElementById('node-title-input').value = n.title;
+    document.getElementById('node-desc-input').value = n.description || '';
+    document.getElementById('workflow-modal').classList.remove('hidden');
+    document.getElementById('node-title-input').focus();
+  });
+}
+
+function hideWorkflowModal() {
+  document.getElementById('workflow-modal').classList.add('hidden');
+  workflowModalMode = null;
+  editingNodeId = null;
+}
+
+async function confirmWorkflowModal() {
+  if (workflowModalMode === 'create-workflow') {
+    var name = document.getElementById('workflow-name-input').value.trim();
+    if (!name) { toast('请输入工作流名称'); return; }
+    var id = await addWorkflow(name);
+    toast('工作流已创建');
+    hideWorkflowModal();
+    enterWorkflow(id);
+    await refreshAll();
+  } else if (workflowModalMode === 'add-node') {
+    var title = document.getElementById('node-title-input').value.trim();
+    if (!title) { toast('请输入节点标题'); return; }
+    var desc = document.getElementById('node-desc-input').value.trim();
+    await addWorkflowNode(currentWorkflowId, title, desc);
+    toast('节点已添加');
+    hideWorkflowModal();
+    await renderWorkflowNodes(currentWorkflowId);
+    var badge = document.getElementById('header-badge');
+    if (badge) {
+      var totalNodes = (await getWorkflowNodes(currentWorkflowId)).length;
+      badge.textContent = totalNodes + ' 个节点';
+    }
+  } else if (workflowModalMode === 'edit-node') {
+    var title = document.getElementById('node-title-input').value.trim();
+    if (!title) { toast('请输入节点标题'); return; }
+    var desc = document.getElementById('node-desc-input').value.trim();
+    await updateWorkflowNode(editingNodeId, { title: title, description: desc });
+    toast('节点已更新');
+    hideWorkflowModal();
+    await renderWorkflowNodes(currentWorkflowId);
+  }
+}
+
+async function renderWorkflows() {
+  var workflows = await getWorkflows();
+  var container = document.getElementById('workflows-grid');
+  if (workflows.length === 0) {
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有工作流，点击上方按钮创建</div>';
+    return;
+  }
+  container.innerHTML = '';
+  for (var i = 0; i < workflows.length; i++) {
+    var w = workflows[i];
+    var nodes = await getWorkflowNodes(w.id);
+    var doneCount = nodes.filter(function(n) { return n.done; }).length;
+    var progress = nodes.length > 0 ? Math.round(doneCount / nodes.length * 100) : 0;
+    var div = document.createElement('div');
+    div.className = 'bg-white/80 backdrop-blur rounded-xl p-4 card-hover cursor-pointer shadow-sm';
+    div.onclick = function(wf) { return function() { enterWorkflow(wf.id); }; }(w);
+    div.innerHTML = '<div class="flex items-start justify-between mb-2">'
+      + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(w.name) + '</h4>'
+      + '<button onclick="event.stopPropagation();deleteWorkflowById(' + w.id + ')" class="text-gray-300 hover:text-dopa-coral-400 text-sm px-1 py-0 active:scale-90 transition-all shrink-0 ml-2">🗑</button>'
+      + '</div>'
+      + '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2">'
+        + '<span>' + nodes.length + ' 个节点</span>'
+        + '<span>·</span>'
+        + '<span>' + doneCount + ' 已完成</span>'
+      + '</div>'
+      + '<div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">'
+        + '<div class="h-full rounded-full transition-all duration-500" style="width:' + progress + '%; background: linear-gradient(90deg, #10b981, #34d399);"></div>'
+      + '</div>';
+    container.appendChild(div);
+  }
+}
+
+async function enterWorkflow(id) {
+  currentWorkflowId = id;
+  var workflows = await getWorkflows();
+  var w = workflows.find(function(x) { return x.id === id; });
+  if (!w) return;
+  document.getElementById('workflows-list-view').classList.add('hidden');
+  document.getElementById('workflow-detail-view').classList.remove('hidden');
+  document.getElementById('workflow-detail-title').textContent = w.name;
+  await renderWorkflowNodes(id);
+}
+
+function backToWorkflowsList(silent) {
+  currentWorkflowId = null;
+  var listView = document.getElementById('workflows-list-view');
+  var detailView = document.getElementById('workflow-detail-view');
+  if (listView) listView.classList.remove('hidden');
+  if (detailView) detailView.classList.add('hidden');
+  if (!silent) {
+    refreshAll();
+  }
+}
+
+async function deleteWorkflowById(id) {
+  if (!await confirmDialog('确定删除该工作流及其所有节点？')) return;
+  await deleteWorkflow(id);
+  toast('工作流已删除');
+  if (currentWorkflowId === id) backToWorkflowsList();
+  await refreshAll();
+}
+
+async function deleteCurrentWorkflow() {
+  if (!currentWorkflowId) return;
+  await deleteWorkflowById(currentWorkflowId);
+}
+
+async function renderWorkflowNodes(workflowId) {
+  var nodes = await getWorkflowNodes(workflowId);
+  var container = document.getElementById('workflow-nodes');
+  if (!container) return;
+  if (nodes.length === 0) {
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">还没有节点，点击上方按钮添加</div>';
+    return;
+  }
+  container.innerHTML = '<div class="flow-line-container">'
+    + nodes.map(function(n, i) {
+      var doneClass = n.done ? 'flow-node-done' : '';
+      var isLast = i === nodes.length - 1 ? ' flow-node-last' : '';
+      return '<div class="flow-node ' + doneClass + isLast + '">'
+        + '<div class="flow-node-dot"></div>'
+        + '<div class="flow-node-card bg-white/80 backdrop-blur rounded-xl p-4 card-hover shadow-sm">'
+          + '<div class="flex items-start justify-between">'
+            + '<div class="flex-1 min-w-0">'
+              + '<div class="flex items-center gap-2 mb-1">'
+                + '<span class="text-xs font-bold text-white rounded-full w-5 h-5 flex items-center justify-center shrink-0" style="background:' + (n.done ? '#10b981' : '#d1d5db') + '">' + (n.done ? '✓' : (i+1)) + '</span>'
+                + '<h4 class="font-semibold text-gray-800 text-sm ' + (n.done ? 'line-through text-gray-400' : '') + '">' + esc(n.title) + '</h4>'
+              + '</div>'
+              + (n.description ? '<p class="text-xs text-gray-500 ml-7">' + esc(n.description) + '</p>' : '')
+            + '</div>'
+            + '<div class="flex flex-col items-end gap-1 shrink-0 ml-2">'
+              + '<button onclick="event.stopPropagation();toggleNodeDone(' + n.id + ')" class="text-xs px-2 py-0.5 rounded-full font-medium transition-all '
+                + (n.done ? 'bg-mint-100 text-mint-600 hover:bg-mint-200' : 'bg-gray-100 text-gray-500 hover:bg-green-50 hover:text-green-600') + '">'
+                + (n.done ? '取消' : '完成') + '</button>'
+              + '<div class="flex gap-0.5">'
+                + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="text-gray-300 hover:text-dopa-purple-400 text-xs px-1 active:scale-90 transition-all">✎</button>'
+                + '<button onclick="event.stopPropagation();deleteNodeById(' + n.id + ')" class="text-gray-300 hover:text-dopa-coral-400 text-xs px-1 active:scale-90 transition-all">🗑</button>'
+              + '</div>'
+            + '</div>'
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }).join('')
+    + '</div>';
+  var badge = document.getElementById('header-badge');
+  if (badge) badge.textContent = nodes.length + ' 个节点';
+}
+
+async function toggleNodeDone(nodeId) {
+  var nodes = await getWorkflowNodes(currentWorkflowId);
+  var node = nodes.find(function(n) { return n.id === nodeId; });
+  if (!node) return;
+  await updateWorkflowNode(nodeId, { done: !node.done });
+  await renderWorkflowNodes(currentWorkflowId);
+}
+
+async function deleteNodeById(nodeId) {
+  if (!await confirmDialog('确定删除该节点？')) return;
+  await deleteWorkflowNode(nodeId);
+  toast('节点已删除');
+  await renderWorkflowNodes(currentWorkflowId);
+  var nodes = await getWorkflowNodes(currentWorkflowId);
+  var badge = document.getElementById('header-badge');
+  if (badge) badge.textContent = nodes.length + ' 个节点';
 }
 
 // ── Helpers ───────────────────────────────
