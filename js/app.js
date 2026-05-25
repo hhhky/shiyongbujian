@@ -1034,14 +1034,20 @@ async function renderWorkflows() {
 }
 
 async function enterWorkflow(id) {
-  currentWorkflowId = id;
-  var workflows = await getWorkflows();
-  var w = workflows.find(function(x) { return x.id === id; });
-  if (!w) return;
-  document.getElementById('workflows-list-view').classList.add('hidden');
-  document.getElementById('workflow-detail-view').classList.remove('hidden');
-  document.getElementById('workflow-detail-title').textContent = w.name;
-  await renderMindMap(id);
+  try {
+    currentWorkflowId = id;
+    var workflows = await getWorkflows();
+    var w = workflows.find(function(x) { return x.id === id; });
+    if (!w) return;
+    document.getElementById('workflows-list-view').classList.add('hidden');
+    document.getElementById('workflow-detail-view').classList.remove('hidden');
+    document.getElementById('workflow-detail-title').textContent = w.name;
+    await renderMindMap(id);
+  } catch (err) {
+    console.error('enterWorkflow error:', err);
+    toast('打开导图失败: ' + (err.message || String(err)));
+    backToWorkflowsList(true);
+  }
 }
 
 function backToWorkflowsList(silent) {
@@ -1200,20 +1206,20 @@ function drawConnections(nodes, positions) {
 }
 
 async function renderMindMap(workflowId) {
-  var nodes = await getWorkflowNodes(workflowId);
   var canvas = document.getElementById('mindmap-canvas');
   if (!canvas) return;
-
   cancelQuickAdd();
 
-  var root = nodes.find(function(n) { return n.parentId == null; });
-  if (!root) {
-    // Auto-create root node for old workflows that don't have one
-    var workflows = await getWorkflows();
-    var wf = workflows.find(function(w) { return w.id === workflowId; });
-    await addWorkflowNode(workflowId, null, null, wf ? wf.name : '根节点', '');
-    return renderMindMap(workflowId);
-  }
+  try {
+    var nodes = await getWorkflowNodes(workflowId);
+
+    var root = nodes.find(function(n) { return n.parentId == null; });
+    if (!root) {
+      var workflows = await getWorkflows();
+      var wf = workflows.find(function(w) { return w.id === workflowId; });
+      await addWorkflowNode(workflowId, null, null, wf ? wf.name : '根节点', '');
+      return renderMindMap(workflowId);
+    }
 
   var layout = calcLayout(nodes);
   var positions = layout.positions;
@@ -1233,11 +1239,10 @@ async function renderMindMap(workflowId) {
     if ((n.description || '').length > 30) descSnippet += '...';
 
     return '<div class="mindmap-node' + doneClass + rootClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
-      + (isRoot ? '' :
-          '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
-        + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
-        + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
-        + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" title="右">+</button>')
+      + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
+      + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
+      + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
+      + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" title="右">+</button>'
       + '<div class="mindmap-node-title">' + esc(n.title) + '</div>'
       + (descSnippet ? '<div class="text-xs text-gray-400">' + esc(descSnippet) + '</div>' : '')
       + '<div class="flex items-center justify-between mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
@@ -1266,6 +1271,11 @@ async function renderMindMap(workflowId) {
   if (rootPos) {
     canvas.scrollLeft = rootPos.x - canvas.clientWidth / 2 + NODE_W / 2;
     canvas.scrollTop = rootPos.y - canvas.clientHeight / 2 + 35;
+  }
+
+  } catch (err) {
+    console.error('renderMindMap error:', err);
+    canvas.innerHTML = '<div class="text-center text-red-400 py-12 text-sm">加载失败: ' + esc(err.message || String(err)) + '<br><button onclick="backToWorkflowsList()" class="text-dopa-purple-500 underline mt-2 text-xs">返回列表</button></div>';
   }
 }
 
