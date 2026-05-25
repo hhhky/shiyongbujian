@@ -513,15 +513,16 @@ function renderImage(data, type) {
   container.innerHTML = '<img src="' + url + '" class="max-w-full max-h-full object-contain rounded" style="transition: transform 0.15s ease; transform: scale(1); transform-origin: center center" alt="preview">';
 }
 
-function renderWord(data, name) {
+async function renderWord(data, name) {
   var container = document.getElementById('preview-content');
-  container.innerHTML = '<div class="text-white text-sm">正在解析 Word 文档...</div>';
+  container.innerHTML = '<div class="text-white text-sm">正在加载 Word 预览组件...</div>';
   var ext = (name || '').toLowerCase().split('.').pop();
   if (ext !== 'docx') {
     container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-gray-600 text-sm">.doc 格式无法直接在浏览器中预览</p><p class="text-gray-400 text-xs mt-2">请用 Word 打开后另存为 .docx 格式再上传</p></div>';
     return;
   }
   try {
+    await loadScript('js/mammoth.browser.min.js');
     var arr = new Uint8Array(data);
     mammoth.convertToHtml({ arrayBuffer: arr.buffer }, {
       styleMap: [
@@ -544,10 +545,11 @@ function renderWord(data, name) {
   }
 }
 
-function renderExcel(data, name) {
+async function renderExcel(data, name) {
   var container = document.getElementById('preview-content');
-  container.innerHTML = '<div class="text-white text-sm">正在解析 Excel 表格...</div>';
+  container.innerHTML = '<div class="text-white text-sm">正在加载 Excel 预览组件...</div>';
   try {
+    await loadScript('js/xlsx.full.min.js');
     var arr = new Uint8Array(data);
     var wb = XLSX.read(arr, { type: 'array' });
     var sheetName = wb.SheetNames[0];
@@ -600,6 +602,21 @@ async function deletePreviewFile() {
       await refreshAll();
     }
   }
+}
+
+// ── Lazy script loader ─────────────────────
+var _loadedScripts = {};
+function loadScript(src) {
+  if (_loadedScripts[src]) return _loadedScripts[src];
+  var p = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = function() { resolve(); };
+    s.onerror = function() { reject(new Error('Failed to load: ' + src)); };
+    document.head.appendChild(s);
+  });
+  _loadedScripts[src] = p;
+  return p;
 }
 
 // ── File type helpers ──────────────────────
