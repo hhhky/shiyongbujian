@@ -171,7 +171,7 @@
 
     <!-- Preview Overlay -->
     <div id="preview-overlay" class="preview-overlay fixed inset-0 bg-black hidden flex flex-col" style="z-index:9999">
-      <div class="flex items-center justify-between px-4 py-3 text-white shrink-0" style="padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));">
+      <div class="flex items-center justify-between px-3 py-1.5 text-white shrink-0 bg-black/50" style="padding-top: calc(0.375rem + env(safe-area-inset-top, 0px));">
         <button onclick="closePreview()" class="text-white active:scale-90 transition-transform">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
@@ -183,7 +183,7 @@
       <div class="flex-1 overflow-auto flex items-center justify-center p-2 md:p-8" id="preview-content" ontouchstart="onPreviewTouchStart(event)" ontouchmove="onPreviewTouchMove(event)" ontouchend="onPreviewTouchEnd(event)">
         <div class="text-white text-center text-sm">加载中...</div>
       </div>
-      <div id="preview-controls" class="hidden flex items-center justify-center gap-2 py-3 px-3 text-white bg-black/50 shrink-0 flex-wrap" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));">
+      <div id="preview-controls" class="hidden flex items-center justify-center gap-2 py-1.5 px-3 text-white bg-black/50 shrink-0 flex-wrap" style="padding-bottom: calc(0.375rem + env(safe-area-inset-bottom, 0px));">
         <button onclick="prevPdfPage()" id="btn-prev-page" class="active:scale-90 transition-transform p-2 hidden"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
         <span class="text-sm min-w-[3rem] text-center" id="pdf-page-indicator" style="display:none">1/1</span>
         <button onclick="nextPdfPage()" id="btn-next-page" class="active:scale-90 transition-transform p-2 hidden"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>

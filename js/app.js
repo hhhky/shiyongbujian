@@ -262,9 +262,7 @@ function applyZoom() {
   } else {
     var target = content && (content.querySelector('.word-preview') || content.querySelector('.excel-preview'));
     if (target) {
-      target.style.transform = 'scale(' + zoomLevel + ')';
-      target.style.transformOrigin = 'top center';
-      target.style.transition = 'transform 0.15s ease';
+      target.style.zoom = zoomLevel;
     }
   }
 }
@@ -543,7 +541,7 @@ async function renderWord(data, name) {
         "r[style-name='Emphasis'] => em"
       ]
     }).then(function(result) {
-      container.innerHTML = '<div class="bg-white rounded-xl p-4 md:p-6 max-w-3xl mx-auto overflow-auto word-preview" style="max-height:75vh; transform: scale(' + zoomLevel + '); transform-origin: top center; transition: transform 0.15s ease;">' + result.value + '</div>';
+      container.innerHTML = '<div class="bg-white rounded-xl p-4 md:p-6 max-w-3xl mx-auto word-preview" style="zoom:' + zoomLevel + '">' + result.value + '</div>';
       if (result.messages && result.messages.length > 0) {
         console.warn('Mammoth warnings:', result.messages);
       }
@@ -565,7 +563,7 @@ async function renderExcel(data, name) {
     var sheetName = wb.SheetNames[0];
     var sheet = wb.Sheets[sheetName];
     var html = XLSX.utils.sheet_to_html(sheet, { id: 'excel-table', editable: false });
-    container.innerHTML = '<div class="bg-white rounded-xl p-2 md:p-4 max-w-full mx-auto overflow-auto excel-preview" style="max-height:75vh; max-width:95vw; transform: scale(' + zoomLevel + '); transform-origin: top left; transition: transform 0.15s ease;">' + html + '</div>';
+    container.innerHTML = '<div class="bg-white rounded-xl p-2 md:p-4 max-w-full mx-auto excel-preview" style="zoom:' + zoomLevel + '">' + html + '</div>';
     // Style the generated table
     var tbl = container.querySelector('#excel-table');
     if (tbl) {
