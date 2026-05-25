@@ -274,7 +274,16 @@ function applyZoom() {
   }
 }
 
-// Pinch-to-zoom
+// Mouse wheel zoom (desktop)
+function onWheelZoom(e) {
+  if (!e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    var delta = e.deltaY > 0 ? -0.05 : 0.05;
+    setZoom(Math.max(0.25, Math.min(3, zoomLevel + delta)));
+  }
+}
+
+// Pinch-to-zoom (mobile)
 function onPreviewTouchStart(e) {
   if (e.touches.length === 2) {
     e.preventDefault();
