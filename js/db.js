@@ -1,5 +1,5 @@
 const DB_NAME = 'ReviewAppDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -31,6 +31,14 @@ function openDB() {
           const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
           wns.createIndex('workflowId', 'workflowId', { unique: false });
         }
+      }
+
+      if (oldVersion < 3) {
+        if (db.objectStoreNames.contains('workflow_nodes')) {
+          db.deleteObjectStore('workflow_nodes');
+        }
+        const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
+        wns.createIndex('workflowId', 'workflowId', { unique: false });
       }
     };
 
@@ -70,6 +78,14 @@ function dbOp(storeName, mode, callback) {
           const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
           wns.createIndex('workflowId', 'workflowId', { unique: false });
         }
+      }
+
+      if (oldVersion < 3) {
+        if (db.objectStoreNames.contains('workflow_nodes')) {
+          db.deleteObjectStore('workflow_nodes');
+        }
+        const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
+        wns.createIndex('workflowId', 'workflowId', { unique: false });
       }
     };
 
@@ -194,7 +210,10 @@ async function updateMemo(id, updates) {
 
 // ── Workflow operations ────────────────────────
 async function addWorkflow(name) {
-  return dbOp('workflows', 'readwrite', (s) => s.add({ name, createdAt: Date.now() }));
+  var id = await dbOp('workflows', 'readwrite', (s) => s.add({ name, createdAt: Date.now() }));
+  // Auto-create root node
+  await dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId: id, parentId: null, direction: null, title: name, description: '', done: false, createdAt: Date.now() }));
+  return id;
 }
 
 async function getWorkflows() {
@@ -203,7 +222,6 @@ async function getWorkflows() {
 
 async function deleteWorkflow(id) {
   await dbOp('workflows', 'readwrite', (s) => s.delete(id));
-  // Cascade delete all nodes belonging to this workflow
   var nodes = await getWorkflowNodes(id);
   for (var i = 0; i < nodes.length; i++) {
     await dbOp('workflow_nodes', 'readwrite', (s) => s.delete(nodes[i].id));
@@ -211,15 +229,13 @@ async function deleteWorkflow(id) {
 }
 
 // ── Workflow Node operations ────────────────────
-async function addWorkflowNode(workflowId, title, desc) {
-  var existing = await getWorkflowNodes(workflowId);
-  var order = existing.length;
-  return dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId, title, description: desc || '', order: order, done: false, createdAt: Date.now() }));
+async function addWorkflowNode(workflowId, parentId, direction, title, desc) {
+  return dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId, parentId, direction, title, description: desc || '', done: false, createdAt: Date.now() }));
 }
 
 async function getWorkflowNodes(workflowId) {
   var all = await dbOp('workflow_nodes', 'readonly', (s) => s.getAll());
-  return all.filter(function(n) { return n.workflowId === workflowId; }).sort(function(a, b) { return a.order - b.order; });
+  return all.filter(function(n) { return n.workflowId === workflowId; });
 }
 
 async function updateWorkflowNode(id, updates) {
@@ -236,7 +252,8 @@ async function updateWorkflowNode(id, updates) {
         if (updates.title !== undefined) node.title = updates.title;
         if (updates.description !== undefined) node.description = updates.description;
         if (updates.done !== undefined) node.done = updates.done;
-        if (updates.order !== undefined) node.order = updates.order;
+        if (updates.parentId !== undefined) node.parentId = updates.parentId;
+        if (updates.direction !== undefined) node.direction = updates.direction;
         store.put(node);
       };
       getReq.onerror = function() { db.close(); reject(getReq.error); };
@@ -248,17 +265,20 @@ async function updateWorkflowNode(id, updates) {
 }
 
 async function deleteWorkflowNode(id) {
-  // Get node info for reordering
   var all = await dbOp('workflow_nodes', 'readonly', (s) => s.getAll());
-  var target = all.find(function(n) { return n.id === id; });
-  if (!target) return;
-  var workflowId = target.workflowId;
-  await dbOp('workflow_nodes', 'readwrite', (s) => s.delete(id));
-  // Reorder remaining nodes
-  var remaining = all.filter(function(n) { return n.workflowId === workflowId && n.id !== id; }).sort(function(a, b) { return a.order - b.order; });
-  for (var i = 0; i < remaining.length; i++) {
-    if (remaining[i].order !== i) {
-      await updateWorkflowNode(remaining[i].id, { order: i });
+  // Collect all descendant IDs recursively
+  var toDelete = [];
+  function collectDescendants(pid) {
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].parentId === pid) {
+        toDelete.push(all[i].id);
+        collectDescendants(all[i].id);
+      }
     }
+  }
+  collectDescendants(id);
+  toDelete.push(id);
+  for (var i = 0; i < toDelete.length; i++) {
+    await dbOp('workflow_nodes', 'readwrite', (s) => s.delete(toDelete[i]));
   }
 }

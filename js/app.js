@@ -34,7 +34,7 @@ const WIDGETS = [
     id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，管理工作流程', color: '#10b981',
     tabs: [
       { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
-      { id: 'workflows', name: '工作流', shortName: '流程', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' }
+      { id: 'workflows', name: '思维导图', shortName: '导图', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' }
     ]
   }
 ];
@@ -183,7 +183,7 @@ async function refreshAll() {
     var badge = document.getElementById('header-badge');
     if (badge) badge.textContent = memos.length + ' 条备忘';
     var sc = document.getElementById('sidebar-footer-text');
-    if (sc) sc.textContent = memos.length + ' 条备忘 · ' + workflows.length + ' 个工作流';
+    if (sc) sc.textContent = memos.length + ' 条备忘 · ' + workflows.length + ' 个导图';
     renderMemos();
     renderWorkflows();
   }
@@ -215,7 +215,7 @@ function switchTab(tab) {
     if (tab === 'upload') renderUploadCategories();
   } else if (currentWidget === 'memo') {
     if (tab === 'memos') renderMemos();
-    if (tab === 'workflows') renderWorkflows();
+    if (tab === 'workflows') { backToWorkflowsList(true); renderWorkflows(); }
   }
 }
 
@@ -944,27 +944,18 @@ async function renderMemos() {
   }).join('');
 }
 
-// ── Workflow ───────────────────────────────
+// ── Workflow / Mind Map ──────────────────────
+let quickAddParentId = null;
+let quickAddDirection = null;
+
 function showAddWorkflow() {
   workflowModalMode = 'create-workflow';
-  document.getElementById('workflow-modal-title').textContent = '新建工作流';
+  document.getElementById('workflow-modal-title').textContent = '新建思维导图';
   document.getElementById('workflow-name-input').value = '';
   document.getElementById('workflow-name-input').style.display = '';
   document.getElementById('workflow-node-fields').classList.add('hidden');
   document.getElementById('workflow-modal').classList.remove('hidden');
   document.getElementById('workflow-name-input').focus();
-}
-
-function showAddNode() {
-  workflowModalMode = 'add-node';
-  editingNodeId = null;
-  document.getElementById('workflow-modal-title').textContent = '添加节点';
-  document.getElementById('workflow-name-input').style.display = 'none';
-  document.getElementById('workflow-node-fields').classList.remove('hidden');
-  document.getElementById('node-title-input').value = '';
-  document.getElementById('node-desc-input').value = '';
-  document.getElementById('workflow-modal').classList.remove('hidden');
-  document.getElementById('node-title-input').focus();
 }
 
 function showEditNode(nodeId) {
@@ -992,25 +983,12 @@ function hideWorkflowModal() {
 async function confirmWorkflowModal() {
   if (workflowModalMode === 'create-workflow') {
     var name = document.getElementById('workflow-name-input').value.trim();
-    if (!name) { toast('请输入工作流名称'); return; }
+    if (!name) { toast('请输入名称'); return; }
     var id = await addWorkflow(name);
-    toast('工作流已创建');
+    toast('思维导图已创建');
     hideWorkflowModal();
     enterWorkflow(id);
     await refreshAll();
-  } else if (workflowModalMode === 'add-node') {
-    var title = document.getElementById('node-title-input').value.trim();
-    if (!title) { toast('请输入节点标题'); return; }
-    var desc = document.getElementById('node-desc-input').value.trim();
-    await addWorkflowNode(currentWorkflowId, title, desc);
-    toast('节点已添加');
-    hideWorkflowModal();
-    await renderWorkflowNodes(currentWorkflowId);
-    var badge = document.getElementById('header-badge');
-    if (badge) {
-      var totalNodes = (await getWorkflowNodes(currentWorkflowId)).length;
-      badge.textContent = totalNodes + ' 个节点';
-    }
   } else if (workflowModalMode === 'edit-node') {
     var title = document.getElementById('node-title-input').value.trim();
     if (!title) { toast('请输入节点标题'); return; }
@@ -1018,7 +996,7 @@ async function confirmWorkflowModal() {
     await updateWorkflowNode(editingNodeId, { title: title, description: desc });
     toast('节点已更新');
     hideWorkflowModal();
-    await renderWorkflowNodes(currentWorkflowId);
+    await renderMindMap(currentWorkflowId);
   }
 }
 
@@ -1026,7 +1004,7 @@ async function renderWorkflows() {
   var workflows = await getWorkflows();
   var container = document.getElementById('workflows-grid');
   if (workflows.length === 0) {
-    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有工作流，点击上方按钮创建</div>';
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有思维导图，点击上方按钮创建</div>';
     return;
   }
   container.innerHTML = '';
@@ -1034,7 +1012,8 @@ async function renderWorkflows() {
     var w = workflows[i];
     var nodes = await getWorkflowNodes(w.id);
     var doneCount = nodes.filter(function(n) { return n.done; }).length;
-    var progress = nodes.length > 0 ? Math.round(doneCount / nodes.length * 100) : 0;
+    var total = nodes.length;
+    var progress = total > 0 ? Math.round(doneCount / total * 100) : 0;
     var div = document.createElement('div');
     div.className = 'bg-white/80 backdrop-blur rounded-xl p-4 card-hover cursor-pointer shadow-sm';
     div.onclick = function(wf) { return function() { enterWorkflow(wf.id); }; }(w);
@@ -1043,7 +1022,7 @@ async function renderWorkflows() {
       + '<button onclick="event.stopPropagation();deleteWorkflowById(' + w.id + ')" class="icon-btn-del shrink-0 ml-2" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
       + '</div>'
       + '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2">'
-        + '<span>' + nodes.length + ' 个节点</span>'
+        + '<span>' + total + ' 个节点</span>'
         + '<span>·</span>'
         + '<span>' + doneCount + ' 已完成</span>'
       + '</div>'
@@ -1062,24 +1041,23 @@ async function enterWorkflow(id) {
   document.getElementById('workflows-list-view').classList.add('hidden');
   document.getElementById('workflow-detail-view').classList.remove('hidden');
   document.getElementById('workflow-detail-title').textContent = w.name;
-  await renderWorkflowNodes(id);
+  await renderMindMap(id);
 }
 
 function backToWorkflowsList(silent) {
   currentWorkflowId = null;
+  cancelQuickAdd();
   var listView = document.getElementById('workflows-list-view');
   var detailView = document.getElementById('workflow-detail-view');
   if (listView) listView.classList.remove('hidden');
   if (detailView) detailView.classList.add('hidden');
-  if (!silent) {
-    refreshAll();
-  }
+  if (!silent) refreshAll();
 }
 
 async function deleteWorkflowById(id) {
-  if (!await confirmDialog('确定删除该工作流及其所有节点？')) return;
+  if (!await confirmDialog('确定删除该思维导图及其所有节点？')) return;
   await deleteWorkflow(id);
-  toast('工作流已删除');
+  toast('思维导图已删除');
   if (currentWorkflowId === id) backToWorkflowsList();
   await refreshAll();
 }
@@ -1089,60 +1067,292 @@ async function deleteCurrentWorkflow() {
   await deleteWorkflowById(currentWorkflowId);
 }
 
-async function renderWorkflowNodes(workflowId) {
-  var nodes = await getWorkflowNodes(workflowId);
-  var container = document.getElementById('workflow-nodes');
-  if (!container) return;
-  if (nodes.length === 0) {
-    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">还没有节点，点击上方按钮添加</div>';
-    return;
+// ── Mind Map Layout & Rendering ─────────────
+function calcLayout(nodes) {
+  var root = nodes.find(function(n) { return n.parentId == null; });
+  if (!root) return { positions: {}, rootId: null, w: 0, h: 0 };
+
+  var NODE_W = 160, NODE_H = 70;
+  var H_GAP = 60, V_GAP = 30;
+
+  var positions = {};
+  positions[root.id] = { x: 0, y: 0 };
+
+  function getBounds(nodeId) {
+    var p = positions[nodeId];
+    if (!p) return { minX: 0, maxX: NODE_W, minY: 0, maxY: NODE_H };
+    var minX = p.x, maxX = p.x + NODE_W, minY = p.y, maxY = p.y + NODE_H;
+    var children = nodes.filter(function(n) { return n.parentId === nodeId; });
+    children.forEach(function(c) {
+      var b = getBounds(c.id);
+      minX = Math.min(minX, b.minX);
+      maxX = Math.max(maxX, b.maxX);
+      minY = Math.min(minY, b.minY);
+      maxY = Math.max(maxY, b.maxY);
+    });
+    return { minX: minX, maxX: maxX, minY: minY, maxY: maxY };
   }
-  container.innerHTML = '<div class="flow-line-container">'
-    + nodes.map(function(n, i) {
-      var doneClass = n.done ? 'flow-node-done' : '';
-      var isLast = i === nodes.length - 1 ? ' flow-node-last' : '';
-      return '<div class="flow-node ' + doneClass + isLast + '">'
-        + '<div class="flow-node-dot"></div>'
-        + '<div class="flow-node-card bg-white/80 backdrop-blur rounded-xl p-4 card-hover shadow-sm">'
-          + '<div class="flex items-start justify-between">'
-            + '<div class="flex-1 min-w-0">'
-              + '<div class="flex items-center gap-2 mb-1">'
-                + '<span class="text-xs font-bold text-white rounded-full w-5 h-5 flex items-center justify-center shrink-0" style="background:' + (n.done ? '#10b981' : '#d1d5db') + '">' + (n.done ? '✓' : (i+1)) + '</span>'
-                + '<h4 class="font-semibold text-gray-800 text-sm ' + (n.done ? 'line-through text-gray-400' : '') + '">' + esc(n.title) + '</h4>'
-              + '</div>'
-              + (n.description ? '<p class="text-xs text-gray-500 ml-7">' + esc(n.description) + '</p>' : '')
-            + '</div>'
-            + '<div class="flex flex-col items-end gap-1 shrink-0 ml-2">'
-              + '<button onclick="event.stopPropagation();toggleNodeDone(' + n.id + ')" class="text-xs px-2 py-0.5 rounded-full font-medium transition-all '
-                + (n.done ? 'bg-mint-100 text-mint-600 hover:bg-mint-200' : 'bg-gray-100 text-gray-500 hover:bg-green-50 hover:text-green-600') + '">'
-                + (n.done ? '取消' : '完成') + '</button>'
-              + '<div class="flex gap-0.5">'
-                + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
-                + '<button onclick="event.stopPropagation();deleteNodeById(' + n.id + ')" class="icon-btn-del" title="删除"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
-              + '</div>'
-            + '</div>'
-          + '</div>'
+
+  function layoutChildren(nodeId) {
+    var p = positions[nodeId];
+    if (!p) return;
+    var children = nodes.filter(function(n) { return n.parentId === nodeId; });
+
+    var groups = { up: [], down: [], left: [], right: [] };
+    children.forEach(function(c) {
+      var d = c.direction || 'right';
+      if (groups[d]) groups[d].push(c); else groups[d] = [c];
+    });
+
+    // Right: stack vertically, extend right
+    var ry = p.y;
+    groups.right.forEach(function(c) {
+      positions[c.id] = { x: p.x + NODE_W + H_GAP, y: ry };
+      layoutChildren(c.id);
+      var b = getBounds(c.id);
+      ry = b.maxY + V_GAP;
+    });
+
+    // Left: stack vertically, extend left
+    var ly = p.y;
+    groups.left.forEach(function(c) {
+      positions[c.id] = { x: p.x - NODE_W - H_GAP, y: ly };
+      layoutChildren(c.id);
+      var b = getBounds(c.id);
+      ly = b.maxY + V_GAP;
+    });
+
+    // Down: stack horizontally, extend down
+    var dx = p.x;
+    groups.down.forEach(function(c) {
+      positions[c.id] = { x: dx, y: p.y + NODE_H + V_GAP };
+      layoutChildren(c.id);
+      var b = getBounds(c.id);
+      dx = b.maxX + V_GAP;
+    });
+
+    // Up: stack horizontally, extend up
+    var ux = p.x;
+    groups.up.forEach(function(c) {
+      positions[c.id] = { x: ux, y: p.y - NODE_H - V_GAP };
+      layoutChildren(c.id);
+      var b = getBounds(c.id);
+      ux = b.maxX + V_GAP;
+    });
+  }
+
+  layoutChildren(root.id);
+
+  var bounds = getBounds(root.id);
+  var pad = 80;
+  var offsetX = -bounds.minX + pad;
+  var offsetY = -bounds.minY + pad;
+
+  Object.keys(positions).forEach(function(id) {
+    positions[id].x += offsetX;
+    positions[id].y += offsetY;
+  });
+
+  return {
+    positions: positions,
+    rootId: root.id,
+    w: bounds.maxX - bounds.minX + pad * 2,
+    h: bounds.maxY - bounds.minY + pad * 2
+  };
+}
+
+function drawConnections(nodes, positions) {
+  var NODE_W = 160, NODE_H = 70;
+  var lines = '';
+  nodes.forEach(function(n) {
+    if (n.parentId == null) return;
+    var parentPos = positions[n.parentId];
+    var childPos = positions[n.id];
+    if (!parentPos || !childPos) return;
+
+    // Start from edge of parent
+    var x1, y1, x2, y2;
+    var dir = n.direction || 'right';
+
+    if (dir === 'right') {
+      x1 = parentPos.x + NODE_W; y1 = parentPos.y + NODE_H / 2;
+      x2 = childPos.x; y2 = childPos.y + NODE_H / 2;
+    } else if (dir === 'left') {
+      x1 = parentPos.x; y1 = parentPos.y + NODE_H / 2;
+      x2 = childPos.x + NODE_W; y2 = childPos.y + NODE_H / 2;
+    } else if (dir === 'down') {
+      x1 = parentPos.x + NODE_W / 2; y1 = parentPos.y + NODE_H;
+      x2 = childPos.x + NODE_W / 2; y2 = childPos.y;
+    } else {
+      x1 = parentPos.x + NODE_W / 2; y1 = parentPos.y;
+      x2 = childPos.x + NODE_W / 2; y2 = childPos.y + NODE_H;
+    }
+
+    var cx1 = x1 + (x2 - x1) * 0.4;
+    var cy1 = y1;
+    var cx2 = x2 - (x2 - x1) * 0.4;
+    var cy2 = y2;
+    var strokeColor = n.done ? '#a7f3d0' : '#d1d5db';
+
+    lines += '<path d="M' + x1 + ',' + y1 + ' C' + cx1 + ',' + cy1 + ' ' + cx2 + ',' + cy2 + ' ' + x2 + ',' + y2 + '" stroke="' + strokeColor + '" stroke-width="2" fill="none"/>';
+  });
+  return lines;
+}
+
+async function renderMindMap(workflowId) {
+  var nodes = await getWorkflowNodes(workflowId);
+  var canvas = document.getElementById('mindmap-canvas');
+  if (!canvas) return;
+
+  cancelQuickAdd();
+
+  var root = nodes.find(function(n) { return n.parentId == null; });
+  if (!root) {
+    // Auto-create root node for old workflows that don't have one
+    var workflows = await getWorkflows();
+    var wf = workflows.find(function(w) { return w.id === workflowId; });
+    await addWorkflowNode(workflowId, null, null, wf ? wf.name : '根节点', '');
+    return renderMindMap(workflowId);
+  }
+
+  var layout = calcLayout(nodes);
+  var positions = layout.positions;
+  var canvasW = Math.max(layout.w, 600);
+  var canvasH = Math.max(layout.h, 520);
+  var NODE_W = 160;
+
+  var svgLines = drawConnections(nodes, positions);
+
+  var nodesHtml = nodes.map(function(n) {
+    var pos = positions[n.id];
+    if (!pos) return '';
+    var isRoot = n.parentId == null;
+    var doneClass = n.done ? ' done' : '';
+    var rootClass = isRoot ? ' root' : '';
+    var descSnippet = (n.description || '').substring(0, 30);
+    if ((n.description || '').length > 30) descSnippet += '...';
+
+    return '<div class="mindmap-node' + doneClass + rootClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
+      + (isRoot ? '' :
+          '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
+        + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
+        + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
+        + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" title="右">+</button>')
+      + '<div class="mindmap-node-title">' + esc(n.title) + '</div>'
+      + (descSnippet ? '<div class="text-xs text-gray-400">' + esc(descSnippet) + '</div>' : '')
+      + '<div class="flex items-center justify-between mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
+        + '<button onclick="event.stopPropagation();toggleNodeDone(' + n.id + ')" class="text-xs px-2 py-0.5 rounded-full font-medium transition-all '
+          + (n.done ? 'bg-mint-100 text-mint-600' : 'bg-gray-100 text-gray-500') + '" style="font-size:0.7rem">'
+          + (n.done ? '取消' : '完成') + '</button>'
+        + '<div class="flex gap-0.5">'
+          + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
+          + '<button onclick="event.stopPropagation();deleteNodeById(' + n.id + ')" class="icon-btn-del" title="删除"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
         + '</div>'
-      + '</div>';
-    }).join('')
+      + '</div>'
     + '</div>';
+  }).join('');
+
+  canvas.innerHTML = ''
+    + '<svg class="mindmap-svg" style="width:' + canvasW + 'px; height:' + canvasH + 'px;">' + svgLines + '</svg>'
+    + '<div style="position:relative; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
+    + nodesHtml
+    + '</div>';
+
+  var badge = document.getElementById('header-badge');
+  if (badge) badge.textContent = nodes.length + ' 个节点';
+
+  // Scroll to root
+  var rootPos = positions[layout.rootId];
+  if (rootPos) {
+    canvas.scrollLeft = rootPos.x - canvas.clientWidth / 2 + NODE_W / 2;
+    canvas.scrollTop = rootPos.y - canvas.clientHeight / 2 + 35;
+  }
+}
+
+// ── Quick Add Node ──────────────────────────
+function quickAddNode(parentId, direction) {
+  cancelQuickAdd();
+  quickAddParentId = parentId;
+  quickAddDirection = direction;
+
+  var canvas = document.getElementById('mindmap-canvas');
+  var nodeEl = canvas.querySelector('[data-node-id="' + parentId + '"]');
+  if (!nodeEl) return;
+
+  var nodeRect = nodeEl.getBoundingClientRect();
+  var canvasRect = canvas.getBoundingClientRect();
+
+  var popup = document.createElement('div');
+  popup.id = 'mindmap-quick-add';
+  popup.className = 'mindmap-quick-add';
+
+  // Position near the direction button
+  var top = nodeRect.top - canvasRect.top + canvas.scrollTop;
+  var left = nodeRect.left - canvasRect.left + canvas.scrollLeft;
+  var dirLabels = { up: '上方', down: '下方', left: '左侧', right: '右侧' };
+
+  if (direction === 'up') top -= 60;
+  if (direction === 'down') top += 80;
+  if (direction === 'left') left -= 170;
+  if (direction === 'right') left += 140;
+
+  popup.style.top = Math.max(0, top) + 'px';
+  popup.style.left = Math.max(0, left) + 'px';
+
+  popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
+    + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
+    + '<div class="mindmap-quick-add-btns">'
+      + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
+      + '<button class="mindmap-quick-add-cancel" onclick="cancelQuickAdd()">取消</button>'
+    + '</div>';
+
+  var existing = document.getElementById('mindmap-quick-add');
+  if (existing) existing.remove();
+
+  var innerContainer = canvas.querySelector('div[style*="position:relative"]') || canvas;
+  innerContainer.appendChild(popup);
+
+  setTimeout(function() {
+    var inp = document.getElementById('quick-add-input');
+    if (inp) inp.focus();
+  }, 50);
+}
+
+async function confirmQuickAdd() {
+  var inp = document.getElementById('quick-add-input');
+  var title = inp ? inp.value.trim() : '';
+  if (!title) { toast('请输入节点标题'); return; }
+  if (quickAddParentId == null) return;
+
+  await addWorkflowNode(currentWorkflowId, quickAddParentId, quickAddDirection, title, '');
+  cancelQuickAdd();
+  await renderMindMap(currentWorkflowId);
+  var nodes = await getWorkflowNodes(currentWorkflowId);
   var badge = document.getElementById('header-badge');
   if (badge) badge.textContent = nodes.length + ' 个节点';
 }
 
+function cancelQuickAdd() {
+  var el = document.getElementById('mindmap-quick-add');
+  if (el) el.remove();
+  quickAddParentId = null;
+  quickAddDirection = null;
+}
+
+// ── Node Actions ────────────────────────────
 async function toggleNodeDone(nodeId) {
   var nodes = await getWorkflowNodes(currentWorkflowId);
   var node = nodes.find(function(n) { return n.id === nodeId; });
   if (!node) return;
   await updateWorkflowNode(nodeId, { done: !node.done });
-  await renderWorkflowNodes(currentWorkflowId);
+  await renderMindMap(currentWorkflowId);
 }
 
 async function deleteNodeById(nodeId) {
-  if (!await confirmDialog('确定删除该节点？')) return;
+  if (!await confirmDialog('确定删除该节点及其所有子节点？')) return;
   await deleteWorkflowNode(nodeId);
   toast('节点已删除');
-  await renderWorkflowNodes(currentWorkflowId);
+  await renderMindMap(currentWorkflowId);
   var nodes = await getWorkflowNodes(currentWorkflowId);
   var badge = document.getElementById('header-badge');
   if (badge) badge.textContent = nodes.length + ' 个节点';
