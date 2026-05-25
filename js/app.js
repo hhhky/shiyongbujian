@@ -306,7 +306,7 @@ async function renderCategories() {
   }
   container.innerHTML = cats.map(c => {
     const count = files.filter(f => f.categoryId === c.id).length;
-    return `<div class="rounded-[20px] p-4 flex items-center gap-3 cursor-pointer shadow-sm card-hover cat-card-shine" style="background:${c.color}; color:#fff;" onclick="goToCategory(${c.id})">
+    return `<div class="rounded-[20px] p-4 flex items-center gap-3 cursor-pointer shadow-sm card-hover" style="background:${c.color}; color:#fff;" onclick="goToCategory(${c.id})">
       <div class="flex-1 min-w-0">
         <p class="font-semibold text-sm" style="color:#fff;">${esc(c.name)}</p>
         <p class="text-xs" style="color:rgba(255,255,255,0.75);">${count} 份资料</p>
