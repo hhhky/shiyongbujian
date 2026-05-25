@@ -51,23 +51,20 @@
       100% { transform: scale(1); }
     }
     .btn-jelly:active { animation: jelly 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
-    @keyframes shine {
-      0%   { left: -120%; }
-      100% { left: 200%; }
+    @keyframes color-sweep {
+      0%   { transform: translateX(-105%); }
+      30%  { transform: translateX(0%); }
+      70%  { transform: translateX(0%); }
+      100% { transform: translateX(105%); }
     }
-    .cat-card-shine { position: relative; overflow: hidden; }
-    .cat-card-shine::after {
-      content: ''; position: absolute; top: -60%; left: -120%;
-      width: 40%; height: 220%;
-      background: linear-gradient(105deg,
-        transparent 20%,
-        rgba(255,255,255,0.5) 45%,
-        rgba(255,255,255,0.5) 55%,
-        transparent 80%
-      );
-      transform: skewX(-22deg);
-      animation: shine 3.5s ease-in-out infinite;
+    .cat-card-fill { position: relative; overflow: hidden; }
+    .cat-card-fill::before {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      background: #fff; border-radius: inherit;
+      animation: color-sweep 4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+      pointer-events: none;
     }
+    .cat-card-fill > * { position: relative; z-index: 1; }
     .widget-card-outer {
       background: linear-gradient(135deg, #a855f7, #ec4899, #fb923c, #34d399, #60a5fa, #a855f7);
       background-size: 300% 300%;
