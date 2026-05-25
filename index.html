@@ -71,7 +71,6 @@
     .mindmap-node.done:hover { border-color: #059669; box-shadow: 0 4px 20px rgba(16,185,129,0.15); }
     .mindmap-node.done .mindmap-node-title { text-decoration: line-through; color: #9ca3af; }
     .mindmap-node.shape-pill { border-radius: 50px; }
-    .mindmap-node.shape-diamond { border-radius: 4px; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
     .mindmap-node-title { font-size: 0.8125rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; word-break: break-word; }
     .mindmap-dir-btn {
       position: absolute; width: 20px; height: 20px; border-radius: 50%;
@@ -343,6 +342,14 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
               </button>
               <h2 id="workflow-detail-title" class="text-lg md:text-xl font-bold flex-1" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></h2>
+              <div class="flex items-center gap-1 text-xs" style="background:rgba(255,255,255,0.6); border-radius:10px; padding:2px 6px;">
+                <button onclick="mindmapZoomOut()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all text-gray-500 font-bold">−</button>
+                <span id="mindmap-zoom-label" class="min-w-[38px] text-center font-medium text-gray-600">100%</span>
+                <button onclick="mindmapZoomIn()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all text-gray-500 font-bold">+</button>
+                <button onclick="mindmapZoomReset()" class="text-gray-400 hover:text-dopa-purple-500 active:scale-90 transition-all px-1" title="重置缩放">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                </button>
+              </div>
               <button onclick="deleteCurrentWorkflow()" class="icon-btn-del" title="删除工作流"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
             </div>
             <div id="mindmap-canvas" class="mindmap-canvas bg-white/40 backdrop-blur rounded-2xl border border-gray-100" style="position:relative; overflow:auto; min-height:520px;">
@@ -461,7 +468,6 @@
           <div class="flex gap-2 mb-4" id="node-shape-select">
             <button onclick="selectNodeShape('rounded')" class="node-shape-btn flex-1 py-2 rounded-xl text-xs font-medium border-2 border-dopa-purple-400 bg-dopa-purple-50 text-dopa-purple-500" data-shape="rounded">圆角矩形</button>
             <button onclick="selectNodeShape('pill')" class="node-shape-btn flex-1 py-2 rounded-full text-xs font-medium border-2 border-gray-200 text-gray-500" data-shape="pill">胶囊形</button>
-            <button onclick="selectNodeShape('diamond')" class="node-shape-btn flex-1 py-2 rounded text-xs font-medium border-2 border-gray-200 text-gray-500" data-shape="diamond">◇ 菱形</button>
           </div>
         </div>
         <div class="flex gap-3">

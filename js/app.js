@@ -1095,6 +1095,9 @@ function selectDate(dateStr) {
 // ── Workflow / Mind Map ──────────────────────
 let quickAddParentId = null;
 let quickAddDirection = null;
+let mindmapZoom = 1;
+let mmPinchDist0 = 0;
+let mmPinchZoom0 = 1;
 
 function showAddWorkflow() {
   workflowModalMode = 'create-workflow';
@@ -1199,6 +1202,7 @@ async function renderWorkflows() {
 async function enterWorkflow(id) {
   try {
     currentWorkflowId = id;
+    mindmapZoom = 1;
     var workflows = await getWorkflows();
     var w = workflows.find(function(x) { return x.id === id; });
     if (!w) return;
@@ -1423,10 +1427,17 @@ async function renderMindMap(workflowId) {
   }).join('');
 
   canvas.innerHTML = ''
+    + '<div id="mindmap-zoom-container" style="transform:scale(' + mindmapZoom + '); transform-origin:0 0; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
     + '<svg class="mindmap-svg" style="width:' + canvasW + 'px; height:' + canvasH + 'px;">' + svgLines + '</svg>'
     + '<div style="position:relative; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
     + nodesHtml
+    + '</div>'
     + '</div>';
+  updateMindmapZoomLabel();
+  canvas.onwheel = onMindmapWheel;
+  canvas.ontouchstart = onMindmapTouchStart;
+  canvas.ontouchmove = onMindmapTouchMove;
+  canvas.ontouchend = onMindmapTouchEnd;
 
   var badge = document.getElementById('header-badge');
   if (badge) badge.textContent = nodes.length + ' 个节点';
@@ -1441,6 +1452,73 @@ async function renderMindMap(workflowId) {
   } catch (err) {
     console.error('renderMindMap error:', err);
     canvas.innerHTML = '<div class="text-center text-red-400 py-12 text-sm">加载失败: ' + esc(err.message || String(err)) + '<br><button onclick="backToWorkflowsList()" class="text-dopa-purple-500 underline mt-2 text-xs">返回列表</button></div>';
+  }
+}
+
+// ── Mind Map Zoom ──────────────────────────
+function updateMindmapZoomLabel() {
+  var label = document.getElementById('mindmap-zoom-label');
+  if (label) label.textContent = Math.round(mindmapZoom * 100) + '%';
+}
+
+function applyMindmapZoom() {
+  var container = document.getElementById('mindmap-zoom-container');
+  if (container) {
+    container.style.transform = 'scale(' + mindmapZoom + ')';
+    container.style.transformOrigin = '0 0';
+  }
+  updateMindmapZoomLabel();
+}
+
+function mindmapZoomIn() {
+  mindmapZoom = Math.min(3, mindmapZoom + 0.1);
+  applyMindmapZoom();
+}
+
+function mindmapZoomOut() {
+  mindmapZoom = Math.max(0.25, mindmapZoom - 0.1);
+  applyMindmapZoom();
+}
+
+function mindmapZoomReset() {
+  mindmapZoom = 1;
+  applyMindmapZoom();
+}
+
+function onMindmapWheel(e) {
+  if (e.ctrlKey || e.metaKey) return;
+  e.preventDefault();
+  var delta = e.deltaY > 0 ? -0.05 : 0.05;
+  mindmapZoom = Math.max(0.25, Math.min(3, mindmapZoom + delta));
+  applyMindmapZoom();
+}
+
+function onMindmapTouchStart(e) {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    mmPinchDist0 = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    mmPinchZoom0 = mindmapZoom;
+  }
+}
+
+function onMindmapTouchMove(e) {
+  if (e.touches.length === 2 && mmPinchDist0 > 0) {
+    e.preventDefault();
+    var dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    mindmapZoom = Math.max(0.25, Math.min(3, mmPinchZoom0 * (dist / mmPinchDist0)));
+    applyMindmapZoom();
+  }
+}
+
+function onMindmapTouchEnd(e) {
+  if (e.touches.length < 2) {
+    mmPinchDist0 = 0;
   }
 }
 
@@ -1477,9 +1555,8 @@ function quickAddNode(parentId, direction) {
   popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
     + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
     + '<div style="display:flex; gap:6px; margin:6px 0;" id="quick-shape-select">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'diamond\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="diamond" style="flex:1; padding:3px; border-radius:4px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer; clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);">◇</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角矩形</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊形</button>'
     + '</div>'
     + '<div class="mindmap-quick-add-btns">'
       + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
