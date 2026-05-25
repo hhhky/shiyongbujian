@@ -34,7 +34,8 @@ const WIDGETS = [
     id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，管理工作流程', color: '#10b981',
     tabs: [
       { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
-      { id: 'workflows', name: '思维导图', shortName: '导图', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' }
+      { id: 'workflows', name: '思维导图', shortName: '导图', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' },
+      { id: 'calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' }
     ]
   }
 ];
@@ -43,6 +44,9 @@ let currentWorkflowId = null;
 let editingMemoId = null;
 let workflowModalMode = null;
 let editingNodeId = null;
+let calendarYear = null;
+let calendarMonth = null;
+let selectedDateStr = null;
 
 function renderWidgets() {
   var grid = document.getElementById('widgets-grid');
@@ -88,7 +92,7 @@ function enterWidget(id) {
   switchTab(firstTabId);
   refreshAll();
   if (id === 'review') renderColorPicker();
-  if (id === 'memo') { currentWorkflowId = null; backToWorkflowsList(true); }
+  if (id === 'memo') { currentWorkflowId = null; backToWorkflowsList(true); var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
 }
 
 function goHome() {
@@ -186,6 +190,7 @@ async function refreshAll() {
     if (sc) sc.textContent = memos.length + ' 条备忘 · ' + workflows.length + ' 个导图';
     renderMemos();
     renderWorkflows();
+    if (document.getElementById('page-calendar') && document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
   }
 }
 
@@ -216,6 +221,7 @@ function switchTab(tab) {
   } else if (currentWidget === 'memo') {
     if (tab === 'memos') renderMemos();
     if (tab === 'workflows') { backToWorkflowsList(true); renderWorkflows(); }
+    if (tab === 'calendar') renderCalendar();
   }
 }
 
@@ -942,6 +948,142 @@ async function renderMemos() {
       + '</div>'
     + '</div>';
   }).join('');
+}
+
+// ── Calendar ────────────────────────────────
+function getMemosByDate(memos) {
+  var map = {};
+  memos.forEach(function(m) {
+    if (!m.deadline) return;
+    var d = new Date(m.deadline);
+    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (!map[key]) map[key] = [];
+    map[key].push(m);
+  });
+  return map;
+}
+
+function getDateUrgency(memos) {
+  var now = Date.now();
+  var maxUrgency = 0; // 0=green, 1=orange, 2=red
+  memos.forEach(function(m) {
+    var info = getDaysInfo(m);
+    if (info.urgent && info.color === '#ef4444') maxUrgency = Math.max(maxUrgency, 2);
+    else if (info.urgent || info.color === '#f97316') maxUrgency = Math.max(maxUrgency, 1);
+  });
+  return ['#34d399', '#fb923c', '#ef4444'][maxUrgency];
+}
+
+async function renderCalendar() {
+  var memos = await getMemos();
+  var memosByDate = getMemosByDate(memos);
+  var year = calendarYear || new Date().getFullYear();
+  var month = calendarMonth !== null ? calendarMonth : new Date().getMonth();
+
+  // Update label
+  document.getElementById('calendar-month-label').textContent = year + '年 ' + (month + 1) + '月';
+
+  // First day of month (0=Sun), days in month
+  var firstDay = new Date(year, month, 1).getDay();
+  var daysInMonth = new Date(year, month + 1, 0).getDate();
+  var prevMonthDays = new Date(year, month, 0).getDate();
+
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+
+  var grid = document.getElementById('calendar-grid');
+  var cells = [];
+
+  // Previous month padding
+  for (var i = firstDay - 1; i >= 0; i--) {
+    var d = prevMonthDays - i;
+    cells.push('<div class="cal-day other-month"><span>' + d + '</span></div>');
+  }
+
+  // Current month days
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var dayMemos = memosByDate[dateStr] || [];
+    var isToday = dateStr === todayStr;
+    var isSelected = dateStr === selectedDateStr;
+
+    var cls = 'cal-day';
+    if (isToday) cls += ' today';
+    if (isSelected) cls += ' selected';
+
+    var dotsHtml = '';
+    if (dayMemos.length > 0) {
+      var urgency = getDateUrgency(dayMemos);
+      dotsHtml = '<span class="cal-dot" style="background:' + urgency + '; box-shadow: 0 0 4px ' + urgency + ';"></span>';
+    }
+
+    cells.push('<div class="' + cls + '" onclick="selectDate(\'' + dateStr + '\')"><span>' + d + '</span>' + (dotsHtml ? '<div class="cal-day-legend">' + dotsHtml + '</div>' : '') + '</div>');
+  }
+
+  // Fill remaining cells to complete 6 rows
+  var totalCells = firstDay + daysInMonth;
+  var remaining = totalCells % 7 === 0 ? 0 : 7 - totalCells % 7;
+  // Ensure at least 6 rows
+  if (firstDay + daysInMonth + remaining < 42) remaining += 7;
+  for (var d = 1; d <= remaining; d++) {
+    cells.push('<div class="cal-day other-month"><span>' + d + '</span></div>');
+  }
+
+  grid.innerHTML = cells.join('');
+
+  // Render selected date memos
+  var memoContainer = document.getElementById('calendar-memos');
+  if (selectedDateStr && memosByDate[selectedDateStr]) {
+    var dayMemos = memosByDate[selectedDateStr];
+    memoContainer.innerHTML = '<div class="flex items-center gap-2 mb-3"><h3 class="font-semibold text-sm text-gray-700">' + selectedDateStr + ' (' + dayMemos.length + ' 条备忘)</h3></div>'
+      + dayMemos.sort(function(a,b){ return b.createdAt - a.createdAt; }).map(function(m) {
+        var info = getDaysInfo(m);
+        var preview = (m.content || '').substring(0, 80);
+        if ((m.content || '').length > 80) preview += '...';
+        return '<div class="bg-white/80 backdrop-blur rounded-xl p-4 card-hover shadow-sm memo-card mb-2">'
+          + '<div class="flex items-start justify-between mb-2">'
+            + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(m.title) + '</h4>'
+            + '<div class="flex gap-0.5 shrink-0 ml-2">'
+              + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
+              + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="icon-btn-del" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
+            + '</div>'
+          + '</div>'
+          + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
+          + '<span class="text-xs font-medium" style="color:' + info.color + '">' + info.label + '</span>'
+        + '</div>';
+      }).join('');
+  } else if (selectedDateStr) {
+    memoContainer.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm">当天无待办事项</div>';
+  } else {
+    memoContainer.innerHTML = '';
+  }
+
+  // Update badge
+  var badge = document.getElementById('header-badge');
+  if (badge) {
+    var totalDue = Object.keys(memosByDate).length;
+    badge.textContent = totalDue + ' 天有截止';
+  }
+}
+
+function navigateMonth(delta) {
+  calendarMonth += delta;
+  if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+  if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+  renderCalendar();
+}
+
+function goToToday() {
+  var now = new Date();
+  calendarYear = now.getFullYear();
+  calendarMonth = now.getMonth();
+  selectedDateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  renderCalendar();
+}
+
+function selectDate(dateStr) {
+  selectedDateStr = selectedDateStr === dateStr ? null : dateStr;
+  renderCalendar();
 }
 
 // ── Workflow / Mind Map ──────────────────────
