@@ -1528,10 +1528,28 @@ async function renderMindMap(workflowId) {
 
   var svgLines = drawConnections(nodes, positions, isKnowledge);
 
+  // Compute node depth levels for aria-level
+  var levelMap = {};
+  function assignLevel(nid, level) {
+    levelMap[nid] = level;
+    nodes.filter(function(x) { return x.parentId === nid; }).forEach(function(child) {
+      assignLevel(child.id, level + 1);
+    });
+  }
+  var rootNode = nodes.find(function(x) { return x.parentId == null; });
+  if (rootNode) assignLevel(rootNode.id, 1);
+
+  // Arrow SVG for direction buttons (replaces "+" to avoid ad-blocker false positives)
+  var arrowUp = '<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 15l7-7 7 7"/></svg>';
+  var arrowDown = '<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>';
+  var arrowLeft = '<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 5l-7 7 7 7"/></svg>';
+  var arrowRight = '<svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>';
+
   var nodesHtml = nodes.map(function(n) {
     var pos = positions[n.id];
     if (!pos) return '';
     var isRoot = n.parentId == null;
+    var nodeLevel = levelMap[n.id] || 1;
     var knowledgeClass = isKnowledge ? ' knowledge' : '';
     var doneClass = (!isKnowledge && n.done) ? ' done' : '';
     var rootClass = isRoot ? ' root' : '';
@@ -1561,11 +1579,11 @@ async function renderMindMap(workflowId) {
         + '</div>'
       + '</div>';
     }
-    return '<div class="mindmap-node' + knowledgeClass + doneClass + rootClass + shapeClass + sizeClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
-      + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
-      + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
-      + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
-      + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" title="右">+</button>'
+    return '<div class="mindmap-node' + knowledgeClass + doneClass + rootClass + shapeClass + sizeClass + '" role="treeitem" aria-level="' + nodeLevel + '" aria-label="' + esc(n.title) + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
+      + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" aria-label="在上方添加子节点">' + arrowUp + '</button>'
+      + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" aria-label="在下方添加子节点">' + arrowDown + '</button>'
+      + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" aria-label="在左侧添加子节点">' + arrowLeft + '</button>'
+      + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" aria-label="在右侧添加子节点">' + arrowRight + '</button>'
       + '<div class="mindmap-node-title">' + esc(n.title) + '</div>'
       + (descSnippet ? '<div class="text-xs text-gray-400">' + esc(descSnippet) + '</div>' : '')
       + bottomHtml
@@ -1573,9 +1591,9 @@ async function renderMindMap(workflowId) {
   }).join('');
 
   canvas.innerHTML = ''
-    + '<div id="mindmap-zoom-container" style="transform:scale(' + mindmapZoom + '); transform-origin:0 0; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
+    + '<div id="mindmap-zoom-container" role="tree" aria-label="思维导图" style="transform:scale(' + mindmapZoom + '); transform-origin:0 0; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
     + '<svg class="mindmap-svg" style="width:' + canvasW + 'px; height:' + canvasH + 'px;">' + svgLines + '</svg>'
-    + '<div style="position:relative; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
+    + '<div role="presentation" style="position:relative; width:' + canvasW + 'px; height:' + canvasH + 'px;">'
     + nodesHtml
     + '</div>'
     + '</div>';
@@ -1988,6 +2006,8 @@ function quickAddNode(parentId, direction) {
   var popup = document.createElement('div');
   popup.id = 'mindmap-quick-add';
   popup.className = 'mindmap-quick-add';
+  popup.setAttribute('role', 'dialog');
+  popup.setAttribute('aria-label', '添加子节点');
 
   // Position near the direction button
   var top = nodeRect.top - canvasRect.top + canvas.scrollTop;
