@@ -60,7 +60,7 @@ function enterWidget(id) {
 
   // Sidebar: show back link + widget nav
   document.getElementById('sidebar-back-btn').classList.remove('hidden');
-  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.style.display = ''; });
+  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.classList.remove('hidden'); s.style.display = ''; });
 
   // Reset to categories tab
   switchTab('categories');
