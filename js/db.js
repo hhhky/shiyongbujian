@@ -210,15 +210,22 @@ async function updateMemo(id, updates) {
 }
 
 // ── Workflow operations ────────────────────────
-async function addWorkflow(name) {
-  var id = await dbOp('workflows', 'readwrite', (s) => s.add({ name, createdAt: Date.now() }));
+async function addWorkflow(name, type) {
+  var t = type || 'workflow';
+  var id = await dbOp('workflows', 'readwrite', (s) => s.add({ name, type: t, createdAt: Date.now() }));
   // Auto-create root node
-  await dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId: id, parentId: null, direction: null, title: name, description: '', shape: 'rounded', size: 'medium', posX: null, posY: null, done: false, createdAt: Date.now() }));
+  var rootSize = t === 'knowledge' ? 'large' : 'medium';
+  await dbOp('workflow_nodes', 'readwrite', (s) => s.add({ workflowId: id, parentId: null, direction: null, title: name, description: '', shape: 'rounded', size: rootSize, posX: null, posY: null, done: false, createdAt: Date.now() }));
   return id;
 }
 
 async function getWorkflows() {
   return dbOp('workflows', 'readonly', (s) => s.getAll());
+}
+
+async function getWorkflowsByType(type) {
+  var all = await dbOp('workflows', 'readonly', (s) => s.getAll());
+  return all.filter(function(w) { return (w.type || 'workflow') === type; });
 }
 
 async function deleteWorkflow(id) {

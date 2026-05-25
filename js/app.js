@@ -38,9 +38,10 @@ const WIDGETS = [
     ]
   },
   {
-    id: 'mindmap', name: '思维导图', icon: '🧠', desc: '树形结构思维导图，自由拖拽布局', color: '#f43f5e',
+    id: 'mindmap', name: '思维导图', icon: '🧠', desc: '工作流管理 + 知识归纳梳理', color: '#f43f5e',
     tabs: [
-      { id: 'workflows', name: '思维导图', shortName: '导图', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' }
+      { id: 'workflows', name: '工作流', shortName: '工作流', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' },
+      { id: 'knowledge', name: '知识导图', shortName: '知识', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>' }
     ]
   }
 ];
@@ -52,6 +53,7 @@ let editingNodeId = null;
 let calendarYear = null;
 let calendarMonth = null;
 let selectedDateStr = null;
+let currentMindmapType = 'workflow';
 
 function renderWidgets() {
   var grid = document.getElementById('widgets-grid');
@@ -98,7 +100,7 @@ function enterWidget(id) {
   refreshAll();
   if (id === 'review') renderColorPicker();
   if (id === 'memo') { var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
-  if (id === 'mindmap') { currentWorkflowId = null; backToWorkflowsList(true); }
+  if (id === 'mindmap') { currentWorkflowId = null; currentMindmapType = 'workflow'; backToWorkflowsList(true); }
 }
 
 function goHome() {
@@ -196,11 +198,12 @@ async function refreshAll() {
     renderMemos();
     if (document.getElementById('page-calendar') && document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
   } else if (currentWidget === 'mindmap') {
-    var workflows = await getWorkflows();
+    var workflows = await getWorkflowsByType(currentMindmapType);
+    var label = currentMindmapType === 'knowledge' ? '知识导图' : '工作流';
     var badge = document.getElementById('header-badge');
-    if (badge) badge.textContent = workflows.length + ' 个导图';
+    if (badge) badge.textContent = workflows.length + ' 个' + label;
     var sc = document.getElementById('sidebar-footer-text');
-    if (sc) sc.textContent = workflows.length + ' 个导图';
+    if (sc) sc.textContent = workflows.length + ' 个' + label;
     renderWorkflows();
   }
 }
@@ -233,7 +236,10 @@ function switchTab(tab) {
     if (tab === 'memos') renderMemos();
     if (tab === 'calendar') renderCalendar();
   } else if (currentWidget === 'mindmap') {
-    if (tab === 'workflows') { backToWorkflowsList(true); renderWorkflows(); }
+    document.getElementById('page-workflows').classList.add('active');
+    if (tab === 'workflows') currentMindmapType = 'workflow';
+    if (tab === 'knowledge') currentMindmapType = 'knowledge';
+    backToWorkflowsList(true); renderWorkflows();
   }
 }
 
@@ -1114,7 +1120,7 @@ let mmDragInfo = null; // { nodeId, nodeEl, startX, startY, nodeLeft, nodeTop, t
 
 function showAddWorkflow() {
   workflowModalMode = 'create-workflow';
-  document.getElementById('workflow-modal-title').textContent = '新建思维导图';
+  document.getElementById('workflow-modal-title').textContent = currentMindmapType === 'knowledge' ? '新建知识导图' : '新建工作流';
   document.getElementById('workflow-name-input').value = '';
   document.getElementById('workflow-name-input').style.display = '';
   document.getElementById('workflow-node-fields').classList.add('hidden');
@@ -1174,8 +1180,8 @@ async function confirmWorkflowModal() {
   if (workflowModalMode === 'create-workflow') {
     var name = document.getElementById('workflow-name-input').value.trim();
     if (!name) { toast('请输入名称'); return; }
-    var id = await addWorkflow(name);
-    toast('思维导图已创建');
+    var id = await addWorkflow(name, currentMindmapType);
+    toast(currentMindmapType === 'knowledge' ? '知识导图已创建' : '工作流已创建');
     hideWorkflowModal();
     enterWorkflow(id);
     await refreshAll();
@@ -1195,34 +1201,42 @@ async function confirmWorkflowModal() {
 }
 
 async function renderWorkflows() {
-  var workflows = await getWorkflows();
+  var workflows = await getWorkflowsByType(currentMindmapType);
   var container = document.getElementById('workflows-grid');
+  var isKnowledge = currentMindmapType === 'knowledge';
+  var emptyLabel = isKnowledge ? '还没有知识导图，点击上方按钮创建' : '还没有工作流，点击上方按钮创建';
   if (workflows.length === 0) {
-    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有思维导图，点击上方按钮创建</div>';
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">' + emptyLabel + '</div>';
     return;
   }
   container.innerHTML = '';
   for (var i = 0; i < workflows.length; i++) {
     var w = workflows[i];
     var nodes = await getWorkflowNodes(w.id);
-    var doneCount = nodes.filter(function(n) { return n.done; }).length;
     var total = nodes.length;
-    var progress = total > 0 ? Math.round(doneCount / total * 100) : 0;
     var div = document.createElement('div');
     div.className = 'bg-white/80 backdrop-blur rounded-xl p-4 card-hover cursor-pointer shadow-sm';
     div.onclick = function(wf) { return function() { enterWorkflow(wf.id); }; }(w);
+    var infoHtml = '';
+    if (isKnowledge) {
+      infoHtml = '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2"><span>' + total + ' 个节点</span></div>';
+    } else {
+      var doneCount = nodes.filter(function(n) { return n.done; }).length;
+      var progress = total > 0 ? Math.round(doneCount / total * 100) : 0;
+      infoHtml = '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2">'
+        + '<span>' + total + ' 个节点</span>'
+        + '<span>·</span>'
+        + '<span>' + doneCount + ' 已完成</span>'
+        + '</div>'
+        + '<div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">'
+          + '<div class="h-full rounded-full transition-all duration-500" style="width:' + progress + '%; background: linear-gradient(90deg, #10b981, #34d399);"></div>'
+        + '</div>';
+    }
     div.innerHTML = '<div class="flex items-start justify-between mb-2">'
       + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(w.name) + '</h4>'
       + '<button onclick="event.stopPropagation();deleteWorkflowById(' + w.id + ')" class="icon-btn-del shrink-0 ml-2" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
       + '</div>'
-      + '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2">'
-        + '<span>' + total + ' 个节点</span>'
-        + '<span>·</span>'
-        + '<span>' + doneCount + ' 已完成</span>'
-      + '</div>'
-      + '<div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">'
-        + '<div class="h-full rounded-full transition-all duration-500" style="width:' + progress + '%; background: linear-gradient(90deg, #10b981, #34d399);"></div>'
-      + '</div>';
+      + infoHtml;
     container.appendChild(div);
   }
 }
@@ -1234,6 +1248,7 @@ async function enterWorkflow(id) {
     var workflows = await getWorkflows();
     var w = workflows.find(function(x) { return x.id === id; });
     if (!w) return;
+    currentMindmapType = w.type || 'workflow';
     document.getElementById('workflows-list-view').classList.add('hidden');
     document.getElementById('workflow-detail-view').classList.remove('hidden');
     document.getElementById('workflow-detail-title').textContent = w.name;
@@ -1400,7 +1415,7 @@ function calcLayout(nodes) {
   };
 }
 
-function drawConnections(nodes, positions) {
+function drawConnections(nodes, positions, isKnowledge) {
   var NODE_H = 70;
   function nw(n) {
     var s = n.size || 'medium';
@@ -1436,7 +1451,12 @@ function drawConnections(nodes, positions) {
       x2 = childPos.x + cw / 2; y2 = childPos.y + NODE_H;
     }
 
-    var strokeColor = n.done ? '#a7f3d0' : '#fecdd3';
+    var strokeColor;
+    if (isKnowledge) {
+      strokeColor = '#c4b5fd';
+    } else {
+      strokeColor = n.done ? '#a7f3d0' : '#fecdd3';
+    }
     // Auto-judge: straight line if nearly aligned, otherwise curve
     var dx = Math.abs(x2 - x1);
     var dy = Math.abs(y2 - y1);
@@ -1477,33 +1497,39 @@ async function renderMindMap(workflowId) {
       return renderMindMap(workflowId);
     }
 
+    var isKnowledge = currentMindmapType === 'knowledge';
+
   var layout = calcLayout(nodes);
   var positions = layout.positions;
   var canvasW = Math.max(layout.w, 600);
   var canvasH = Math.max(layout.h, 520);
 
-  var svgLines = drawConnections(nodes, positions);
+  var svgLines = drawConnections(nodes, positions, isKnowledge);
 
   var nodesHtml = nodes.map(function(n) {
     var pos = positions[n.id];
     if (!pos) return '';
     var isRoot = n.parentId == null;
-    var doneClass = n.done ? ' done' : '';
+    var knowledgeClass = isKnowledge ? ' knowledge' : '';
+    var doneClass = (!isKnowledge && n.done) ? ' done' : '';
     var rootClass = isRoot ? ' root' : '';
     var shape = n.shape || 'rounded';
     var shapeClass = shape !== 'rounded' ? ' shape-' + shape : '';
-    var descSnippet = (n.description || '').substring(0, 30);
-    if ((n.description || '').length > 30) descSnippet += '...';
+    var descLimit = isKnowledge ? 80 : 30;
+    var descSnippet = (n.description || '').substring(0, descLimit);
+    if ((n.description || '').length > descLimit) descSnippet += '...';
 
-    var sizeClass = ' size-' + (n.size || 'medium');
-    return '<div class="mindmap-node' + doneClass + rootClass + shapeClass + sizeClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
-      + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
-      + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
-      + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
-      + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" title="右">+</button>'
-      + '<div class="mindmap-node-title">' + esc(n.title) + '</div>'
-      + (descSnippet ? '<div class="text-xs text-gray-400">' + esc(descSnippet) + '</div>' : '')
-      + '<div class="flex items-center justify-between mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
+    var sizeClass = ' size-' + (n.size || (isKnowledge ? 'large' : 'medium'));
+    var bottomHtml = '';
+    if (isKnowledge) {
+      bottomHtml = '<div class="flex justify-end mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
+        + '<div class="flex gap-0.5">'
+          + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
+          + '<button onclick="event.stopPropagation();deleteNodeById(' + n.id + ')" class="icon-btn-del" title="删除"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
+        + '</div>'
+      + '</div>';
+    } else {
+      bottomHtml = '<div class="flex items-center justify-between mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
         + '<button onclick="event.stopPropagation();toggleNodeDone(' + n.id + ')" class="text-xs px-2 py-0.5 rounded-full font-medium transition-all '
           + (n.done ? 'bg-mint-100 text-mint-600' : 'bg-gray-100 text-gray-500') + '" style="font-size:0.7rem">'
           + (n.done ? '取消' : '完成') + '</button>'
@@ -1511,7 +1537,16 @@ async function renderMindMap(workflowId) {
           + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
           + '<button onclick="event.stopPropagation();deleteNodeById(' + n.id + ')" class="icon-btn-del" title="删除"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
         + '</div>'
-      + '</div>'
+      + '</div>';
+    }
+    return '<div class="mindmap-node' + knowledgeClass + doneClass + rootClass + shapeClass + sizeClass + '" style="left:' + pos.x + 'px; top:' + pos.y + 'px;" data-node-id="' + n.id + '">'
+      + '<button class="mindmap-dir-btn top" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'up\')" title="上">+</button>'
+      + '<button class="mindmap-dir-btn bottom" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'down\')" title="下">+</button>'
+      + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" title="左">+</button>'
+      + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" title="右">+</button>'
+      + '<div class="mindmap-node-title">' + esc(n.title) + '</div>'
+      + (descSnippet ? '<div class="text-xs text-gray-400">' + esc(descSnippet) + '</div>' : '')
+      + bottomHtml
     + '</div>';
   }).join('');
 
@@ -1667,10 +1702,10 @@ function quickAddNode(parentId, direction) {
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:8px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
     + '</div>'
-    + '<div style="display:flex; gap:6px; margin:0 0 6px 0;" id="quick-size-select">'
+    + '<div style="display:flex; gap:6px; margin:0 0 6px 0;" id="quick-size-select" data-size="' + (currentMindmapType === 'knowledge' ? 'large' : 'medium') + '">'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn" data-size="small" style="flex:1; padding:3px; border-radius:6px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">小</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn active" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.6rem; color:#7c3aed; cursor:pointer;">中</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">大</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? '' : ' active') + '" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#e5e7eb' : '#8b5cf6') + '; background:' + (currentMindmapType === 'knowledge' ? '#fff' : '#ede9fe') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#6b7280' : '#7c3aed') + '; cursor:pointer;">中</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? ' active' : '') + '" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#8b5cf6' : '#e5e7eb') + '; background:' + (currentMindmapType === 'knowledge' ? '#ede9fe' : '#fff') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#7c3aed' : '#6b7280') + '; cursor:pointer;">大</button>'
     + '</div>'
     + '<div class="mindmap-quick-add-btns">'
       + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
@@ -1808,6 +1843,7 @@ async function onNodePointerUp(e) {
 
 // ── Node Actions ────────────────────────────
 async function toggleNodeDone(nodeId) {
+  if (currentMindmapType === 'knowledge') return;
   var nodes = await getWorkflowNodes(currentWorkflowId);
   var node = nodes.find(function(n) { return n.id === nodeId; });
   if (!node) return;
