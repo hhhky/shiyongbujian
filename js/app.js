@@ -60,7 +60,7 @@ function enterWidget(id) {
 
   // Sidebar: show back link + widget nav
   document.getElementById('sidebar-back-btn').classList.remove('hidden');
-  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.classList.remove('hidden'); s.style.display = ''; });
+  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.style.display = ''; });
 
   // Reset to categories tab
   switchTab('categories');
@@ -108,6 +108,7 @@ async function init() {
   el = document.querySelector('.main-content'); if (el) el.classList.remove('has-nav');
   el = document.getElementById('sidebar-back-btn'); if (el) el.classList.add('hidden');
   el = document.getElementById('page-home'); if (el) el.classList.add('active');
+  document.querySelectorAll('.sidebar-sub').forEach(function(s){ s.style.display = 'none'; });
 }
 
 async function refreshAll() {
