@@ -46,10 +46,13 @@
     .widget-card-outer {
       background: linear-gradient(135deg, #a855f7, #ec4899, #fb923c, #34d399, #60a5fa, #a855f7);
       background-size: 300% 300%;
-      animation: border-flow 4s ease infinite;
+      animation: border-flow 5s ease infinite;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .widget-card-outer:hover {
       animation: border-flow 1.5s ease infinite;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(139,92,246,0.35) !important;
     }
     .preview-overlay { z-index: 9999; }
     .cat-color { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
