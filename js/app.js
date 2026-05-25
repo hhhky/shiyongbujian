@@ -839,6 +839,7 @@ function showAddMemo() {
   document.getElementById('memo-title-input').value = '';
   document.getElementById('memo-content-input').value = '';
   document.getElementById('memo-deadline-input').value = '';
+  document.getElementById('memo-autodelete-check').checked = false;
   document.getElementById('memo-modal').classList.remove('hidden');
   document.getElementById('memo-title-input').focus();
 }
@@ -858,6 +859,7 @@ function showEditMemo(id) {
     } else {
       document.getElementById('memo-deadline-input').value = '';
     }
+    document.getElementById('memo-autodelete-check').checked = !!m.autoDelete;
     document.getElementById('memo-modal').classList.remove('hidden');
     document.getElementById('memo-title-input').focus();
   });
@@ -874,12 +876,13 @@ async function confirmMemo() {
   var content = document.getElementById('memo-content-input').value.trim();
   var deadlineVal = document.getElementById('memo-deadline-input').value;
   var deadline = deadlineVal ? new Date(deadlineVal).getTime() : null;
+  var autoDelete = document.getElementById('memo-autodelete-check').checked;
 
   if (editingMemoId) {
-    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline });
+    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete });
     toast('备忘录已更新');
   } else {
-    await addMemo(title, content, deadline);
+    await addMemo(title, content, deadline, autoDelete);
     toast('备忘录已创建');
   }
   hideMemoModal();
@@ -899,7 +902,7 @@ async function cleanupExpiredMemos() {
     var now = Date.now();
     var GRACE = 7 * 24 * 60 * 60 * 1000;
     for (var i = 0; i < memos.length; i++) {
-      if (memos[i].deadline && (memos[i].deadline + GRACE) < now) {
+      if (memos[i].autoDelete && memos[i].deadline && (memos[i].deadline + GRACE) < now) {
         await deleteMemo(memos[i].id);
       }
     }
@@ -943,7 +946,7 @@ async function renderMemos() {
       + '</div>'
       + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
       + '<div class="flex items-center justify-between text-xs">'
-        + '<span class="text-gray-400">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + '</span>'
+        + '<span class="text-gray-400">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? ' · 自动删除' : '') + '</span>'
         + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
       + '</div>'
     + '</div>';
@@ -1049,7 +1052,10 @@ async function renderCalendar() {
             + '</div>'
           + '</div>'
           + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
-          + '<span class="text-xs font-medium" style="color:' + info.color + '">' + info.label + '</span>'
+          + '<div class="flex items-center justify-between text-xs">'
+            + '<span class="text-gray-400">' + (m.autoDelete ? '自动删除' : '手动删除') + '</span>'
+            + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
+          + '</div>'
         + '</div>';
       }).join('');
   } else if (selectedDateStr) {

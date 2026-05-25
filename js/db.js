@@ -172,8 +172,8 @@ async function updateFileName(id, newName) {
 }
 
 // ── Memo operations ────────────────────────
-async function addMemo(title, content, deadline) {
-  return dbOp('memos', 'readwrite', (s) => s.add({ title, content, deadline: deadline || null, createdAt: Date.now() }));
+async function addMemo(title, content, deadline, autoDelete) {
+  return dbOp('memos', 'readwrite', (s) => s.add({ title, content, deadline: deadline || null, autoDelete: !!autoDelete, createdAt: Date.now() }));
 }
 
 async function getMemos() {
@@ -198,6 +198,7 @@ async function updateMemo(id, updates) {
         if (updates.title !== undefined) memo.title = updates.title;
         if (updates.content !== undefined) memo.content = updates.content;
         if (updates.deadline !== undefined) memo.deadline = updates.deadline;
+        if (updates.autoDelete !== undefined) memo.autoDelete = updates.autoDelete;
         store.put(memo);
       };
       getReq.onerror = function() { db.close(); reject(getReq.error); };
