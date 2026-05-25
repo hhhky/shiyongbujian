@@ -443,7 +443,15 @@ function applyZoom() {
   if (!content) return;
   var docTarget = content.querySelector('.word-preview') || content.querySelector('.excel-preview');
   if (docTarget) {
+    var oldZoom = parseFloat(docTarget.style.zoom) || 1;
     docTarget.style.zoom = zoomLevel;
+    if (oldZoom !== zoomLevel) {
+      var ratio = zoomLevel / oldZoom;
+      var cx = content.clientWidth / 2;
+      var cy = content.clientHeight / 2;
+      content.scrollLeft = (content.scrollLeft + cx) * ratio - cx;
+      content.scrollTop = (content.scrollTop + cy) * ratio - cy;
+    }
   } else if (pdfDoc) {
     renderPdfPage(pdfCurrentPage);
   } else {
@@ -1592,6 +1600,12 @@ async function renderMindMap(workflowId) {
     document.addEventListener('mouseup', onNodePointerUp);
     document.addEventListener('touchmove', onNodePointerMove, { passive: false });
     document.addEventListener('touchend', onNodePointerUp);
+    // Close export dropdown on outside click
+    document.addEventListener('click', function(e) {
+      var dd = document.getElementById('export-dropdown');
+      var wrap = document.getElementById('export-dropdown-wrapper');
+      if (dd && wrap && !wrap.contains(e.target)) dd.classList.add('hidden');
+    });
   }
 
   var badge = document.getElementById('header-badge');
@@ -1620,36 +1634,223 @@ function updateMindmapZoomLabel() {
   if (label) label.textContent = Math.round(mindmapZoom * 100) + '%';
 }
 
-function applyMindmapZoom() {
+function applyMindmapZoom(oldZoom, anchorX, anchorY) {
   var container = document.getElementById('mindmap-zoom-container');
   if (container) {
     container.style.transform = 'scale(' + mindmapZoom + ')';
     container.style.transformOrigin = '0 0';
   }
+  var canvas = document.getElementById('mindmap-canvas');
+  if (canvas && oldZoom && oldZoom !== mindmapZoom) {
+    var ratio = mindmapZoom / oldZoom;
+    var ax = anchorX != null ? anchorX : canvas.clientWidth / 2;
+    var ay = anchorY != null ? anchorY : canvas.clientHeight / 2;
+    canvas.scrollLeft = (canvas.scrollLeft + ax) * ratio - ax;
+    canvas.scrollTop = (canvas.scrollTop + ay) * ratio - ay;
+  }
   updateMindmapZoomLabel();
 }
 
 function mindmapZoomIn() {
+  var old = mindmapZoom;
   mindmapZoom = Math.min(3, mindmapZoom + 0.1);
-  applyMindmapZoom();
+  applyMindmapZoom(old);
 }
 
 function mindmapZoomOut() {
+  var old = mindmapZoom;
   mindmapZoom = Math.max(0.25, mindmapZoom - 0.1);
-  applyMindmapZoom();
+  applyMindmapZoom(old);
 }
 
 function mindmapZoomReset() {
+  var old = mindmapZoom;
   mindmapZoom = 1;
-  applyMindmapZoom();
+  applyMindmapZoom(old);
+}
+
+// ── Export Mind Map as Image ────────────────
+function toggleExportDropdown(e) {
+  e.stopPropagation();
+  var dd = document.getElementById('export-dropdown');
+  dd.classList.toggle('hidden');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function wrapText(ctx, text, maxWidth) {
+  var chars = text.split('');
+  var lines = [];
+  var cur = '';
+  for (var i = 0; i < chars.length; i++) {
+    var test = cur + chars[i];
+    if (ctx.measureText(test).width > maxWidth && cur.length > 0) {
+      lines.push(cur);
+      cur = chars[i];
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [text];
+}
+
+async function exportMindmapImage(format) {
+  try {
+    var nodes = await getWorkflowNodes(currentWorkflowId);
+    if (!nodes.length) { toast('没有可导出的节点'); return; }
+    var isKnowledge = currentMindmapType === 'knowledge';
+    var layout = calcLayout(nodes);
+    var positions = layout.positions;
+    var canvasW = Math.max(layout.w, 600);
+    var canvasH = Math.max(layout.h, 520);
+    var scale = 2;
+    var canvas = document.createElement('canvas');
+    canvas.width = canvasW * scale;
+    canvas.height = canvasH * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Draw connections via SVG image
+    var svgLines = drawConnections(nodes, positions, isKnowledge);
+    var svgStr = '<svg xmlns="http://www.w3.org/2000/svg" width="' + canvasW + '" height="' + canvasH + '">' + svgLines + '</svg>';
+    var svgBlob = new Blob([svgStr], { type: 'image/svg+xml' });
+    var svgUrl = URL.createObjectURL(svgBlob);
+    try {
+      await new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.onload = function() { ctx.drawImage(img, 0, 0); URL.revokeObjectURL(svgUrl); resolve(); };
+        img.onerror = function() { URL.revokeObjectURL(svgUrl); reject(new Error('SVG load failed')); };
+        img.src = svgUrl;
+      });
+    } catch(e) { URL.revokeObjectURL(svgUrl); }
+
+    // Draw nodes
+    var nodeDim = { small: [120, 55, 8], medium: [160, 70, 12], large: [210, 90, 16] };
+    nodes.forEach(function(n) {
+      var pos = positions[n.id];
+      if (!pos) return;
+      var size = n.size || (isKnowledge ? 'large' : 'medium');
+      var d = nodeDim[size];
+      var w = d[0], h = d[1], pad = d[2];
+      var x = pos.x, y = pos.y;
+      var isRoot = n.parentId == null;
+      var shape = n.shape || 'rounded';
+      var borderColor = isKnowledge ? '#8b5cf6' : (n.done ? '#10b981' : '#f43f5e');
+
+      ctx.save();
+      var radius = shape === 'pill' ? h / 2 : 12;
+      roundRect(ctx, x, y, w, h, radius);
+      ctx.clip();
+
+      // White bg
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, w, h);
+
+      // Root gradient overlay
+      if (isRoot) {
+        var grad = ctx.createLinearGradient(x, y, x + w, y + h);
+        if (isKnowledge) {
+          grad.addColorStop(0, 'rgba(139,92,246,0.06)');
+          grad.addColorStop(1, 'rgba(168,85,247,0.04)');
+        } else {
+          grad.addColorStop(0, 'rgba(139,92,246,0.06)');
+          grad.addColorStop(1, 'rgba(236,72,153,0.04)');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, w, h);
+      }
+
+      // Done overlay for workflow mode
+      if (n.done && !isKnowledge) {
+        ctx.fillStyle = 'rgba(16,185,129,0.06)';
+        ctx.fillRect(x, y, w, h);
+      }
+
+      // Border
+      ctx.beginPath();
+      roundRect(ctx, x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1));
+      ctx.lineWidth = isRoot ? 3 : 2;
+      ctx.strokeStyle = borderColor;
+      ctx.stroke();
+
+      // Title text
+      var titleFontSize = size === 'small' ? 11 : (size === 'large' ? 15 : 13);
+      ctx.font = (isRoot ? 'bold ' : '600 ') + titleFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = (n.done && !isKnowledge) ? '#9ca3af' : '#1f2937';
+      ctx.textBaseline = 'top';
+      var maxW = w - pad * 2;
+      var title = n.title || '';
+      var titleLines = wrapText(ctx, title, maxW);
+      var maxTitleLines = size === 'small' ? 1 : 2;
+      for (var i = 0; i < Math.min(titleLines.length, maxTitleLines); i++) {
+        ctx.fillText(titleLines[i], x + pad, y + pad + i * (titleFontSize + 2));
+      }
+
+      // Description text
+      var descLimit = isKnowledge ? 80 : 30;
+      var desc = (n.description || '').substring(0, descLimit);
+      if (desc) {
+        var descFontSize = size === 'small' ? 9 : (size === 'large' ? 11 : 10);
+        ctx.font = descFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillStyle = '#9ca3af';
+        ctx.textBaseline = 'top';
+        var descLines = wrapText(ctx, desc, maxW);
+        var descY = y + pad + Math.min(titleLines.length, maxTitleLines) * (titleFontSize + 2) + 4;
+        var maxDescLines = size === 'small' ? 1 : 2;
+        for (var j = 0; j < Math.min(descLines.length, maxDescLines); j++) {
+          ctx.fillText(descLines[j], x + pad, descY + j * (descFontSize + 2));
+        }
+      }
+
+      ctx.restore();
+    });
+
+    // Trigger download
+    var wfName = document.getElementById('workflow-detail-title');
+    var name = wfName ? wfName.textContent.trim() : '思维导图';
+    var mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+    var ext = format === 'jpg' ? 'jpg' : 'png';
+    canvas.toBlob(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name + '.' + ext;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('已导出 ' + name + '.' + ext);
+    }, mimeType, 0.95);
+  } catch (err) {
+    console.error('exportMindmapImage error:', err);
+    toast('导出失败: ' + (err.message || String(err)));
+  }
 }
 
 function onMindmapWheel(e) {
   if (e.ctrlKey || e.metaKey) return;
   e.preventDefault();
+  var old = mindmapZoom;
   var delta = e.deltaY > 0 ? -0.05 : 0.05;
   mindmapZoom = Math.max(0.25, Math.min(3, mindmapZoom + delta));
-  applyMindmapZoom();
+  var canvas = document.getElementById('mindmap-canvas');
+  var rect = canvas.getBoundingClientRect();
+  applyMindmapZoom(old, e.clientX - rect.left, e.clientY - rect.top);
 }
 
 function onMindmapTouchStart(e) {
@@ -1670,8 +1871,13 @@ function onMindmapTouchMove(e) {
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
+    var old = mindmapZoom;
     mindmapZoom = Math.max(0.25, Math.min(3, mmPinchZoom0 * (dist / mmPinchDist0)));
-    applyMindmapZoom();
+    var cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    var cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    var canvas = document.getElementById('mindmap-canvas');
+    var rect = canvas.getBoundingClientRect();
+    applyMindmapZoom(old, cx - rect.left, cy - rect.top);
   }
 }
 
@@ -1807,6 +2013,7 @@ function onNodePointerDown(e, nodeId, nodeEl) {
   if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
   var clientX = e.touches ? e.touches[0].clientX : e.clientX;
   var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  var isTouch = !!e.touches;
   mmDragInfo = {
     nodeId: nodeId,
     nodeEl: nodeEl,
@@ -1814,11 +2021,12 @@ function onNodePointerDown(e, nodeId, nodeEl) {
     startY: clientY,
     nodeLeft: parseFloat(nodeEl.style.left) || 0,
     nodeTop: parseFloat(nodeEl.style.top) || 0,
-    timer: setTimeout(function() {
+    timer: isTouch ? setTimeout(function() {
       mmDragInfo.isDragging = true;
       nodeEl.classList.add('dragging');
-    }, 400),
-    isDragging: false
+    }, 400) : null,
+    isDragging: false,
+    isTouch: isTouch
   };
 }
 
@@ -1829,8 +2037,13 @@ function onNodePointerMove(e) {
   if (!mmDragInfo.isDragging) {
     var dx = Math.abs(clientX - mmDragInfo.startX);
     var dy = Math.abs(clientY - mmDragInfo.startY);
-    if (dx > 5 || dy > 5) { clearTimeout(mmDragInfo.timer); mmDragInfo = null; }
-    return;
+    if (!mmDragInfo.isTouch && (dx > 3 || dy > 3)) {
+      mmDragInfo.isDragging = true;
+      mmDragInfo.nodeEl.classList.add('dragging');
+    } else if (mmDragInfo.isTouch && (dx > 5 || dy > 5)) {
+      clearTimeout(mmDragInfo.timer); mmDragInfo = null;
+    }
+    if (!mmDragInfo || !mmDragInfo.isDragging) return;
   }
   e.preventDefault();
   var dx = (clientX - mmDragInfo.startX) / mindmapZoom;
