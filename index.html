@@ -41,6 +41,16 @@
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 8px rgba(139,92,246,0.3); } 50% { box-shadow: 0 0 20px rgba(139,92,246,0.6); } }
     @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    @keyframes border-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    @keyframes hue-rotate-slow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+    .widget-card-outer {
+      background: linear-gradient(135deg, #a855f7, #ec4899, #fb923c, #34d399, #60a5fa, #a855f7);
+      background-size: 300% 300%;
+      animation: border-flow 4s ease infinite;
+    }
+    .widget-card-outer:hover {
+      animation: border-flow 1.5s ease infinite;
+    }
     .preview-overlay { z-index: 9999; }
     .cat-color { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
 
