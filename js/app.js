@@ -301,15 +301,20 @@ async function renderCategories() {
   }
   container.innerHTML = cats.map(c => {
     const count = files.filter(f => f.categoryId === c.id).length;
-    return `<div class="bg-white/80 backdrop-blur rounded-xl p-4 flex items-center gap-3 card-hover cursor-default shadow-sm" style="border-left: 4px solid ${c.color}">
-      <span class="cat-color" style="background:${c.color}; color:${c.color};"></span>
+    return `<div class="rounded-xl p-4 flex items-center gap-3 cursor-pointer shadow-sm card-hover" style="background:${c.color}; color:#fff;" onclick="goToCategory(${c.id})">
       <div class="flex-1 min-w-0">
-        <p class="font-semibold text-gray-800 text-sm">${esc(c.name)}</p>
-        <p class="text-xs text-gray-400">${count} 份资料</p>
+        <p class="font-semibold text-sm" style="color:#fff;">${esc(c.name)}</p>
+        <p class="text-xs" style="color:rgba(255,255,255,0.75);">${count} 份资料</p>
       </div>
-      <button onclick="removeCategory(${c.id})" class="icon-btn-del" title="删除分类"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+      <button onclick="event.stopPropagation();removeCategory(${c.id})" class="icon-btn-del cat-card-del" title="删除分类"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
     </div>`;
   }).join('');
+}
+
+function goToCategory(catId) {
+  switchTab('files');
+  filterFiles(catId);
+  // Also update the category filter button visual state is handled inside filterFiles
 }
 
 async function removeCategory(id) {
