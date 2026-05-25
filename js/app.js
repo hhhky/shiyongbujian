@@ -1590,14 +1590,14 @@ async function renderMindMap(workflowId) {
   nodeEls.forEach(function(nodeEl) {
     var nid = parseInt(nodeEl.getAttribute('data-node-id'));
     if (!nid) return;
-    nodeEl.addEventListener('mousedown', function(e) { onNodePointerDown(e, nid, nodeEl); });
+    nodeEl.addEventListener('pointerdown', function(e) { onNodePointerDown(e, nid, nodeEl); });
     nodeEl.addEventListener('touchstart', function(e) { onNodePointerDown(e, nid, nodeEl); }, { passive: false });
   });
   // Document-level move/up for drag (attached once)
   if (!document._mmDragBound) {
     document._mmDragBound = true;
-    document.addEventListener('mousemove', onNodePointerMove);
-    document.addEventListener('mouseup', onNodePointerUp);
+    document.addEventListener('pointermove', onNodePointerMove);
+    document.addEventListener('pointerup', onNodePointerUp);
     document.addEventListener('touchmove', onNodePointerMove, { passive: false });
     document.addEventListener('touchend', onNodePointerUp);
     // Close export dropdown on outside click
@@ -2013,7 +2013,7 @@ function onNodePointerDown(e, nodeId, nodeEl) {
   if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
   var clientX = e.touches ? e.touches[0].clientX : e.clientX;
   var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  var isTouch = !!e.touches;
+  var isTouch = e.pointerType === 'touch' || !!e.touches;
   mmDragInfo = {
     nodeId: nodeId,
     nodeEl: nodeEl,
@@ -2028,6 +2028,10 @@ function onNodePointerDown(e, nodeId, nodeEl) {
     isDragging: false,
     isTouch: isTouch
   };
+  // Capture pointer for mouse/pen to ensure we receive all move events
+  if (!isTouch && e.pointerId != null) {
+    nodeEl.setPointerCapture(e.pointerId);
+  }
 }
 
 function onNodePointerMove(e) {
@@ -2058,13 +2062,19 @@ async function onNodePointerUp(e) {
     var el = mmDragInfo.nodeEl;
     var nid = mmDragInfo.nodeId;
     el.classList.remove('dragging');
+    if (!mmDragInfo.isTouch && e.pointerId != null) {
+      try { el.releasePointerCapture(e.pointerId); } catch(ex) {}
+    }
     var newX = Math.round(parseFloat(el.style.left) || 0);
     var newY = Math.round(parseFloat(el.style.top) || 0);
     mmDragInfo = null;
     await updateWorkflowNode(nid, { posX: newX, posY: newY });
     await renderMindMap(currentWorkflowId);
   } else {
-    clearTimeout(mmDragInfo.timer);
+    if (mmDragInfo.timer) clearTimeout(mmDragInfo.timer);
+    if (!mmDragInfo.isTouch && e.pointerId != null) {
+      try { mmDragInfo.nodeEl.releasePointerCapture(e.pointerId); } catch(ex) {}
+    }
     mmDragInfo = null;
   }
 }
