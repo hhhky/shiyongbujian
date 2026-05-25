@@ -334,13 +334,13 @@
           <div id="workflows-list-view">
             <div class="flex items-center justify-between mb-5 md:mb-7">
               <div>
-                <h2 class="text-lg md:text-xl font-bold" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">工作流</h2>
+                <h2 class="text-lg md:text-xl font-bold" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">思维导图</h2>
                 <p class="text-xs text-gray-400 mt-0.5">自由展开的思维导图，点击卡片进入</p>
               </div>
-              <button onclick="showAddWorkflow()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建工作流</button>
+              <button onclick="showAddWorkflow()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建思维导图</button>
             </div>
             <div id="workflows-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有工作流，点击上方按钮创建</div>
+              <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有思维导图，点击上方按钮创建</div>
             </div>
           </div>
           <!-- Detail View (Mind Map) -->
@@ -358,7 +358,7 @@
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                 </button>
               </div>
-              <button onclick="deleteCurrentWorkflow()" class="icon-btn-del" title="删除工作流"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+              <button onclick="deleteCurrentWorkflow()" class="icon-btn-del" title="删除思维导图"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
             </div>
             <div id="mindmap-canvas" class="mindmap-canvas bg-white/40 backdrop-blur rounded-2xl border border-gray-100" style="position:relative; overflow:auto; min-height:520px;">
               <div class="text-center text-gray-400 py-12 text-sm">加载中...</div>
@@ -467,8 +467,8 @@
     <!-- Workflow Modal -->
     <div id="workflow-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
       <div class="bg-white rounded-t-2xl md:rounded-2xl w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px)); animation: fadeIn 0.25s ease;">
-        <h3 id="workflow-modal-title" class="text-lg font-bold mb-4" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">新建工作流</h3>
-        <input type="text" id="workflow-name-input" placeholder="工作流名称" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
+        <h3 id="workflow-modal-title" class="text-lg font-bold mb-4" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">新建思维导图</h3>
+        <input type="text" id="workflow-name-input" placeholder="思维导图名称" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
         <div id="workflow-node-fields" class="hidden">
           <input type="text" id="node-title-input" placeholder="节点标题" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
           <textarea id="node-desc-input" rows="2" placeholder="节点描述（可选）" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-3 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50 resize-none"></textarea>

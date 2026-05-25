@@ -31,11 +31,16 @@ const WIDGETS = [
     ]
   },
   {
-    id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，管理工作流程', color: '#10b981',
+    id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，查看日历', color: '#10b981',
     tabs: [
       { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
-      { id: 'workflows', name: '思维导图', shortName: '导图', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' },
       { id: 'calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' }
+    ]
+  },
+  {
+    id: 'mindmap', name: '思维导图', icon: '🧠', desc: '树形结构思维导图，自由拖拽布局', color: '#f43f5e',
+    tabs: [
+      { id: 'workflows', name: '思维导图', shortName: '导图', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' }
     ]
   }
 ];
@@ -92,7 +97,8 @@ function enterWidget(id) {
   switchTab(firstTabId);
   refreshAll();
   if (id === 'review') renderColorPicker();
-  if (id === 'memo') { currentWorkflowId = null; backToWorkflowsList(true); var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
+  if (id === 'memo') { var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
+  if (id === 'mindmap') { currentWorkflowId = null; backToWorkflowsList(true); }
 }
 
 function goHome() {
@@ -182,15 +188,20 @@ async function refreshAll() {
     renderCategoryFilter();
   } else if (currentWidget === 'memo') {
     await cleanupExpiredMemos();
-    var _b = await Promise.all([getMemos(), getWorkflows()]);
-    var memos = _b[0]; var workflows = _b[1];
+    var memos = await getMemos();
     var badge = document.getElementById('header-badge');
     if (badge) badge.textContent = memos.length + ' 条备忘';
     var sc = document.getElementById('sidebar-footer-text');
-    if (sc) sc.textContent = memos.length + ' 条备忘 · ' + workflows.length + ' 个导图';
+    if (sc) sc.textContent = memos.length + ' 条备忘';
     renderMemos();
-    renderWorkflows();
     if (document.getElementById('page-calendar') && document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
+  } else if (currentWidget === 'mindmap') {
+    var workflows = await getWorkflows();
+    var badge = document.getElementById('header-badge');
+    if (badge) badge.textContent = workflows.length + ' 个导图';
+    var sc = document.getElementById('sidebar-footer-text');
+    if (sc) sc.textContent = workflows.length + ' 个导图';
+    renderWorkflows();
   }
 }
 
@@ -220,8 +231,9 @@ function switchTab(tab) {
     if (tab === 'upload') renderUploadCategories();
   } else if (currentWidget === 'memo') {
     if (tab === 'memos') renderMemos();
-    if (tab === 'workflows') { backToWorkflowsList(true); renderWorkflows(); }
     if (tab === 'calendar') renderCalendar();
+  } else if (currentWidget === 'mindmap') {
+    if (tab === 'workflows') { backToWorkflowsList(true); renderWorkflows(); }
   }
 }
 
