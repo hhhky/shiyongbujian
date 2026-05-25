@@ -456,7 +456,7 @@
         <h3 class="text-lg font-bold mb-4" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">新建分类</h3>
         <input type="text" id="new-cat-name" placeholder="分类名称，如：英语、政治" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm mb-4 focus:outline-none focus:border-dopa-purple-400 focus:ring-2 focus:ring-dopa-purple-100 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">选择颜色</label>
-        <div class="flex gap-3 mb-5 flex-wrap" id="color-picker"></div>
+        <div class="grid grid-cols-6 gap-2.5 mb-5" id="color-picker"></div>
         <div class="flex gap-3">
           <button onclick="hideCategoryModal()" class="flex-1 py-3 rounded-xl font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
           <button onclick="confirmAddCategory()" class="flex-1 py-3 rounded-xl font-semibold text-white text-sm btn-gradient">确认创建</button>

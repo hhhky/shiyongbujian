@@ -7,7 +7,12 @@ window.addEventListener('unhandledrejection', function(e) {
   toast('系统错误: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
 });
 
-const COLORS = ['#a855f7','#f472b6','#fb923c','#34d399','#60a5fa','#fb7185','#22d3ee','#facc15'];
+const COLORS = [
+  '#a855f7','#c084fc','#e879f9','#f472b6','#ec4899','#f43f5e',
+  '#fb923c','#f97316','#ef4444','#dc2626','#f59e0b','#eab308',
+  '#22c55e','#10b981','#34d399','#14b8a6','#06b6d4','#22d3ee',
+  '#3b82f6','#60a5fa','#6366f1','#8b5cf6','#7c3aed','#6d28d9'
+];
 let selectedColor = COLORS[0];
 let selectedFile = null;
 let selectedUploadCat = null;
@@ -273,9 +278,9 @@ function hideCategoryModal() {
 function renderColorPicker() {
   const container = document.getElementById('color-picker');
   container.innerHTML = COLORS.map(c =>
-    `<button onclick="selectColor('${c}')" class="w-10 h-10 rounded-full transition-all active:scale-90 flex items-center justify-center shadow-md hover:scale-110 hover:shadow-xl" style="background:${c}; box-shadow: 0 2px 8px ${c}66, 0 0 16px ${c}33"
-      ${selectedColor === c ? '<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
-    </button>`
+    `<button type="button" onclick="selectColor('${c}')" class="w-10 h-10 rounded-full transition-all active:scale-90 flex items-center justify-center shadow-md hover:scale-110 hover:shadow-xl" style="background:${c}; box-shadow: 0 2px 8px ${c}66, 0 0 16px ${c}33">${
+      selectedColor === c ? '<svg class="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''
+    }</button>`
   ).join('');
 }
 
