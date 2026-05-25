@@ -1,4 +1,6 @@
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'js/pdf.worker.min.js';
+}
 
 window.addEventListener('unhandledrejection', function(e) {
   console.error('未捕获的Promise错误:', e.reason);
@@ -98,12 +100,13 @@ function updateHomeBadge() {
 async function init() {
   renderWidgets();
   updateHomeBadge();
-  document.getElementById('header-back-btn').classList.add('hidden');
-  document.getElementById('header-title').textContent = '实用部件';
-  document.getElementById('bottom-nav').classList.add('hidden');
-  document.querySelector('.main-content').classList.remove('has-nav');
-  document.getElementById('sidebar-back-btn').classList.add('hidden');
-  document.getElementById('page-home').classList.add('active');
+  var el;
+  el = document.getElementById('header-back-btn'); if (el) el.classList.add('hidden');
+  el = document.getElementById('header-title'); if (el) el.textContent = '实用部件';
+  el = document.getElementById('bottom-nav'); if (el) el.classList.add('hidden');
+  el = document.querySelector('.main-content'); if (el) el.classList.remove('has-nav');
+  el = document.getElementById('sidebar-back-btn'); if (el) el.classList.add('hidden');
+  el = document.getElementById('page-home'); if (el) el.classList.add('active');
 }
 
 async function refreshAll() {
