@@ -232,21 +232,27 @@ async function finishRename(id) {
 }
 
 // ── Zoom ───────────────────────────────────
-function zoomIn() {
-  zoomLevel = Math.min(3, zoomLevel + 0.25);
+function onZoomInput(el) {
+  var v = parseInt(el.value);
+  if (isNaN(v)) { el.value = Math.round(zoomLevel * 100); return; }
+  v = Math.max(25, Math.min(300, v));
+  zoomLevel = v / 100;
+  el.value = v;
   applyZoom();
 }
-function zoomOut() {
-  zoomLevel = Math.max(0.25, zoomLevel - 0.25);
+
+function setZoom(val) {
+  zoomLevel = val;
+  var inp = document.getElementById('zoom-input');
+  if (inp) inp.value = Math.round(zoomLevel * 100);
   applyZoom();
 }
-function resetZoom() {
-  zoomLevel = 1;
-  applyZoom();
-}
+
+function resetZoom() { setZoom(1); }
+
 function updateZoomIndicator() {
-  var el = document.getElementById('zoom-indicator');
-  if (el) el.textContent = Math.round(zoomLevel * 100) + '%';
+  var inp = document.getElementById('zoom-input');
+  if (inp) inp.value = Math.round(zoomLevel * 100);
 }
 
 function applyZoom() {
@@ -285,8 +291,8 @@ function onPreviewTouchMove(e) {
       e.touches[0].clientX - e.touches[1].clientX,
       e.touches[0].clientY - e.touches[1].clientY
     );
-    zoomLevel = Math.min(3, Math.max(0.25, pinchZoom0 * (dist / pinchDist0)));
-    applyZoom();
+    var raw = pinchZoom0 * (dist / pinchDist0);
+    setZoom(Math.max(0.25, Math.min(3, raw)));
   }
 }
 function onPreviewTouchEnd(e) {
@@ -420,8 +426,7 @@ async function previewFile(id) {
   document.getElementById('preview-title').textContent = file.name;
   document.getElementById('preview-controls').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  zoomLevel = 1;
-  updateZoomIndicator();
+  setZoom(1);
 
   var cat = getFileCategory(file.type, file.name);
   if (cat === 'pdf') {

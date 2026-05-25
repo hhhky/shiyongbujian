@@ -188,9 +188,10 @@
         <span class="text-sm min-w-[3rem] text-center" id="pdf-page-indicator" style="display:none">1/1</span>
         <button onclick="nextPdfPage()" id="btn-next-page" class="active:scale-90 transition-transform p-2 hidden"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></button>
         <span class="text-white/20 mx-1" id="ctl-sep" style="display:none">|</span>
-        <button onclick="zoomOut()" class="active:scale-90 transition-transform p-2 text-lg font-bold leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">−</button>
-        <span class="text-sm min-w-[3rem] text-center" id="zoom-indicator">100%</span>
-        <button onclick="zoomIn()" class="active:scale-90 transition-transform p-2 text-lg font-bold leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10">+</button>
+        <div class="flex items-center gap-1 text-sm">
+          <input type="number" id="zoom-input" value="100" min="25" max="300" onchange="onZoomInput(this)" onkeydown="if(event.key==='Enter')onZoomInput(this)" class="w-14 bg-white/10 text-white text-center rounded-lg py-1 px-1 outline-none border border-white/20 focus:border-white/50 appearance-none" style="-webkit-appearance:none;-moz-appearance:textfield">
+          <span class="text-white/60">%</span>
+        </div>
         <button onclick="resetZoom()" class="active:scale-90 transition-transform px-2 py-1 text-xs opacity-60 hover:opacity-100 rounded">重置</button>
       </div>
     </div>
