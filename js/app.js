@@ -22,7 +22,7 @@ let pinchZoom0 = 1;
 
 // ── Widget Registry ────────────────────────
 const WIDGETS = [
-  { id: 'review', name: '复习资料管理', icon: '📚', desc: '分类管理、上传和预览学习资料', color: '#8b5cf6' }
+  { id: 'review', name: '资料管理', icon: '📁', desc: '分类管理、上传和预览各类资料', color: '#8b5cf6' }
 ];
 let currentWidget = null;
 
