@@ -152,8 +152,7 @@ async function renderFiles() {
     return;
   }
   container.innerHTML = filtered.sort((a,b) => b.createdAt - a.createdAt).map(f => {
-    var isPDF = f.type === 'application/pdf';
-    var icon = isPDF ? '📕' : '🖼️';
+    var icon = getFileIcon(f.type, f.name);
     var sizeStr = f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1)+'MB' : (f.size/1024).toFixed(0)+'KB';
     return `<div class="bg-white rounded-xl p-4 flex items-center gap-3 active:scale-[0.98] transition-transform" onclick="previewFile(${f.id})">
       <span class="text-2xl shrink-0">${icon}</span>
@@ -260,6 +259,13 @@ function applyZoom() {
     img.style.transition = 'transform 0.15s ease';
   } else if (pdfDoc) {
     renderPdfPage(pdfCurrentPage);
+  } else {
+    var target = content && (content.querySelector('.word-preview') || content.querySelector('.excel-preview'));
+    if (target) {
+      target.style.transform = 'scale(' + zoomLevel + ')';
+      target.style.transformOrigin = 'top center';
+      target.style.transition = 'transform 0.15s ease';
+    }
   }
 }
 
@@ -300,7 +306,7 @@ function onFileSelected(input) {
   document.getElementById('selected-file-name').textContent = file.name;
   const size = file.size > 1024*1024 ? (file.size/(1024*1024)).toFixed(1)+'MB' : (file.size/1024).toFixed(0)+'KB';
   document.getElementById('selected-file-size').textContent = size;
-  document.getElementById('selected-file-icon').textContent = file.type === 'application/pdf' ? '📕' : '🖼️';
+  document.getElementById('selected-file-icon').textContent = getFileIcon(file.type, file.name);
   updateUploadBtn();
 }
 
@@ -409,12 +415,25 @@ async function previewFile(id) {
   zoomLevel = 1;
   updateZoomIndicator();
 
-  if (file.type === 'application/pdf') {
+  var cat = getFileCategory(file.type, file.name);
+  if (cat === 'pdf') {
     document.getElementById('btn-prev-page').classList.remove('hidden');
     document.getElementById('btn-next-page').classList.remove('hidden');
     document.getElementById('pdf-page-indicator').style.display = '';
     document.getElementById('ctl-sep').style.display = '';
     await renderPdf(file.data);
+  } else if (cat === 'word') {
+    document.getElementById('btn-prev-page').classList.add('hidden');
+    document.getElementById('btn-next-page').classList.add('hidden');
+    document.getElementById('pdf-page-indicator').style.display = 'none';
+    document.getElementById('ctl-sep').style.display = 'none';
+    renderWord(file.data, file.name);
+  } else if (cat === 'excel') {
+    document.getElementById('btn-prev-page').classList.add('hidden');
+    document.getElementById('btn-next-page').classList.add('hidden');
+    document.getElementById('pdf-page-indicator').style.display = 'none';
+    document.getElementById('ctl-sep').style.display = 'none';
+    renderExcel(file.data, file.name);
   } else {
     document.getElementById('btn-prev-page').classList.add('hidden');
     document.getElementById('btn-next-page').classList.add('hidden');
@@ -494,6 +513,67 @@ function renderImage(data, type) {
   container.innerHTML = '<img src="' + url + '" class="max-w-full max-h-full object-contain rounded" style="transition: transform 0.15s ease; transform: scale(1); transform-origin: center center" alt="preview">';
 }
 
+function renderWord(data, name) {
+  var container = document.getElementById('preview-content');
+  container.innerHTML = '<div class="text-white text-sm">正在解析 Word 文档...</div>';
+  var ext = (name || '').toLowerCase().split('.').pop();
+  if (ext !== 'docx') {
+    container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-gray-600 text-sm">.doc 格式无法直接在浏览器中预览</p><p class="text-gray-400 text-xs mt-2">请用 Word 打开后另存为 .docx 格式再上传</p></div>';
+    return;
+  }
+  try {
+    var arr = new Uint8Array(data);
+    mammoth.convertToHtml({ arrayBuffer: arr.buffer }, {
+      styleMap: [
+        "p[style-name='Heading 1'] => h2:fresh",
+        "p[style-name='Heading 2'] => h3:fresh",
+        "p[style-name='Heading 3'] => h4:fresh",
+        "r[style-name='Strong'] => strong",
+        "r[style-name='Emphasis'] => em"
+      ]
+    }).then(function(result) {
+      container.innerHTML = '<div class="bg-white rounded-xl p-4 md:p-6 max-w-3xl mx-auto overflow-auto word-preview" style="max-height:75vh; transform: scale(' + zoomLevel + '); transform-origin: top center; transition: transform 0.15s ease;">' + result.value + '</div>';
+      if (result.messages && result.messages.length > 0) {
+        console.warn('Mammoth warnings:', result.messages);
+      }
+    }).catch(function(err) {
+      container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Word 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(err)) + '</p></div>';
+    });
+  } catch (e) {
+    container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Word 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(e)) + '</p></div>';
+  }
+}
+
+function renderExcel(data, name) {
+  var container = document.getElementById('preview-content');
+  container.innerHTML = '<div class="text-white text-sm">正在解析 Excel 表格...</div>';
+  try {
+    var arr = new Uint8Array(data);
+    var wb = XLSX.read(arr, { type: 'array' });
+    var sheetName = wb.SheetNames[0];
+    var sheet = wb.Sheets[sheetName];
+    var html = XLSX.utils.sheet_to_html(sheet, { id: 'excel-table', editable: false });
+    container.innerHTML = '<div class="bg-white rounded-xl p-2 md:p-4 max-w-full mx-auto overflow-auto excel-preview" style="max-height:75vh; max-width:95vw; transform: scale(' + zoomLevel + '); transform-origin: top left; transition: transform 0.15s ease;">' + html + '</div>';
+    // Style the generated table
+    var tbl = container.querySelector('#excel-table');
+    if (tbl) {
+      tbl.style.borderCollapse = 'collapse';
+      tbl.style.fontSize = '0.8125rem';
+      tbl.style.whiteSpace = 'nowrap';
+      var cells = tbl.querySelectorAll('td, th');
+      cells.forEach(function(c) {
+        c.style.border = '1px solid #e5e7eb';
+        c.style.padding = '4px 8px';
+        c.style.maxWidth = '300px';
+        c.style.overflow = 'hidden';
+        c.style.textOverflow = 'ellipsis';
+      });
+    }
+  } catch (e) {
+    container.innerHTML = '<div class="bg-white rounded-xl p-6 max-w-lg mx-auto text-center"><p class="text-red-500 text-sm">Excel 解析失败</p><p class="text-gray-400 text-xs mt-2">' + esc(String(e)) + '</p></div>';
+  }
+}
+
 function closePreview() {
   document.getElementById('preview-overlay').classList.add('hidden');
   document.getElementById('preview-content').innerHTML = '';
@@ -520,6 +600,28 @@ async function deletePreviewFile() {
       await refreshAll();
     }
   }
+}
+
+// ── File type helpers ──────────────────────
+function getFileCategory(type, name) {
+  if (type === 'application/pdf') return 'pdf';
+  if (type.startsWith('image/')) return 'image';
+  if (type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || type === 'application/msword') return 'word';
+  if (type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || type === 'application/vnd.ms-excel') return 'excel';
+  // Fallback by extension if MIME is generic
+  const ext = (name || '').toLowerCase().split('.').pop();
+  if (ext === 'docx' || ext === 'doc') return 'word';
+  if (ext === 'xlsx' || ext === 'xls') return 'excel';
+  return 'unknown';
+}
+
+function getFileIcon(type, name) {
+  const cat = getFileCategory(type, name);
+  if (cat === 'pdf') return '📕';
+  if (cat === 'image') return '🖼️';
+  if (cat === 'word') return '📝';
+  if (cat === 'excel') return '📊';
+  return '📎';
 }
 
 // ── Helpers ───────────────────────────────

@@ -20,6 +20,8 @@
     }
   </script>
   <script src="js/pdf.min.js"></script>
+  <script src="js/mammoth.browser.min.js"></script>
+  <script src="js/xlsx.full.min.js"></script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -27,6 +29,15 @@
     .page.active { display: block; }
     .bottom-nav { padding-bottom: env(safe-area-inset-bottom, 8px); }
     .toast { animation: slideUp 0.3s ease; z-index: 99999; }
+    .word-preview h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; color: #1f2937; }
+    .word-preview h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: #374151; }
+    .word-preview h4 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: #4b5563; }
+    .word-preview p { margin: 0.25rem 0; font-size: 0.875rem; color: #374151; line-height: 1.6; }
+    .word-preview ul, .word-preview ol { margin: 0.25rem 0; padding-left: 1.5rem; font-size: 0.875rem; }
+    .word-preview li { margin: 0.125rem 0; }
+    .word-preview table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
+    .word-preview td, .word-preview th { border: 1px solid #d1d5db; padding: 4px 8px; }
+    .word-preview img { max-width: 100%; height: auto; }
     @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .preview-overlay { z-index: 9999; }
     .cat-color { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
@@ -111,10 +122,10 @@
             <!-- Left: File selection -->
             <div class="flex-1">
               <label for="file-input" class="bg-white rounded-2xl p-6 md:p-8 text-center border-2 border-dashed border-gray-300 mb-5 block cursor-pointer active:bg-gray-50 hover:border-primary-400 transition-colors">
-                <input type="file" id="file-input" accept=".pdf,image/*" onchange="onFileSelected(this)" class="hidden">
+                <input type="file" id="file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" onchange="onFileSelected(this)" class="hidden">
                 <div class="text-4xl md:text-5xl mb-3">📤</div>
                 <p class="text-gray-500 text-sm md:text-base">点击选择文件</p>
-                <p class="text-gray-300 text-xs mt-1">支持 PDF、图片格式</p>
+                <p class="text-gray-300 text-xs mt-1">支持 PDF、图片、Word、Excel 格式</p>
               </label>
               <div id="selected-file-info" class="hidden bg-white rounded-xl p-4 mb-5">
                 <div class="flex items-center gap-3">
