@@ -18,16 +18,99 @@ let zoomLevel = 1;
 let pinchDist0 = 0;
 let pinchZoom0 = 1;
 
+// ── Widget Registry ────────────────────────
+const WIDGETS = [
+  { id: 'review', name: '复习资料管理', icon: '📚', desc: '分类管理、上传和预览学习资料', color: '#8b5cf6' }
+];
+let currentWidget = null;
+
+function renderWidgets() {
+  var grid = document.getElementById('widgets-grid');
+  if (!grid) return;
+  var filesCount = 0;
+  grid.innerHTML = WIDGETS.map(function(w) {
+    return `<div onclick="enterWidget('${w.id}')" class="bg-white/80 backdrop-blur rounded-2xl p-6 card-hover cursor-pointer shadow-sm border border-white/50" style="border-top: 4px solid ${w.color}">
+      <div class="text-4xl mb-3">${w.icon}</div>
+      <h3 class="font-bold text-gray-800 text-base mb-1">${esc(w.name)}</h3>
+      <p class="text-xs text-gray-400">${w.desc}</p>
+    </div>`;
+  }).join('');
+}
+
+function enterWidget(id) {
+  currentWidget = id;
+  var w = WIDGETS.find(function(x){ return x.id === id; });
+  if (!w) return;
+
+  // Show widget pages
+  document.getElementById('page-home').classList.remove('active');
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-categories').classList.add('active');
+
+  // Header
+  document.getElementById('header-back-btn').classList.remove('hidden');
+  document.getElementById('header-title').textContent = w.name;
+  document.getElementById('header-badge').style.display = '';
+
+  // Bottom nav
+  document.getElementById('bottom-nav').classList.remove('hidden');
+  document.querySelector('.main-content').classList.add('has-nav');
+
+  // Sidebar: show back link + widget nav
+  document.getElementById('sidebar-back-btn').classList.remove('hidden');
+  document.querySelectorAll('#sidebar-nav .sidebar-sub').forEach(function(s){ s.classList.remove('hidden'); });
+
+  // Reset to categories tab
+  switchTab('categories');
+  refreshAll();
+  renderColorPicker();
+}
+
+function goHome() {
+  currentWidget = null;
+
+  // Hide widget pages, show home
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-home').classList.add('active');
+
+  // Header
+  document.getElementById('header-back-btn').classList.add('hidden');
+  document.getElementById('header-title').textContent = '实用部件';
+  updateHomeBadge();
+
+  // Bottom nav
+  document.getElementById('bottom-nav').classList.add('hidden');
+  document.querySelector('.main-content').classList.remove('has-nav');
+
+  // Sidebar
+  document.getElementById('sidebar-back-btn').classList.add('hidden');
+
+  closePreview();
+  renderWidgets();
+}
+
+function updateHomeBadge() {
+  var badge = document.getElementById('header-badge');
+  if (badge) badge.textContent = WIDGETS.length + ' 个部件';
+}
+
 // ── Init ──────────────────────────────────
 async function init() {
-  await refreshAll();
-  renderColorPicker();
+  renderWidgets();
+  updateHomeBadge();
+  document.getElementById('header-back-btn').classList.add('hidden');
+  document.getElementById('header-title').textContent = '实用部件';
+  document.getElementById('bottom-nav').classList.add('hidden');
+  document.querySelector('.main-content').classList.remove('has-nav');
+  document.getElementById('sidebar-back-btn').classList.add('hidden');
+  document.getElementById('page-home').classList.add('active');
 }
 
 async function refreshAll() {
   const [cats, files] = await Promise.all([getCategories(), getFiles()]);
   const count = files.length;
-  document.getElementById('file-count-badge').textContent = count + ' 份资料';
+  var badge = document.getElementById('header-badge');
+  if (badge && currentWidget) badge.textContent = count + ' 份资料';
   var sc = document.getElementById('sidebar-file-count');
   if (sc) sc.textContent = '共 ' + count + ' 份资料';
   renderCategories();
@@ -38,6 +121,7 @@ async function refreshAll() {
 
 // ── Tab Navigation ────────────────────────
 function switchTab(tab) {
+  if (!currentWidget) return;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
 
@@ -55,8 +139,6 @@ function switchTab(tab) {
   var sideBtn = document.querySelector('.sidebar-tab[data-tab="' + tab + '"]');
   if (sideBtn) { sideBtn.classList.remove('text-gray-500','font-medium'); sideBtn.classList.add('active','font-semibold'); }
 
-  var titles = { categories:'分类管理', files:'资料列表', upload:'上传资料' };
-  document.getElementById('header-title').textContent = titles[tab] || '复习资料';
   if (tab === 'files') { renderCategoryFilter(); renderFiles(); }
   if (tab === 'upload') renderUploadCategories();
 }

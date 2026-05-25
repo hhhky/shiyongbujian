@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#7c3aed">
-  <title>复习资料管理</title>
+  <title>实用部件</title>
   <script src="js/tailwind.js"></script>
   <script>
     tailwind.config = {
@@ -99,7 +99,7 @@
     .word-preview img { max-width: 100%; height: auto; }
 
     @media (max-width: 767px) {
-      .main-content { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+      .main-content.has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
     }
     @media (min-width: 768px) {
       .main-content { padding-bottom: 1.5rem; }
@@ -121,8 +121,13 @@
     <!-- Header -->
     <header class="text-white px-5 py-4 flex items-center justify-between shrink-0 relative overflow-hidden" style="background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 30%, #a855f7 60%, #ec4899 100%); background-size: 200% 200%; animation: gradient-shift 8s ease infinite; padding-top: calc(1rem + env(safe-area-inset-top, 0px)); box-shadow: 0 4px 20px rgba(124,58,237,0.3);">
       <div class="absolute inset-0 opacity-20" style="background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.4) 0%, transparent 60%);"></div>
-      <h1 class="text-lg font-bold tracking-wide relative z-10" id="header-title">复习资料</h1>
-      <span class="text-xs px-3 py-1 rounded-full font-medium relative z-10" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);" id="file-count-badge">0 份资料</span>
+      <div class="flex items-center gap-3 relative z-10">
+        <button onclick="goHome()" id="header-back-btn" class="hidden text-white/80 hover:text-white active:scale-90 transition-all p-0.5 -ml-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h1 class="text-lg font-bold tracking-wide" id="header-title">实用部件</h1>
+      </div>
+      <span class="text-xs px-3 py-1 rounded-full font-medium relative z-10" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);" id="header-badge">1 个部件</span>
     </header>
 
     <!-- Body: Sidebar + Main -->
@@ -131,6 +136,10 @@
       <!-- Sidebar (hidden on mobile) -->
       <aside class="hidden md:flex md:flex-col w-48 lg:w-56 shrink-0" style="background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-right: 1px solid rgba(139,92,246,0.1);">
         <nav class="flex flex-col p-3 gap-1 flex-1" id="sidebar-nav">
+          <button onclick="goHome()" id="sidebar-back-btn" class="hidden flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:text-dopa-purple-500 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <span class="hidden lg:inline">实用部件</span>
+          </button>
           <button onclick="switchTab('categories')" class="sidebar-tab active flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold" data-tab="categories">
             <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
             <span class="hidden lg:inline">分类管理</span>
@@ -151,6 +160,16 @@
 
       <!-- Main Content -->
       <main class="flex-1 overflow-y-auto main-content" id="main-content">
+
+        <!-- Home Page -->
+        <div id="page-home" class="page active p-4 md:p-8 lg:p-10">
+          <div class="mb-5 md:mb-7">
+            <h2 class="text-lg md:text-xl font-bold" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">我的部件</h2>
+            <p class="text-xs text-gray-400 mt-0.5">点击部件进入使用</p>
+          </div>
+          <div id="widgets-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          </div>
+        </div>
 
         <!-- Categories Page -->
         <div id="page-categories" class="page active p-4 md:p-6 lg:p-8">
@@ -222,8 +241,8 @@
       </main>
     </div>
 
-    <!-- Bottom Navigation (mobile only) -->
-    <nav class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 flex justify-around py-1.5 z-50 mx-auto max-w-sm" style="background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 4px 24px rgba(139,92,246,0.15), 0 1px 4px rgba(0,0,0,0.05);">
+    <!-- Bottom Navigation (mobile only, shown inside widgets) -->
+    <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 flex justify-around py-1.5 z-50 mx-auto max-w-sm hidden" style="background: rgba(255,255,255,0.9); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; box-shadow: 0 4px 24px rgba(139,92,246,0.15), 0 1px 4px rgba(0,0,0,0.05);">
       <button onclick="switchTab('categories')" class="nav-tab active flex flex-col items-center gap-0.5 py-1 px-4 rounded-2xl transition-all" style="color: #7c3aed;" data-tab="categories">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
         <span class="text-xs font-medium">分类</span>
