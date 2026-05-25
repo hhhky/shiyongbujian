@@ -258,17 +258,18 @@ function updateZoomIndicator() {
 function applyZoom() {
   updateZoomIndicator();
   var content = document.getElementById('preview-content');
-  var img = content && content.querySelector('img');
-  if (img) {
-    img.style.transform = 'scale(' + zoomLevel + ')';
-    img.style.transformOrigin = 'center center';
-    img.style.transition = 'transform 0.15s ease';
+  if (!content) return;
+  var docTarget = content.querySelector('.word-preview') || content.querySelector('.excel-preview');
+  if (docTarget) {
+    docTarget.style.zoom = zoomLevel;
   } else if (pdfDoc) {
     renderPdfPage(pdfCurrentPage);
   } else {
-    var target = content && (content.querySelector('.word-preview') || content.querySelector('.excel-preview'));
-    if (target) {
-      target.style.zoom = zoomLevel;
+    var img = content.querySelector('img');
+    if (img) {
+      img.style.transform = 'scale(' + zoomLevel + ')';
+      img.style.transformOrigin = 'center center';
+      img.style.transition = 'transform 0.15s ease';
     }
   }
 }
