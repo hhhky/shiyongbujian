@@ -64,6 +64,13 @@
     .flow-node-card { transition: all 0.3s ease; }
     .memo-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
     .memo-card:hover { border-left-color: #10b981; box-shadow: 0 4px 16px rgba(16,185,129,0.08); }
+    .icon-btn-edit, .icon-btn-del {
+      width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px; color: #cbd5e1; transition: all 0.2s ease; flex-shrink: 0;
+    }
+    .icon-btn-edit:hover { color: #8b5cf6; background: rgba(139,92,246,0.08); }
+    .icon-btn-del:hover { color: #f43f5e; background: rgba(244,63,94,0.08); }
+    .icon-btn-edit:active, .icon-btn-del:active { transform: scale(0.88); }
     .preview-overlay { z-index: 9999; }
     .cat-color { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
 
@@ -289,7 +296,7 @@
               </button>
               <h2 id="workflow-detail-title" class="text-lg md:text-xl font-bold flex-1" style="background: linear-gradient(135deg, #7c3aed, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></h2>
               <button onclick="showAddNode()" class="btn-gradient text-white text-sm px-4 py-2 rounded-full font-semibold shadow-lg">＋ 添加节点</button>
-              <button onclick="deleteCurrentWorkflow()" class="text-gray-300 hover:text-dopa-coral-400 text-sm px-1 py-1 active:scale-90 transition-all">🗑</button>
+              <button onclick="deleteCurrentWorkflow()" class="icon-btn-del" title="删除工作流"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
             </div>
             <div id="workflow-nodes" class="ml-2 md:ml-4">
               <div class="text-center text-gray-400 py-12 text-sm">还没有节点，点击上方按钮添加</div>
