@@ -1288,7 +1288,6 @@ function calcLayout(nodes) {
   var root = nodes.find(function(n) { return n.parentId == null; });
   if (!root) return { positions: {}, rootId: null, w: 0, h: 0 };
 
-  var NODE_H = 70;
   var H_GAP = 60, V_GAP = 30;
 
   function nodeW(n) {
@@ -1296,6 +1295,13 @@ function calcLayout(nodes) {
     if (s === 'small') return 120;
     if (s === 'large') return 210;
     return 160;
+  }
+
+  function nodeH(n) {
+    var s = n.size || 'medium';
+    if (s === 'small') return 55;
+    if (s === 'large') return 90;
+    return 70;
   }
 
   var positions = {};
@@ -1306,8 +1312,9 @@ function calcLayout(nodes) {
     var p = positions[nodeId];
     var n = nodes.find(function(x) { return x.id === nodeId; });
     var w = n ? nodeW(n) : 160;
-    if (!p) return { minX: 0, maxX: w, minY: 0, maxY: NODE_H };
-    var minX = p.x, maxX = p.x + w, minY = p.y, maxY = p.y + NODE_H;
+    var h = n ? nodeH(n) : 70;
+    if (!p) return { minX: 0, maxX: w, minY: 0, maxY: h };
+    var minX = p.x, maxX = p.x + w, minY = p.y, maxY = p.y + h;
     var children = nodes.filter(function(n) { return n.parentId === nodeId; });
     children.forEach(function(c) {
       var b = getBounds(c.id);
@@ -1369,7 +1376,7 @@ function calcLayout(nodes) {
       if (c.posX != null && c.posY != null) {
         positions[c.id] = { x: c.posX, y: c.posY };
       } else {
-        positions[c.id] = { x: dx, y: p.y + NODE_H + V_GAP };
+        positions[c.id] = { x: dx, y: p.y + nodeH(parentNode) + V_GAP };
         layoutChildren(c.id);
         var b = getBounds(c.id);
         dx = b.maxX + V_GAP;
@@ -1384,7 +1391,7 @@ function calcLayout(nodes) {
       if (c.posX != null && c.posY != null) {
         positions[c.id] = { x: c.posX, y: c.posY };
       } else {
-        positions[c.id] = { x: ux, y: p.y - NODE_H - V_GAP };
+        positions[c.id] = { x: ux, y: p.y - nodeH(c) - V_GAP };
         layoutChildren(c.id);
         var b = getBounds(c.id);
         ux = b.maxX + V_GAP;
@@ -1416,12 +1423,17 @@ function calcLayout(nodes) {
 }
 
 function drawConnections(nodes, positions, isKnowledge) {
-  var NODE_H = 70;
   function nw(n) {
     var s = n.size || 'medium';
     if (s === 'small') return 120;
     if (s === 'large') return 210;
     return 160;
+  }
+  function nh(n) {
+    var s = n.size || 'medium';
+    if (s === 'small') return 55;
+    if (s === 'large') return 90;
+    return 70;
   }
   var lines = '';
   nodes.forEach(function(n) {
@@ -1436,19 +1448,21 @@ function drawConnections(nodes, positions, isKnowledge) {
     var parentNode = nodes.find(function(x) { return x.id === n.parentId; });
     var pw = parentNode ? nw(parentNode) : 160;
     var cw = nw(n);
+    var ph = parentNode ? nh(parentNode) : 70;
+    var ch = nh(n);
 
     if (dir === 'right') {
-      x1 = parentPos.x + pw; y1 = parentPos.y + NODE_H / 2;
-      x2 = childPos.x; y2 = childPos.y + NODE_H / 2;
+      x1 = parentPos.x + pw; y1 = parentPos.y + ph / 2;
+      x2 = childPos.x; y2 = childPos.y + ch / 2;
     } else if (dir === 'left') {
-      x1 = parentPos.x; y1 = parentPos.y + NODE_H / 2;
-      x2 = childPos.x + cw; y2 = childPos.y + NODE_H / 2;
+      x1 = parentPos.x; y1 = parentPos.y + ph / 2;
+      x2 = childPos.x + cw; y2 = childPos.y + ch / 2;
     } else if (dir === 'down') {
-      x1 = parentPos.x + pw / 2; y1 = parentPos.y + NODE_H;
+      x1 = parentPos.x + pw / 2; y1 = parentPos.y + ph;
       x2 = childPos.x + cw / 2; y2 = childPos.y;
     } else {
       x1 = parentPos.x + pw / 2; y1 = parentPos.y;
-      x2 = childPos.x + cw / 2; y2 = childPos.y + NODE_H;
+      x2 = childPos.x + cw / 2; y2 = childPos.y + ch;
     }
 
     var strokeColor;
@@ -1589,8 +1603,9 @@ async function renderMindMap(workflowId) {
     var rootNode = nodes.find(function(n) { return n.id === layout.rootId; });
     var rSize = rootNode ? (rootNode.size || 'medium') : 'medium';
     var rootW = rSize === 'small' ? 120 : rSize === 'large' ? 210 : 160;
+    var rootH = rSize === 'small' ? 55 : rSize === 'large' ? 90 : 70;
     canvas.scrollLeft = rootPos.x - canvas.clientWidth / 2 + rootW / 2;
-    canvas.scrollTop = rootPos.y - canvas.clientHeight / 2 + 35;
+    canvas.scrollTop = rootPos.y - canvas.clientHeight / 2 + rootH / 2;
   }
 
   } catch (err) {
