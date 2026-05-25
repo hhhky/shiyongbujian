@@ -1707,137 +1707,216 @@ function wrapText(ctx, text, maxWidth) {
   return lines.length ? lines : [text];
 }
 
+async function renderMindmapToCanvas() {
+  var nodes = await getWorkflowNodes(currentWorkflowId);
+  if (!nodes.length) return null;
+  var isKnowledge = currentMindmapType === 'knowledge';
+  var layout = calcLayout(nodes);
+  var positions = layout.positions;
+  var canvasW = Math.max(layout.w, 600);
+  var canvasH = Math.max(layout.h, 520);
+  var scale = 2;
+  var canvas = document.createElement('canvas');
+  canvas.width = canvasW * scale;
+  canvas.height = canvasH * scale;
+  var ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvasW, canvasH);
+
+  // Draw connections via SVG image
+  var svgLines = drawConnections(nodes, positions, isKnowledge);
+  var svgStr = '<svg xmlns="http://www.w3.org/2000/svg" width="' + canvasW + '" height="' + canvasH + '">' + svgLines + '</svg>';
+  var svgBlob = new Blob([svgStr], { type: 'image/svg+xml' });
+  var svgUrl = URL.createObjectURL(svgBlob);
+  try {
+    await new Promise(function(resolve, reject) {
+      var img = new Image();
+      img.onload = function() { ctx.drawImage(img, 0, 0); URL.revokeObjectURL(svgUrl); resolve(); };
+      img.onerror = function() { URL.revokeObjectURL(svgUrl); reject(new Error('SVG load failed')); };
+      img.src = svgUrl;
+    });
+  } catch(e) { URL.revokeObjectURL(svgUrl); }
+
+  // Draw nodes
+  var nodeDim = { small: [120, 55, 8], medium: [160, 70, 12], large: [210, 90, 16] };
+  nodes.forEach(function(n) {
+    var pos = positions[n.id];
+    if (!pos) return;
+    var size = n.size || (isKnowledge ? 'large' : 'medium');
+    var d = nodeDim[size];
+    var w = d[0], h = d[1], pad = d[2];
+    var x = pos.x, y = pos.y;
+    var isRoot = n.parentId == null;
+    var shape = n.shape || 'rounded';
+    var borderColor = isKnowledge ? '#8b5cf6' : (n.done ? '#10b981' : '#f43f5e');
+
+    ctx.save();
+    var radius = shape === 'pill' ? h / 2 : 12;
+    roundRect(ctx, x, y, w, h, radius);
+    ctx.clip();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, w, h);
+
+    if (isRoot) {
+      var grad = ctx.createLinearGradient(x, y, x + w, y + h);
+      if (isKnowledge) {
+        grad.addColorStop(0, 'rgba(139,92,246,0.06)');
+        grad.addColorStop(1, 'rgba(168,85,247,0.04)');
+      } else {
+        grad.addColorStop(0, 'rgba(139,92,246,0.06)');
+        grad.addColorStop(1, 'rgba(236,72,153,0.04)');
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    if (n.done && !isKnowledge) {
+      ctx.fillStyle = 'rgba(16,185,129,0.06)';
+      ctx.fillRect(x, y, w, h);
+    }
+
+    ctx.beginPath();
+    roundRect(ctx, x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1));
+    ctx.lineWidth = isRoot ? 3 : 2;
+    ctx.strokeStyle = borderColor;
+    ctx.stroke();
+
+    var titleFontSize = size === 'small' ? 11 : (size === 'large' ? 15 : 13);
+    ctx.font = (isRoot ? 'bold ' : '600 ') + titleFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = (n.done && !isKnowledge) ? '#9ca3af' : '#1f2937';
+    ctx.textBaseline = 'top';
+    var maxW = w - pad * 2;
+    var title = n.title || '';
+    var titleLines = wrapText(ctx, title, maxW);
+    var maxTitleLines = size === 'small' ? 1 : 2;
+    for (var i = 0; i < Math.min(titleLines.length, maxTitleLines); i++) {
+      ctx.fillText(titleLines[i], x + pad, y + pad + i * (titleFontSize + 2));
+    }
+
+    var descLimit = isKnowledge ? 80 : 30;
+    var desc = (n.description || '').substring(0, descLimit);
+    if (desc) {
+      var descFontSize = size === 'small' ? 9 : (size === 'large' ? 11 : 10);
+      ctx.font = descFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#9ca3af';
+      ctx.textBaseline = 'top';
+      var descLines = wrapText(ctx, desc, maxW);
+      var descY = y + pad + Math.min(titleLines.length, maxTitleLines) * (titleFontSize + 2) + 4;
+      var maxDescLines = size === 'small' ? 1 : 2;
+      for (var j = 0; j < Math.min(descLines.length, maxDescLines); j++) {
+        ctx.fillText(descLines[j], x + pad, descY + j * (descFontSize + 2));
+      }
+    }
+
+    ctx.restore();
+  });
+
+  var wfName = document.getElementById('workflow-detail-title');
+  var name = wfName ? wfName.textContent.trim() : '思维导图';
+  return { canvas: canvas, name: name, nodes: nodes, isKnowledge: isKnowledge };
+}
+
 async function exportMindmapImage(format) {
   try {
-    var nodes = await getWorkflowNodes(currentWorkflowId);
-    if (!nodes.length) { toast('没有可导出的节点'); return; }
-    var isKnowledge = currentMindmapType === 'knowledge';
-    var layout = calcLayout(nodes);
-    var positions = layout.positions;
-    var canvasW = Math.max(layout.w, 600);
-    var canvasH = Math.max(layout.h, 520);
-    var scale = 2;
-    var canvas = document.createElement('canvas');
-    canvas.width = canvasW * scale;
-    canvas.height = canvasH * scale;
-    var ctx = canvas.getContext('2d');
-    ctx.scale(scale, scale);
-
-    // White background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasW, canvasH);
-
-    // Draw connections via SVG image
-    var svgLines = drawConnections(nodes, positions, isKnowledge);
-    var svgStr = '<svg xmlns="http://www.w3.org/2000/svg" width="' + canvasW + '" height="' + canvasH + '">' + svgLines + '</svg>';
-    var svgBlob = new Blob([svgStr], { type: 'image/svg+xml' });
-    var svgUrl = URL.createObjectURL(svgBlob);
-    try {
-      await new Promise(function(resolve, reject) {
-        var img = new Image();
-        img.onload = function() { ctx.drawImage(img, 0, 0); URL.revokeObjectURL(svgUrl); resolve(); };
-        img.onerror = function() { URL.revokeObjectURL(svgUrl); reject(new Error('SVG load failed')); };
-        img.src = svgUrl;
-      });
-    } catch(e) { URL.revokeObjectURL(svgUrl); }
-
-    // Draw nodes
-    var nodeDim = { small: [120, 55, 8], medium: [160, 70, 12], large: [210, 90, 16] };
-    nodes.forEach(function(n) {
-      var pos = positions[n.id];
-      if (!pos) return;
-      var size = n.size || (isKnowledge ? 'large' : 'medium');
-      var d = nodeDim[size];
-      var w = d[0], h = d[1], pad = d[2];
-      var x = pos.x, y = pos.y;
-      var isRoot = n.parentId == null;
-      var shape = n.shape || 'rounded';
-      var borderColor = isKnowledge ? '#8b5cf6' : (n.done ? '#10b981' : '#f43f5e');
-
-      ctx.save();
-      var radius = shape === 'pill' ? h / 2 : 12;
-      roundRect(ctx, x, y, w, h, radius);
-      ctx.clip();
-
-      // White bg
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x, y, w, h);
-
-      // Root gradient overlay
-      if (isRoot) {
-        var grad = ctx.createLinearGradient(x, y, x + w, y + h);
-        if (isKnowledge) {
-          grad.addColorStop(0, 'rgba(139,92,246,0.06)');
-          grad.addColorStop(1, 'rgba(168,85,247,0.04)');
-        } else {
-          grad.addColorStop(0, 'rgba(139,92,246,0.06)');
-          grad.addColorStop(1, 'rgba(236,72,153,0.04)');
-        }
-        ctx.fillStyle = grad;
-        ctx.fillRect(x, y, w, h);
-      }
-
-      // Done overlay for workflow mode
-      if (n.done && !isKnowledge) {
-        ctx.fillStyle = 'rgba(16,185,129,0.06)';
-        ctx.fillRect(x, y, w, h);
-      }
-
-      // Border
-      ctx.beginPath();
-      roundRect(ctx, x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1));
-      ctx.lineWidth = isRoot ? 3 : 2;
-      ctx.strokeStyle = borderColor;
-      ctx.stroke();
-
-      // Title text
-      var titleFontSize = size === 'small' ? 11 : (size === 'large' ? 15 : 13);
-      ctx.font = (isRoot ? 'bold ' : '600 ') + titleFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillStyle = (n.done && !isKnowledge) ? '#9ca3af' : '#1f2937';
-      ctx.textBaseline = 'top';
-      var maxW = w - pad * 2;
-      var title = n.title || '';
-      var titleLines = wrapText(ctx, title, maxW);
-      var maxTitleLines = size === 'small' ? 1 : 2;
-      for (var i = 0; i < Math.min(titleLines.length, maxTitleLines); i++) {
-        ctx.fillText(titleLines[i], x + pad, y + pad + i * (titleFontSize + 2));
-      }
-
-      // Description text
-      var descLimit = isKnowledge ? 80 : 30;
-      var desc = (n.description || '').substring(0, descLimit);
-      if (desc) {
-        var descFontSize = size === 'small' ? 9 : (size === 'large' ? 11 : 10);
-        ctx.font = descFontSize + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillStyle = '#9ca3af';
-        ctx.textBaseline = 'top';
-        var descLines = wrapText(ctx, desc, maxW);
-        var descY = y + pad + Math.min(titleLines.length, maxTitleLines) * (titleFontSize + 2) + 4;
-        var maxDescLines = size === 'small' ? 1 : 2;
-        for (var j = 0; j < Math.min(descLines.length, maxDescLines); j++) {
-          ctx.fillText(descLines[j], x + pad, descY + j * (descFontSize + 2));
-        }
-      }
-
-      ctx.restore();
-    });
-
-    // Trigger download
-    var wfName = document.getElementById('workflow-detail-title');
-    var name = wfName ? wfName.textContent.trim() : '思维导图';
+    var result = await renderMindmapToCanvas();
+    if (!result) { toast('没有可导出的节点'); return; }
     var mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
     var ext = format === 'jpg' ? 'jpg' : 'png';
-    canvas.toBlob(function(blob) {
+    result.canvas.toBlob(function(blob) {
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
-      a.download = name + '.' + ext;
+      a.download = result.name + '.' + ext;
       a.click();
       URL.revokeObjectURL(url);
-      toast('已导出 ' + name + '.' + ext);
+      toast('已导出 ' + result.name + '.' + ext);
     }, mimeType, 0.95);
   } catch (err) {
     console.error('exportMindmapImage error:', err);
+    toast('导出失败: ' + (err.message || String(err)));
+  }
+}
+
+async function exportMindmapPDF() {
+  try {
+    var result = await renderMindmapToCanvas();
+    if (!result) { toast('没有可导出的节点'); return; }
+    var dataUrl = result.canvas.toDataURL('image/png');
+    var w = window.open('', '_blank', 'width=900,height=700');
+    if (!w) { toast('请允许浏览器弹窗后重试'); return; }
+    w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + result.name + '</title>');
+    w.document.write('<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;margin:30px;text-align:center;color:#333}img{max-width:100%;height:auto;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1)}h1{margin-bottom:20px;font-size:20px}</style>');
+    w.document.write('</head><body><h1>' + result.name + '</h1><img src="' + dataUrl + '" /></body></html>');
+    w.document.close();
+    w.focus();
+    setTimeout(function() { w.print(); }, 600);
+    toast('请在打印对话框中保存为 PDF');
+  } catch (err) {
+    console.error('exportMindmapPDF error:', err);
+    toast('导出失败: ' + (err.message || String(err)));
+  }
+}
+
+async function exportMindmapWord() {
+  try {
+    var result = await renderMindmapToCanvas();
+    if (!result) { toast('没有可导出的节点'); return; }
+    var dataUrl = result.canvas.toDataURL('image/png');
+    var nodes = result.nodes;
+
+    // Build hierarchical outline
+    var childrenMap = {};
+    nodes.forEach(function(n) {
+      var pid = n.parentId;
+      if (!childrenMap[pid]) childrenMap[pid] = [];
+      childrenMap[pid].push(n);
+    });
+
+    function buildOutline(pid) {
+      var children = childrenMap[pid] || [];
+      if (!children.length) return '';
+      var html = '<ul>';
+      children.forEach(function(child) {
+        var prefix = result.isKnowledge ? '' : (child.done ? '[DONE] ' : '[TODO] ');
+        html += '<li style="margin-bottom:4px">';
+        html += '<strong>' + prefix + esc(child.title) + '</strong>';
+        if (child.description) {
+          html += '<br><span style="color:#666;font-size:0.9em">' + esc(child.description.substring(0, 200)) + '</span>';
+        }
+        html += buildOutline(child.id);
+        html += '</li>';
+      });
+      html += '</ul>';
+      return html;
+    }
+
+    var outline = buildOutline(null);
+
+    var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head><meta charset="utf-8"><title>' + result.name + '</title>';
+    html += '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:30px;color:#333}h1{font-size:22px;border-bottom:2px solid #7c3aed;padding-bottom:8px}h2{font-size:16px;margin-top:24px;color:#7c3aed}img{max-width:100%;border-radius:8px}ul{margin-left:20px}li{margin:2px 0}</style>';
+    html += '</head><body>';
+    html += '<h1>' + result.name + '</h1>';
+    html += '<p style="color:#888">类型：' + (result.isKnowledge ? '知识导图' : '工作流思维导图') + ' | 节点数：' + nodes.length + ' | 导出时间：' + new Date().toLocaleString() + '</p>';
+    html += '<img src="' + dataUrl + '" style="margin:20px 0;border:1px solid #eee" />';
+    html += '<h2>节点大纲</h2>';
+    html += outline;
+    html += '</body></html>';
+
+    var blob = new Blob([html], { type: 'application/msword' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = result.name + '.doc';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('已导出 ' + result.name + '.doc');
+  } catch (err) {
+    console.error('exportMindmapWord error:', err);
     toast('导出失败: ' + (err.message || String(err)));
   }
 }
