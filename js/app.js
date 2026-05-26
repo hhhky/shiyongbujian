@@ -1139,6 +1139,7 @@ let mindmapZoom = 1;
 let mmPinchDist0 = 0;
 let mmPinchZoom0 = 1;
 let mmDragInfo = null; // { nodeId, nodeEl, startX, startY, nodeLeft, nodeTop, timer, isDragging }
+let mmPan = null; // { startX, startY, scrollLeft, scrollTop }
 
 function showAddWorkflow() {
   workflowModalMode = 'create-workflow';
@@ -1613,9 +1614,16 @@ async function renderMindMap(workflowId) {
     + '</div>';
   updateMindmapZoomLabel();
   canvas.onwheel = onMindmapWheel;
+  canvas.onpointerdown = onMindmapPointerDown;
   canvas.ontouchstart = onMindmapTouchStart;
   canvas.ontouchmove = onMindmapTouchMove;
   canvas.ontouchend = onMindmapTouchEnd;
+
+  if (!document._mmPanBound) {
+    document._mmPanBound = true;
+    document.addEventListener('pointermove', onPanPointerMove);
+    document.addEventListener('pointerup', onPanPointerUp);
+  }
 
   // Attach drag handlers to nodes
   var nodeEls = canvas.querySelectorAll('.mindmap-node');
@@ -1968,6 +1976,31 @@ function onMindmapWheel(e) {
   var canvas = document.getElementById('mindmap-canvas');
   var rect = canvas.getBoundingClientRect();
   applyMindmapZoom(old, e.clientX - rect.left, e.clientY - rect.top);
+}
+
+function onMindmapPointerDown(e) {
+  if (e.button !== undefined && e.button !== 0) return;
+  if (e.target.closest('.mindmap-node') || e.target.closest('button')) return;
+  if (e.target.closest('#mindmap-quick-add')) return;
+  var canvas = document.getElementById('mindmap-canvas');
+  mmPan = { startX: e.clientX, startY: e.clientY, scrollLeft: canvas.scrollLeft, scrollTop: canvas.scrollTop };
+  canvas.style.cursor = 'grabbing';
+  canvas.setPointerCapture(e.pointerId);
+  e.preventDefault();
+}
+
+function onPanPointerMove(e) {
+  if (!mmPan) return;
+  var canvas = document.getElementById('mindmap-canvas');
+  canvas.scrollLeft = mmPan.scrollLeft - (e.clientX - mmPan.startX);
+  canvas.scrollTop = mmPan.scrollTop - (e.clientY - mmPan.startY);
+}
+
+function onPanPointerUp(e) {
+  if (!mmPan) return;
+  var canvas = document.getElementById('mindmap-canvas');
+  canvas.style.cursor = '';
+  mmPan = null;
 }
 
 function onMindmapTouchStart(e) {
