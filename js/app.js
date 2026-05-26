@@ -317,9 +317,8 @@ async function renderCategories() {
 }
 
 function goToCategory(catId) {
+  currentFilterCat = catId;
   switchTab('files');
-  filterFiles(catId);
-  // Also update the category filter button visual state is handled inside filterFiles
 }
 
 async function removeCategory(id) {
@@ -377,10 +376,11 @@ async function renderCategoryFilter() {
   const cats = await getCategories();
   const bar = document.getElementById('category-filter-bar');
   const files = await getFiles();
-  bar.innerHTML = `<button onclick="filterFiles(null)" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold text-white btn-gradient shadow-md btn-jelly transition-all" data-cat="all">全部 (${files.length})</button>` +
+  bar.innerHTML = `<button onclick="filterFiles(null)" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold btn-jelly transition-all ${currentFilterCat === null ? 'text-white btn-gradient shadow-md' : 'font-medium bg-gray-100 text-gray-600'}" data-cat="all">全部 (${files.length})</button>` +
     cats.map(c => {
       const count = files.filter(f => f.categoryId === c.id).length;
-      return `<button onclick="filterFiles(${c.id})" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 btn-jelly transition-transform" data-cat="${c.id}">${esc(c.name)} (${count})</button>`;
+      const isActive = currentFilterCat === c.id;
+      return `<button onclick="filterFiles(${c.id})" class="cat-filter-btn shrink-0 px-4 py-1.5 rounded-full text-sm btn-jelly transition-transform ${isActive ? 'font-semibold text-white btn-gradient shadow-md' : 'font-medium bg-gray-100 text-gray-600'}" data-cat="${c.id}">${esc(c.name)} (${count})</button>`;
     }).join('');
 }
 
