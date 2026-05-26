@@ -17,6 +17,7 @@ let selectedColor = COLORS[0];
 let selectedFile = null;
 let selectedUploadCat = null;
 let currentFilterCat = null;
+let _rfId = 0;
 let pdfDoc = null;
 let pdfCurrentPage = 1;
 let pdfBaseScale = 1;
@@ -334,7 +335,10 @@ async function removeCategory(id) {
 
 // ── File List ─────────────────────────────
 async function renderFiles() {
-  const files = await getFiles(currentFilterCat);
+  var id = ++_rfId;
+  var catFilter = currentFilterCat;
+  const files = await getFiles(catFilter);
+  if (id !== _rfId) return;
   const search = (document.getElementById('file-search')?.value || '').toLowerCase();
   const filtered = files.filter(f => f.name.toLowerCase().includes(search));
   const container = document.getElementById('files-list');
