@@ -1139,7 +1139,9 @@ let mindmapZoom = 1;
 let mmPinchDist0 = 0;
 let mmPinchZoom0 = 1;
 let mmDragInfo = null; // { nodeId, nodeEl, startX, startY, nodeLeft, nodeTop, timer, isDragging }
-let mmPan = null; // { startX, startY, scrollLeft, scrollTop }
+let mmPanX = 0;
+let mmPanY = 0;
+let mmPan = null; // { startX, startY, panX, panY }
 
 function showAddWorkflow() {
   workflowModalMode = 'create-workflow';
@@ -1268,6 +1270,8 @@ async function enterWorkflow(id) {
   try {
     currentWorkflowId = id;
     mindmapZoom = 1;
+    mmPanX = 0;
+    mmPanY = 0;
     var workflows = await getWorkflows();
     var w = workflows.find(function(x) { return x.id === id; });
     if (!w) return;
@@ -1612,7 +1616,7 @@ async function renderMindMap(workflowId) {
     + nodesHtml
     + '</div>'
     + '</div>';
-  updateMindmapZoomLabel();
+  applyMindmapTransform();
   canvas.onwheel = onMindmapWheel;
   canvas.onpointerdown = onMindmapPointerDown;
   canvas.ontouchstart = onMindmapTouchStart;
@@ -1651,15 +1655,16 @@ async function renderMindMap(workflowId) {
   var badge = document.getElementById('header-badge');
   if (badge) badge.textContent = nodes.length + ' 个节点';
 
-  // Scroll to root
+  // Center on root
   var rootPos = positions[layout.rootId];
   if (rootPos) {
     var rootNode = nodes.find(function(n) { return n.id === layout.rootId; });
     var rSize = rootNode ? (rootNode.size || 'medium') : 'medium';
     var rootW = rSize === 'small' ? 120 : rSize === 'large' ? 210 : 160;
     var rootH = rSize === 'small' ? 55 : rSize === 'large' ? 90 : 70;
-    canvas.scrollLeft = rootPos.x - canvas.clientWidth / 2 + rootW / 2;
-    canvas.scrollTop = rootPos.y - canvas.clientHeight / 2 + rootH / 2;
+    mmPanX = canvas.clientWidth / (2 * mindmapZoom) - rootPos.x - rootW / 2;
+    mmPanY = canvas.clientHeight / (2 * mindmapZoom) - rootPos.y - rootH / 2;
+    applyMindmapTransform();
   }
 
   } catch (err) {
@@ -1674,21 +1679,25 @@ function updateMindmapZoomLabel() {
   if (label) label.textContent = Math.round(mindmapZoom * 100) + '%';
 }
 
-function applyMindmapZoom(oldZoom, anchorX, anchorY) {
+function applyMindmapTransform() {
   var container = document.getElementById('mindmap-zoom-container');
   if (container) {
-    container.style.transform = 'scale(' + mindmapZoom + ')';
+    container.style.transform = 'translate(' + mmPanX + 'px, ' + mmPanY + 'px) scale(' + mindmapZoom + ')';
     container.style.transformOrigin = '0 0';
   }
+  updateMindmapZoomLabel();
+}
+
+function applyMindmapZoom(oldZoom, anchorX, anchorY) {
   var canvas = document.getElementById('mindmap-canvas');
   if (canvas && oldZoom && oldZoom !== mindmapZoom) {
     var ratio = mindmapZoom / oldZoom;
     var ax = anchorX != null ? anchorX : canvas.clientWidth / 2;
     var ay = anchorY != null ? anchorY : canvas.clientHeight / 2;
-    canvas.scrollLeft = (canvas.scrollLeft + ax) * ratio - ax;
-    canvas.scrollTop = (canvas.scrollTop + ay) * ratio - ay;
+    mmPanX = ax - ratio * (ax - mmPanX);
+    mmPanY = ay - ratio * (ay - mmPanY);
   }
-  updateMindmapZoomLabel();
+  applyMindmapTransform();
 }
 
 function mindmapZoomIn() {
@@ -1983,23 +1992,22 @@ function onMindmapPointerDown(e) {
   if (e.target.closest('.mindmap-node') || e.target.closest('button')) return;
   if (e.target.closest('#mindmap-quick-add')) return;
   var canvas = document.getElementById('mindmap-canvas');
-  mmPan = { startX: e.clientX, startY: e.clientY, scrollLeft: canvas.scrollLeft, scrollTop: canvas.scrollTop };
+  mmPan = { startX: e.clientX, startY: e.clientY, panX: mmPanX, panY: mmPanY };
   canvas.style.cursor = 'grabbing';
   canvas.setPointerCapture(e.pointerId);
-  e.preventDefault();
 }
 
 function onPanPointerMove(e) {
   if (!mmPan) return;
-  var canvas = document.getElementById('mindmap-canvas');
-  canvas.scrollLeft = mmPan.scrollLeft - (e.clientX - mmPan.startX);
-  canvas.scrollTop = mmPan.scrollTop - (e.clientY - mmPan.startY);
+  mmPanX = mmPan.panX + (e.clientX - mmPan.startX) / mindmapZoom;
+  mmPanY = mmPan.panY + (e.clientY - mmPan.startY) / mindmapZoom;
+  applyMindmapTransform();
 }
 
 function onPanPointerUp(e) {
   if (!mmPan) return;
   var canvas = document.getElementById('mindmap-canvas');
-  canvas.style.cursor = '';
+  if (canvas) canvas.style.cursor = '';
   mmPan = null;
 }
 
