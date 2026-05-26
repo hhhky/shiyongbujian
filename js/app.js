@@ -1306,7 +1306,7 @@ function calcLayout(nodes) {
   var root = nodes.find(function(n) { return n.parentId == null; });
   if (!root) return { positions: {}, rootId: null, w: 0, h: 0 };
 
-  var H_GAP = 60, V_GAP = 30;
+  var H_GAP = 80, V_GAP = 40;
 
   function nodeW(n) {
     var s = n.size || 'medium';
@@ -1421,7 +1421,7 @@ function calcLayout(nodes) {
   layoutChildren(root.id);
 
   var bounds = getBounds(root.id);
-  var pad = 80;
+  var pad = 120;
   var offsetX = -bounds.minX + pad;
   var offsetY = -bounds.minY + pad;
 
@@ -1533,8 +1533,8 @@ async function renderMindMap(workflowId) {
 
   var layout = calcLayout(nodes);
   var positions = layout.positions;
-  var canvasW = Math.max(layout.w, 600);
-  var canvasH = Math.max(layout.h, 520);
+  var canvasW = Math.max(layout.w, 900);
+  var canvasH = Math.max(layout.h, 700);
 
   var svgLines = drawConnections(nodes, positions, isKnowledge);
 
@@ -1741,8 +1741,8 @@ async function renderMindmapToCanvas(scale) {
   var isKnowledge = currentMindmapType === 'knowledge';
   var layout = calcLayout(nodes);
   var positions = layout.positions;
-  var canvasW = Math.max(layout.w, 600);
-  var canvasH = Math.max(layout.h, 520);
+  var canvasW = Math.max(layout.w, 900);
+  var canvasH = Math.max(layout.h, 700);
   scale = scale || 2;
   var canvas = document.createElement('canvas');
   canvas.width = canvasW * scale;
