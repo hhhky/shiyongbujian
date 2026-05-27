@@ -210,6 +210,54 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.3); border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
+
+    /* Chat */
+    .chat-welcome { text-align: center; padding: 32px 16px; }
+    .chat-welcome-icon { font-size: 3.5rem; margin-bottom: 12px; }
+    .chat-welcome h2 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 6px; }
+    .chat-welcome-sub { font-size: 0.8125rem; color: #9ca3af; margin-bottom: 20px; }
+    .chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .chat-suggestion { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid #e5e7eb; border-radius: 20px; padding: 8px 16px; font-size: 0.8125rem; color: #374151; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+    .chat-suggestion:hover { border-color: #a78bfa; background: rgba(139,92,246,0.06); color: #7c3aed; }
+    .chat-msg { display: flex; margin-bottom: 16px; animation: fadeIn 0.3s ease; }
+    .chat-msg-user { justify-content: flex-end; }
+    .chat-msg-ai { align-items: flex-start; gap: 8px; }
+    .chat-ai-avatar { width: 30px; height: 30px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; flex-shrink: 0; }
+    .chat-ai-body { flex: 1; min-width: 0; }
+    .chat-bubble { max-width: 85%; padding: 10px 16px; border-radius: 18px; font-size: 0.875rem; line-height: 1.6; word-break: break-word; }
+    .chat-bubble-user { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-bottom-right-radius: 6px; }
+    .chat-bubble-ai { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid #e5e7eb; color: #374151; border-bottom-left-radius: 6px; }
+    .chat-bubble-ai p { margin: 0.25rem 0; }
+    .chat-bubble-ai p:first-child { margin-top: 0; }
+    .chat-bubble-ai p:last-child { margin-bottom: 0; }
+    .chat-bubble-ai h1, .chat-bubble-ai h2, .chat-bubble-ai h3, .chat-bubble-ai h4 { margin: 0.5rem 0 0.25rem; font-weight: 600; }
+    .chat-bubble-ai h1 { font-size: 1.2rem; }
+    .chat-bubble-ai h2 { font-size: 1.1rem; }
+    .chat-bubble-ai h3 { font-size: 1rem; }
+    .chat-bubble-ai h4 { font-size: 0.9375rem; }
+    .chat-bubble-ai ul, .chat-bubble-ai ol { margin: 0.25rem 0; padding-left: 1.5rem; }
+    .chat-bubble-ai li { margin: 2px 0; }
+    .chat-bubble-ai a { color: #6366f1; text-decoration: underline; }
+    .chat-bubble-ai strong { font-weight: 600; color: #1f2937; }
+    .chat-bubble-ai em { font-style: italic; }
+    .chat-bubble-ai hr { border: none; border-top: 1px solid #e5e7eb; margin: 8px 0; }
+    .chat-bubble-ai .code-block { background: #1e1e2e; color: #cdd6f4; border-radius: 12px; padding: 12px 16px; overflow-x: auto; margin: 8px 0; font-size: 0.8125rem; line-height: 1.5; position: relative; }
+    .chat-bubble-ai .code-block .code-lang { position: absolute; top: 6px; right: 12px; font-size: 0.6875rem; color: #6c7086; text-transform: uppercase; }
+    .chat-bubble-ai .code-block code { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+    .chat-bubble-ai .inline-code { background: #f3f4f6; color: #e11d48; padding: 1px 5px; border-radius: 4px; font-size: 0.8125rem; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+    .reasoning-block { background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+    .reasoning-block.reasoning-done { border-color: #d1d5db; }
+    .reasoning-header { display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 0.75rem; color: #6b7280; }
+    .reasoning-header:hover { background: rgba(0,0,0,0.02); }
+    .reasoning-icon { font-size: 0.875rem; }
+    .reasoning-label { flex: 1; }
+    .reasoning-done .reasoning-label { color: #10b981; }
+    .reasoning-toggle { font-size: 0.75rem; transition: transform 0.2s ease; }
+    .reasoning-content { padding: 0 12px 10px; font-size: 0.75rem; color: #9ca3af; line-height: 1.5; display: block; }
+    .reasoning-open .reasoning-content { display: block; }
+    .chat-error { color: #ef4444; font-size: 0.8125rem; }
+    #chat-messages { scroll-behavior: smooth; }
+    #page-chat.active { display: flex; flex-direction: column; }
   </style>
 </head>
 <body style="background: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 30%, #fff7ed 60%, #f0f9ff 100%);">
@@ -423,6 +471,28 @@
           <div id="calendar-memos" class="mt-5"></div>
         </div>
 
+        <!-- Chat Page -->
+        <div id="page-chat" class="page">
+          <div class="flex-1 flex flex-col" style="max-width:900px; margin:0 auto; width:100%;">
+            <div class="flex items-center justify-between px-4 py-2 shrink-0">
+              <button onclick="toggleModel()" class="text-xs px-3 py-1.5 rounded-full font-medium bg-white/70 backdrop-blur border border-gray-200 hover:border-dopa-purple-400 transition-colors btn-jelly">
+                <span id="chat-model-label">DeepSeek-R1</span>
+                <span class="text-gray-400 ml-1">↔</span>
+              </button>
+              <button onclick="clearChat()" class="text-xs text-gray-400 hover:text-dopa-coral-500 transition-colors px-2 py-1">清空对话</button>
+            </div>
+            <div id="chat-messages" class="flex-1 overflow-y-auto px-4"></div>
+            <div class="p-3 shrink-0">
+              <div class="flex items-end gap-2 bg-white/80 backdrop-blur rounded-[20px] border border-gray-200 p-2 focus-within:border-dopa-purple-400 focus-within:ring-2 focus-within:ring-dopa-purple-100 transition-all">
+                <textarea id="chat-input" rows="1" placeholder="输入消息..." oninput="onChatInput(event)" onkeydown="onChatKeydown(event)" class="flex-1 resize-none bg-transparent text-sm px-2 py-1.5 focus:outline-none" style="max-height:120px"></textarea>
+                <button id="chat-send-btn" onclick="sendMessage()" disabled class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center btn-gradient text-white disabled:opacity-40 transition-all">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
 
@@ -524,6 +594,8 @@
   </div>
 
   <script src="js/db.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/chat.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -49,6 +49,12 @@ const WIDGETS = [
       { id: 'workflows', name: '工作流', shortName: '工作流', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' },
       { id: 'knowledge', name: '知识导图', shortName: '知识', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>' }
     ]
+  },
+  {
+    id: 'deepseek', name: 'DeepSeek 思考助手', icon: '🤖', desc: 'AI 对话 · 支持深度推理和 Markdown', color: '#6366f1',
+    tabs: [
+      { id: 'chat', name: 'AI 对话', shortName: '对话', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>' }
+    ]
   }
 ];
 let currentWidget = null;
@@ -107,6 +113,7 @@ function enterWidget(id) {
   if (id === 'review') renderColorPicker();
   if (id === 'memo') { var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
   if (id === 'mindmap') { currentWorkflowId = null; currentMindmapType = 'workflow'; backToWorkflowsList(true); }
+  if (id === 'deepseek' && typeof initChat === 'function') initChat();
 }
 
 function goHome() {
@@ -211,6 +218,11 @@ async function refreshAll() {
     var sc = document.getElementById('sidebar-footer-text');
     if (sc) sc.textContent = workflows.length + ' 个' + label;
     renderWorkflows();
+  } else if (currentWidget === 'deepseek') {
+    var badge = document.getElementById('header-badge');
+    if (badge) badge.textContent = typeof CONST_DEEPSEEK_MODEL !== 'undefined' && CONST_DEEPSEEK_MODEL === 'deepseek-reasoner' ? 'R1 推理' : 'V3 对话';
+    var sc = document.getElementById('sidebar-footer-text');
+    if (sc) sc.textContent = 'DeepSeek AI';
   }
 }
 
@@ -246,6 +258,8 @@ function switchTab(tab) {
     if (tab === 'workflows') currentMindmapType = 'workflow';
     if (tab === 'knowledge') currentMindmapType = 'knowledge';
     backToWorkflowsList(true); renderWorkflows();
+  } else if (currentWidget === 'deepseek') {
+    if (tab === 'chat' && typeof initChat === 'function') initChat();
   }
 }
 
