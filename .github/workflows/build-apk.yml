@@ -45,7 +45,12 @@ jobs:
           ls -la android/app/src/main/assets/public/js/
 
       - name: Build APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+        run: |
+          SDK_DIR="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          echo "sdk.dir=$SDK_DIR" > android/local.properties
+          echo "Using SDK at: $SDK_DIR"
+          ls -la $SDK_DIR/platforms/ 2>/dev/null || echo "no platforms dir"
+          cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
