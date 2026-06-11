@@ -32,7 +32,15 @@ jobs:
         run: npm install
 
       - name: Sync Android
-        run: npx cap sync android
+        run: |
+          echo "=== capacitor config ==="
+          cat capacitor.config.json
+          echo "=== www contents ==="
+          ls -la www/ && ls -la www/js/
+          npx cap sync android 2>&1 || true
+          echo "=== Checking generated files ==="
+          ls -la android/app/src/main/assets/public/ 2>/dev/null || echo "public dir missing"
+          ls -la android/capacitor-cordova-android-plugins/ 2>/dev/null || echo "plugins dir missing"
 
       - name: Build APK
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
