@@ -259,6 +259,7 @@
     #chat-messages { scroll-behavior: smooth; }
     #page-chat.active { display: flex; flex-direction: column; }
   </style>
+  <link rel="manifest" href="manifest.json">
 </head>
 <body style="background: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 30%, #fff7ed 60%, #f0f9ff 100%);">
 
@@ -597,5 +598,10 @@
   <script src="js/config.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
 </body>
 </html>
