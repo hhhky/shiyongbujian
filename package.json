@@ -8,16 +8,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hhhky/apkbanben.git"
+    "url": "git+https://github.com/hhhky/shiyongbujian.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/hhhky/apkbanben/issues"
+    "url": "https://github.com/hhhky/shiyongbujian/issues"
   },
-  "homepage": "https://github.com/hhhky/apkbanben#readme",
+  "homepage": "https://github.com/hhhky/shiyongbujian#readme",
   "dependencies": {
     "@capacitor/android": "^8.4.0",
     "@capacitor/cli": "^8.4.0",

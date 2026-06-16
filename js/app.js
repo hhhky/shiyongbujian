@@ -72,10 +72,10 @@ function renderWidgets() {
   if (!grid) return;
   var filesCount = 0;
   grid.innerHTML = WIDGETS.map(function(w) {
-    return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[28px] p-6 cursor-pointer shadow-lg card-hover" style="box-shadow: 0 4px 24px ${w.color}40;">
+    return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[28px] p-6 cursor-pointer card-hover">
       <div class="text-4xl mb-3">${w.icon}</div>
-      <h3 class="font-bold text-white text-base mb-1 drop-shadow">${esc(w.name)}</h3>
-      <p class="text-xs text-white/80">${w.desc}</p>
+      <h3 class="font-bold text-base mb-1" style="color: var(--card-text);">${esc(w.name)}</h3>
+      <p class="text-xs" style="color: var(--card-subtext);">${w.desc}</p>
     </div>`;
   }).join('');
 }
@@ -158,7 +158,7 @@ function renderBottomNavTabs(w) {
   var container = document.getElementById('bottom-nav-tabs-container');
   if (!container) return;
   container.innerHTML = w.tabs.map(function(t, i) {
-    return '<button onclick="switchTab(\'' + t.id + '\')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-[28px] transition-all' + (i === 0 ? ' active' : ' text-gray-400') + '" style="' + (i === 0 ? 'color: #7c3aed;' : '') + '" data-tab="' + t.id + '">'
+    return '<button onclick="switchTab(\'' + t.id + '\')" class="nav-tab flex flex-col items-center gap-0.5 py-1 px-4 rounded-[28px] transition-all' + (i === 0 ? ' active' : ' text-gray-400') + '" style="' + (i === 0 ? 'color: var(--nav-active-color);' : '') + '" data-tab="' + t.id + '">'
       + '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + t.svg + '</svg>'
       + '<span class="text-xs font-medium">' + esc(t.shortName) + '</span>'
     + '</button>';
@@ -238,7 +238,7 @@ function switchTab(tab) {
     b.style.color = ''; b.classList.add('text-gray-400'); b.classList.remove('active');
   });
   var navBtn = document.querySelector('.nav-tab[data-tab="' + tab + '"]');
-  if (navBtn) { navBtn.classList.remove('text-gray-400'); navBtn.classList.add('active'); navBtn.style.color = '#7c3aed'; }
+  if (navBtn) { navBtn.classList.remove('text-gray-400'); navBtn.classList.add('active'); navBtn.style.color = 'var(--nav-active-color)'; }
 
   // Sidebar nav buttons (tablet+)
   document.querySelectorAll('.sidebar-tab').forEach(function(b) {
@@ -564,7 +564,7 @@ function selectUploadCategory(catId) {
   document.querySelectorAll('.upload-cat-option').forEach(el => {
     var sel = Number(el.dataset.cat) === catId;
     el.classList.toggle('ring-2', sel);
-    el.classList.toggle('ring-dopa-purple-400', sel);
+    el.classList.toggle('ring-gray-400', sel);
     el.style.transform = sel ? 'scale(1.02)' : '';
   });
   updateUploadBtn();
@@ -575,10 +575,9 @@ function updateUploadBtn() {
   if (selectedFile && selectedUploadCat !== null) {
     btn.disabled = false;
     btn.classList.remove('bg-gray-300');
-    btn.classList.add('btn-gradient','shadow-lg'); btn.style.background='linear-gradient(135deg, #8b5cf6, #ec4899)';
+    btn.classList.add('btn-gradient','shadow-lg');
   } else {
     btn.disabled = true;
-    btn.style.background = '';
     btn.className = btn.className.replace('btn-gradient','').replace('shadow-lg','');
     btn.classList.add('bg-gray-300');
   }
@@ -635,7 +634,7 @@ async function uploadFile() {
     toast('✅ 上传成功！id=' + id);
     clearSelectedFile();
     selectedUploadCat = null;
-    document.querySelectorAll('.upload-cat-option').forEach(el => { el.classList.remove('ring-2','ring-dopa-purple-400'); el.style.transform = ''; });
+    document.querySelectorAll('.upload-cat-option').forEach(el => { el.classList.remove('ring-2','ring-gray-400'); el.style.transform = ''; });
     updateUploadBtn();
     btn.textContent = '上传资料';
     await refreshAll();
@@ -1170,10 +1169,10 @@ function showAddWorkflow() {
 function selectNodeShape(shape) {
   document.querySelectorAll('.node-shape-btn').forEach(function(b) {
     if (b.dataset.shape === shape) {
-      b.classList.add('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.add('border-gray-400','bg-gray-100','text-gray-600');
       b.classList.remove('border-gray-200','text-gray-500');
     } else {
-      b.classList.remove('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.remove('border-gray-400','bg-gray-100','text-gray-600');
       b.classList.add('border-gray-200','text-gray-500');
     }
   });
@@ -1182,10 +1181,10 @@ function selectNodeShape(shape) {
 function selectNodeSize(size) {
   document.querySelectorAll('.node-size-btn').forEach(function(b) {
     if (b.dataset.size === size) {
-      b.classList.add('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.add('border-gray-400','bg-gray-100','text-gray-600');
       b.classList.remove('border-gray-200','text-gray-500');
     } else {
-      b.classList.remove('border-dopa-purple-400','bg-dopa-purple-50','text-dopa-purple-500');
+      b.classList.remove('border-gray-400','bg-gray-100','text-gray-600');
       b.classList.add('border-gray-200','text-gray-500');
     }
   });
@@ -1228,9 +1227,9 @@ async function confirmWorkflowModal() {
     var title = document.getElementById('node-title-input').value.trim();
     if (!title) { toast('请输入节点标题'); return; }
     var desc = document.getElementById('node-desc-input').value.trim();
-    var selShapeBtn = document.querySelector('.node-shape-btn.border-dopa-purple-400');
+    var selShapeBtn = document.querySelector('.node-shape-btn.border-gray-400');
     var shape = selShapeBtn ? selShapeBtn.dataset.shape : 'rounded';
-    var selSizeBtn = document.querySelector('.node-size-btn.border-dopa-purple-400');
+    var selSizeBtn = document.querySelector('.node-size-btn.border-gray-400');
     var size = selSizeBtn ? selSizeBtn.dataset.size : 'medium';
     await updateWorkflowNode(editingNodeId, { title: title, description: desc, shape: shape, size: size });
     toast('节点已更新');
@@ -1683,7 +1682,7 @@ async function renderMindMap(workflowId) {
 
   } catch (err) {
     console.error('renderMindMap error:', err);
-    canvas.innerHTML = '<div class="text-center text-red-400 py-12 text-sm">加载失败: ' + esc(err.message || String(err)) + '<br><button onclick="backToWorkflowsList()" class="text-dopa-purple-500 underline mt-2 text-xs">返回列表</button></div>';
+    canvas.innerHTML = '<div class="text-center text-red-400 py-12 text-sm">加载失败: ' + esc(err.message || String(err)) + '<br><button onclick="backToWorkflowsList()" class="text-gray-500 underline mt-2 text-xs">返回列表</button></div>';
   }
 }
 
@@ -1814,7 +1813,10 @@ async function renderMindmapToCanvas(scale) {
     var x = pos.x, y = pos.y;
     var isRoot = n.parentId == null;
     var shape = n.shape || 'rounded';
-    var borderColor = isKnowledge ? '#8b5cf6' : (n.done ? '#10b981' : '#f43f5e');
+    var isGlass = document.documentElement.getAttribute('data-theme') !== 'gradient';
+    var borderColor = isGlass
+      ? (n.done ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.18)')
+      : (isKnowledge ? '#8b5cf6' : (n.done ? '#10b981' : '#f43f5e'));
 
     ctx.save();
     var radius = shape === 'pill' ? h / 2 : 12;
@@ -1826,7 +1828,10 @@ async function renderMindmapToCanvas(scale) {
 
     if (isRoot) {
       var grad = ctx.createLinearGradient(x, y, x + w, y + h);
-      if (isKnowledge) {
+      if (isGlass) {
+        grad.addColorStop(0, 'rgba(0,0,0,0.03)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.01)');
+      } else if (isKnowledge) {
         grad.addColorStop(0, 'rgba(139,92,246,0.06)');
         grad.addColorStop(1, 'rgba(168,85,247,0.04)');
       } else {
@@ -1838,7 +1843,7 @@ async function renderMindmapToCanvas(scale) {
     }
 
     if (n.done && !isKnowledge) {
-      ctx.fillStyle = 'rgba(16,185,129,0.06)';
+      ctx.fillStyle = isGlass ? 'rgba(0,0,0,0.04)' : 'rgba(16,185,129,0.06)';
       ctx.fillRect(x, y, w, h);
     }
 
@@ -1967,7 +1972,7 @@ async function exportMindmapWord() {
 
     var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">';
     html += '<head><meta charset="utf-8"><title>' + result.name + '</title>';
-    html += '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:30px;color:#333}h1{font-size:22px;border-bottom:2px solid #7c3aed;padding-bottom:8px}h2{font-size:16px;margin-top:24px;color:#7c3aed}img{max-width:100%;border-radius:12px}ul{margin-left:20px}li{margin:2px 0}</style>';
+    html += '<style>body{font-family:"Microsoft YaHei",sans-serif;margin:30px;color:#333}h1{font-size:22px;border-bottom:2px solid #374151;padding-bottom:8px}h2{font-size:16px;margin-top:24px;color:#374151}img{max-width:100%;border-radius:12px}ul{margin-left:20px}li{margin:2px 0}</style>';
     html += '</head><body>';
     html += '<h1>' + result.name + '</h1>';
     html += '<p style="color:#888">类型：' + (result.isKnowledge ? '知识导图' : '工作流思维导图') + ' | 节点数：' + nodes.length + ' | 导出时间：' + new Date().toLocaleString() + '</p>';
@@ -2094,13 +2099,13 @@ function quickAddNode(parentId, direction) {
   popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
     + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
     + '<div style="display:flex; gap:6px; margin:6px 0;" id="quick-shape-select">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:12px; border:2px solid #8b5cf6; background:#ede9fe; text-align:center; font-size:0.65rem; color:#7c3aed; cursor:pointer;">圆角</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:12px; border:2px solid rgba(0,0,0,0.3); background:rgba(0,0,0,0.06); text-align:center; font-size:0.65rem; color:#374151; cursor:pointer;">圆角</button>'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
     + '</div>'
     + '<div style="display:flex; gap:6px; margin:0 0 6px 0;" id="quick-size-select" data-size="' + (currentMindmapType === 'knowledge' ? 'large' : 'medium') + '">'
       + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn" data-size="small" style="flex:1; padding:3px; border-radius:10px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">小</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? '' : ' active') + '" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#e5e7eb' : '#8b5cf6') + '; background:' + (currentMindmapType === 'knowledge' ? '#fff' : '#ede9fe') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#6b7280' : '#7c3aed') + '; cursor:pointer;">中</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? ' active' : '') + '" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#8b5cf6' : '#e5e7eb') + '; background:' + (currentMindmapType === 'knowledge' ? '#ede9fe' : '#fff') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#7c3aed' : '#6b7280') + '; cursor:pointer;">大</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? '' : ' active') + '" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#e5e7eb' : 'rgba(0,0,0,0.3)') + '; background:' + (currentMindmapType === 'knowledge' ? '#fff' : 'rgba(0,0,0,0.06)') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#6b7280' : '#374151') + '; cursor:pointer;">中</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? ' active' : '') + '" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? 'rgba(0,0,0,0.3)' : '#e5e7eb') + '; background:' + (currentMindmapType === 'knowledge' ? 'rgba(0,0,0,0.06)' : '#fff') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#374151' : '#6b7280') + '; cursor:pointer;">大</button>'
     + '</div>'
     + '<div class="mindmap-quick-add-btns">'
       + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
@@ -2126,9 +2131,9 @@ function renderQuickShapeBtns() {
   var btns = container.querySelectorAll('.quick-shape-btn');
   btns.forEach(function(b) {
     if (b.dataset.shape === selected) {
-      b.style.border = '2px solid #8b5cf6';
-      b.style.background = '#ede9fe';
-      b.style.color = '#7c3aed';
+      b.style.border = '2px solid rgba(0,0,0,0.3)';
+      b.style.background = 'rgba(0,0,0,0.06)';
+      b.style.color = '#374151';
     } else {
       b.style.border = '2px solid #e5e7eb';
       b.style.background = '#fff';
@@ -2144,9 +2149,9 @@ function renderQuickSizeBtns() {
   var btns = container.querySelectorAll('.quick-size-btn');
   btns.forEach(function(b) {
     if (b.dataset.size === selected) {
-      b.style.border = '2px solid #8b5cf6';
-      b.style.background = '#ede9fe';
-      b.style.color = '#7c3aed';
+      b.style.border = '2px solid rgba(0,0,0,0.3)';
+      b.style.background = 'rgba(0,0,0,0.06)';
+      b.style.color = '#374151';
     } else {
       b.style.border = '2px solid #e5e7eb';
       b.style.background = '#fff';
