@@ -21,9 +21,9 @@ android {
         release {
             storeFile file("release.keystore")
             storeType "PKCS12"
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "shiyongbujian2026"
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
             keyAlias System.getenv("KEY_ALIAS") ?: "shiyongbujian"
-            keyPassword System.getenv("KEY_PASSWORD") ?: "shiyongbujian2026"
+            keyPassword System.getenv("KEY_PASSWORD") ?: ""
         }
     }
 
@@ -31,10 +31,14 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
         debug {
-            signingConfig signingConfigs.release
+            if (signingConfigs.release.storeFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
