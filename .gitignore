@@ -12,3 +12,4 @@ android/captures/
 *.aab
 *.keystore
 *.jks
+*.b64
