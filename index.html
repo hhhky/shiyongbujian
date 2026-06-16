@@ -365,7 +365,6 @@
         <h1 class="text-lg font-bold tracking-wide" id="header-title" style="color: var(--header-text);">实用部件</h1>
       </div>
       <span class="text-xs px-3 py-1 rounded-full font-medium relative z-10 backdrop-blur-lg" style="background: var(--header-badge-bg); color: var(--header-badge-text);" id="header-badge">1 个部件</span>
-      <button onclick="toggleTheme()" class="ml-2 w-7 h-7 rounded-full flex items-center justify-center relative z-10 btn-jelly transition-all" style="background: var(--header-badge-bg); color: var(--header-badge-text); font-size: 0.875rem;" title="切换主题" id="theme-toggle-btn">🎨</button>
     </header>
 
     <!-- Body: Sidebar + Main -->
@@ -389,12 +388,52 @@
       <main class="flex-1 overflow-y-auto main-content" id="main-content">
 
         <!-- Home Page -->
-        <div id="page-home" class="page active p-4 md:p-8 lg:p-10">
+        <div id="page-home" class="page active p-4 md:p-8 lg:p-10" style="padding-bottom: calc(1rem + 80px + var(--sab));">
           <div class="mb-5 md:mb-7">
             <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold">我的部件</h2>
             <p class="text-xs text-gray-400 mt-0.5">点击部件进入使用</p>
           </div>
           <div id="widgets-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          </div>
+        </div>
+
+        <!-- About Page -->
+        <div id="page-about" class="page p-4 md:p-8 lg:p-10" style="padding-bottom: calc(1rem + 80px + var(--sab));">
+          <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold mb-5">关于</h2>
+
+          <!-- Theme section -->
+          <div class="mb-6">
+            <p class="text-sm font-semibold text-gray-600 mb-3">主题样式</p>
+            <div class="grid grid-cols-2 gap-3 max-w-sm">
+              <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #f0f0f2;" data-theme="glass" id="theme-opt-glass">
+                <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);"></div>
+                <p class="text-sm font-semibold text-gray-700">玻璃</p>
+                <p class="text-xs text-gray-400">简洁通透</p>
+              </button>
+              <button onclick="applyTheme('gradient')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(135deg, #faf5ff, #fdf2f8);" data-theme="gradient" id="theme-opt-gradient">
+                <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(135deg, #7c3aed, #a855f7, #ec4899);"></div>
+                <p class="text-sm font-semibold text-gray-700">渐变</p>
+                <p class="text-xs text-gray-400">色彩流动</p>
+              </button>
+            </div>
+          </div>
+
+          <!-- Version -->
+          <div class="mb-6">
+            <p class="text-sm font-semibold text-gray-600 mb-2">版本</p>
+            <p class="text-sm text-gray-500" id="about-version">v1.0.0</p>
+          </div>
+
+          <!-- Description -->
+          <div class="mb-6">
+            <p class="text-sm font-semibold text-gray-600 mb-2">介绍</p>
+            <p class="text-sm text-gray-500 leading-relaxed">实用部件 — 一站式效率工具，包含资料管理、备忘录、思维导图、AI 对话四大模块。支持 PWA 安装和 Android APK 直接使用。</p>
+          </div>
+
+          <!-- GitHub -->
+          <div>
+            <p class="text-sm font-semibold text-gray-600 mb-2">开源</p>
+            <a href="https://github.com/hhhky/shiyongbujian" target="_blank" class="text-sm text-gray-500 hover:text-gray-700 underline">github.com/hhhky/shiyongbujian</a>
           </div>
         </div>
 
@@ -585,10 +624,13 @@
           </div>
         </div>
 
-      </main>
+    <!-- Home bottom switch bar -->
+    <div id="home-switch-bar" class="fixed bottom-3 left-4 right-4 z-50 mx-auto flex justify-center" style="margin-bottom: var(--sab);">
+      <div class="flex rounded-2xl p-1 gap-1" style="background: var(--nav-bg); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); box-shadow: var(--nav-shadow);">
+        <button onclick="switchHomeTab('widgets')" id="home-switch-widgets" class="px-6 py-2 rounded-xl text-sm font-semibold transition-all" style="background: rgba(0,0,0,0.06); color: #374151;">部件</button>
+        <button onclick="switchHomeTab('about')" id="home-switch-about" class="px-6 py-2 rounded-xl text-sm font-medium transition-all text-gray-400">关于</button>
+      </div>
     </div>
-
-    <!-- Bottom Navigation (mobile only, shown inside widgets) -->
     <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 z-50 mx-auto max-w-sm hidden" style="background: var(--nav-bg); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); border-radius: 24px; box-shadow: var(--nav-shadow); margin-bottom: var(--sab);">
       <div id="bottom-nav-tabs-container" class="flex justify-around py-1.5"></div>
     </nav>

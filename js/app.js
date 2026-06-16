@@ -13,6 +13,8 @@ const COLORS = [
   '#22c55e','#10b981','#34d399','#14b8a6','#06b6d4','#22d3ee',
   '#3b82f6','#60a5fa','#6366f1','#8b5cf6','#7c3aed','#6d28d9'
 ];
+
+const APP_VERSION = '1.0.0';
 let selectedColor = COLORS[0];
 let selectedFile = null;
 let selectedUploadCat = null;
@@ -101,6 +103,9 @@ function enterWidget(id) {
   document.getElementById('bottom-nav').classList.remove('hidden');
   document.querySelector('.main-content').classList.add('has-nav');
 
+  // Hide home switch bar
+  document.getElementById('home-switch-bar').style.display = 'none';
+
   // Sidebar: show back link + widget nav
   document.getElementById('sidebar-back-btn').classList.remove('hidden');
   document.getElementById('sidebar-footer').classList.remove('hidden');
@@ -123,6 +128,7 @@ function goHome() {
   // Hide widget pages, show home
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
   document.getElementById('page-home').classList.add('active');
+  switchHomeTab('widgets'); // reset to widgets tab
 
   // Header
   document.getElementById('header-back-btn').classList.add('hidden');
@@ -133,6 +139,9 @@ function goHome() {
   document.getElementById('bottom-nav').classList.add('hidden');
   document.querySelector('.main-content').classList.remove('has-nav');
 
+  // Show home switch bar
+  document.getElementById('home-switch-bar').style.display = '';
+
   // Sidebar
   document.getElementById('sidebar-back-btn').classList.add('hidden');
   document.getElementById('sidebar-footer').classList.add('hidden');
@@ -141,6 +150,62 @@ function goHome() {
 
   closePreview();
   renderWidgets();
+}
+
+function switchHomeTab(tab) {
+  var widgetsBtn = document.getElementById('home-switch-widgets');
+  var aboutBtn = document.getElementById('home-switch-about');
+  var homePage = document.getElementById('page-home');
+  var aboutPage = document.getElementById('page-about');
+
+  if (tab === 'about') {
+    homePage.classList.remove('active');
+    aboutPage.classList.add('active');
+    widgetsBtn.style.background = 'transparent';
+    widgetsBtn.style.color = '#9ca3af';
+    widgetsBtn.style.fontWeight = '500';
+    aboutBtn.style.background = 'rgba(0,0,0,0.06)';
+    aboutBtn.style.color = '#374151';
+    aboutBtn.style.fontWeight = '600';
+    updateAboutVersion();
+    updateThemeSelection();
+  } else {
+    aboutPage.classList.remove('active');
+    homePage.classList.add('active');
+    aboutBtn.style.background = 'transparent';
+    aboutBtn.style.color = '#9ca3af';
+    aboutBtn.style.fontWeight = '500';
+    widgetsBtn.style.background = 'rgba(0,0,0,0.06)';
+    widgetsBtn.style.color = '#374151';
+    widgetsBtn.style.fontWeight = '600';
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('app-theme', theme);
+  var color = theme === 'gradient' ? '#7c3aed' : '#f0f0f2';
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', color);
+  updateThemeSelection();
+}
+
+function updateThemeSelection() {
+  var current = document.documentElement.getAttribute('data-theme') || 'glass';
+  var glassOpt = document.getElementById('theme-opt-glass');
+  var gradOpt = document.getElementById('theme-opt-gradient');
+  if (glassOpt) {
+    glassOpt.style.borderColor = current === 'glass' ? '#374151' : 'transparent';
+    glassOpt.style.boxShadow = current === 'glass' ? '0 0 0 1px #374151' : 'none';
+  }
+  if (gradOpt) {
+    gradOpt.style.borderColor = current === 'gradient' ? '#374151' : 'transparent';
+    gradOpt.style.boxShadow = current === 'gradient' ? '0 0 0 1px #374151' : 'none';
+  }
+}
+
+function updateAboutVersion() {
+  var el = document.getElementById('about-version');
+  if (el) el.textContent = 'v' + APP_VERSION;
 }
 
 function renderSidebarTabs(w) {
