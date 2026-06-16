@@ -10,3 +10,5 @@ android/build/
 android/captures/
 *.apk
 *.aab
+*.keystore
+*.jks

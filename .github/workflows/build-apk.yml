@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Bump patch version
+      - name: Bump version
         id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -33,7 +33,8 @@ jobs:
           MINOR=$(echo $VERSION | cut -d. -f2)
           PATCH=$(echo $VERSION | cut -d. -f3)
           NEW="$MAJOR.$MINOR.$((PATCH + 1))"
-          echo "Bumping $VERSION → $NEW"
+          VCODE=$((MAJOR * 10000 + MINOR * 100 + PATCH + 1))
+          echo "Bumping $VERSION → $NEW  versionCode=$VCODE"
           node -e "
             var fs = require('fs');
             var pkg = require('./package.json');
@@ -43,7 +44,14 @@ jobs:
             js = js.replace(/const APP_VERSION = '[^']*'/, \"const APP_VERSION = '$NEW'\");
             fs.writeFileSync('js/app.js', js);
           "
+          sed -i "s/versionCode [0-9]*/versionCode $VCODE/" android/app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"$NEW\"/" android/app/build.gradle
           echo "version=$NEW" >> $GITHUB_OUTPUT
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
 
       - name: Copy web assets to www
         run: |
@@ -62,19 +70,23 @@ jobs:
           cp capacitor.config.json android/app/src/main/assets/capacitor.config.json
           echo '[]' > android/app/src/main/assets/capacitor.plugins.json
 
-      - name: Build APK
-        run: cd android && chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - name: Build Signed APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: shiyongbujian-debug-v${{ steps.version.outputs.version }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: shiyongbujian-v${{ steps.version.outputs.version }}
+          path: android/app/build/outputs/apk/release/app-release.apk
 
       - name: Commit version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json js/app.js
+          git add package.json js/app.js android/app/build.gradle
           git commit -m "chore: bump version to v${{ steps.version.outputs.version }}" || true
           git push || true
