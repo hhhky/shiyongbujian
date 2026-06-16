@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#f0f0f2">
+  <meta name="theme-color" content="#e5e5ea">
   <title>实用部件</title>
   <script src="js/tailwind.js"></script>
   <script>
@@ -36,38 +36,130 @@
       --sab: env(safe-area-inset-bottom, 0px);
     }
 
-    /* ====== Theme: Glass (default) ====== */
+    /* ====== Theme: Glass (default) — Apple iOS Vibrant Frosted Glass ====== */
     :root, [data-theme="glass"] {
-      --bg-body: #f0f0f2;
-      --header-bg: rgba(255,255,255,0.72);
-      --header-text: #1f2937;
-      --header-badge-bg: rgba(0,0,0,0.04);
-      --header-badge-text: #6b7280;
-      --header-border: 0.5px solid rgba(0,0,0,0.08);
-      --sidebar-bg: rgba(255,255,255,0.65);
-      --sidebar-border: 0.5px solid rgba(0,0,0,0.06);
-      --sidebar-active-bg: rgba(0,0,0,0.05);
-      --sidebar-active-text: #374151;
-      --sidebar-footer-border: 0.5px solid rgba(0,0,0,0.06);
-      --nav-bg: rgba(255,255,255,0.72);
-      --nav-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.06);
-      --nav-active-color: #374151;
-      --title-color: transparent;
-      --btn-bg: rgba(0,0,0,0.75);
-      --btn-hover-bg: rgba(0,0,0,0.85);
-      --btn-hover-shadow: 0 4px 20px rgba(0,0,0,0.12);
-      --toast-bg: rgba(0,0,0,0.8);
-      --toast-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      --toast-border: 0.5px solid rgba(255,255,255,0.1);
-      --scrollbar-thumb: rgba(0,0,0,0.15);
-      --scrollbar-thumb-hover: rgba(0,0,0,0.25);
-      --card-bg: rgba(255,255,255,0.8);
-      --card-text: #1f2937;
-      --card-subtext: #6b7280;
-      --card-hover-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      --bg-body: #e5e5ea;
+      --header-bg: rgba(255,255,255,0.18);
+      --header-text: #1d1d1f;
+      --header-badge-bg: rgba(0,0,0,0.06);
+      --header-badge-text: #6e6e73;
+      --header-border: 0.5px solid rgba(255,255,255,0.35);
+      --sidebar-bg: rgba(255,255,255,0.12);
+      --sidebar-border: 0.5px solid rgba(255,255,255,0.28);
+      --sidebar-active-bg: rgba(0,0,0,0.06);
+      --sidebar-active-text: #1d1d1f;
+      --sidebar-footer-border: 0.5px solid rgba(255,255,255,0.25);
+      --nav-bg: rgba(255,255,255,0.15);
+      --nav-shadow: 0 2px 16px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(255,255,255,0.32);
+      --nav-active-color: #1d1d1f;
+      --title-color: #1d1d1f;
+      --btn-bg: rgba(0,0,0,0.8);
+      --btn-hover-bg: rgba(0,0,0,0.9);
+      --btn-hover-shadow: 0 4px 16px rgba(0,0,0,0.14);
+      --toast-bg: rgba(30,30,32,0.88);
+      --toast-shadow: 0 8px 32px rgba(0,0,0,0.14);
+      --toast-border: 0.5px solid rgba(255,255,255,0.2);
+      --scrollbar-thumb: rgba(0,0,0,0.12);
+      --scrollbar-thumb-hover: rgba(0,0,0,0.22);
+      --card-bg: rgba(255,255,255,0.18);
+      --card-border: 0.5px solid rgba(255,255,255,0.35);
+      --card-backdrop: blur(48px) saturate(2.2);
+      --card-box-shadow: var(--card-box-shadow);
+      --card-text: #1d1d1f;
+      --card-subtext: #6e6e73;
+      --card-hover-shadow: 0 8px 28px rgba(0,0,0,0.08);
+      --text-primary: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-tertiary: #8e8e93;
       --header-glow-display: none;
       --header-anim: none;
       --header-bg-size: auto;
+      --header-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      --glass-highlight: inset 0 0.5px 0 rgba(255,255,255,0.55);
+    }
+
+    /* ====== Theme: White ====== */
+    [data-theme="white"] {
+      --bg-body: #ffffff;
+      --header-bg: rgba(255,255,255,0.92);
+      --header-text: #1d1d1f;
+      --header-badge-bg: rgba(0,0,0,0.04);
+      --header-badge-text: #6e6e73;
+      --header-border: 0.5px solid rgba(0,0,0,0.06);
+      --sidebar-bg: rgba(255,255,255,0.92);
+      --sidebar-border: 0.5px solid rgba(0,0,0,0.05);
+      --sidebar-active-bg: rgba(0,0,0,0.04);
+      --sidebar-active-text: #1d1d1f;
+      --sidebar-footer-border: 0.5px solid rgba(0,0,0,0.05);
+      --nav-bg: rgba(255,255,255,0.92);
+      --nav-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 0.5px rgba(0,0,0,0.06);
+      --nav-active-color: #1d1d1f;
+      --title-color: #1d1d1f;
+      --btn-bg: rgba(0,0,0,0.8);
+      --btn-hover-bg: rgba(0,0,0,0.9);
+      --btn-hover-shadow: 0 4px 16px rgba(0,0,0,0.14);
+      --toast-bg: rgba(30,30,32,0.88);
+      --toast-shadow: 0 8px 32px rgba(0,0,0,0.14);
+      --toast-border: 0.5px solid rgba(255,255,255,0.2);
+      --scrollbar-thumb: rgba(0,0,0,0.12);
+      --scrollbar-thumb-hover: rgba(0,0,0,0.22);
+      --card-bg: rgba(255,255,255,0.96);
+      --card-border: 0.5px solid rgba(0,0,0,0.06);
+      --card-backdrop: none;
+      --card-box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      --card-text: #1d1d1f;
+      --card-subtext: #6e6e73;
+      --card-hover-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      --text-primary: #1d1d1f;
+      --text-secondary: #6e6e73;
+      --text-tertiary: #8e8e93;
+      --header-glow-display: none;
+      --header-anim: none;
+      --header-bg-size: auto;
+      --header-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      --glass-highlight: none;
+    }
+
+    /* ====== Theme: Dark ====== */
+    [data-theme="dark"] {
+      --bg-body: #1c1c1e;
+      --header-bg: rgba(28,28,30,0.72);
+      --header-text: #f5f5f7;
+      --header-badge-bg: rgba(255,255,255,0.1);
+      --header-badge-text: #98989d;
+      --header-border: 0.5px solid rgba(255,255,255,0.12);
+      --sidebar-bg: rgba(28,28,30,0.65);
+      --sidebar-border: 0.5px solid rgba(255,255,255,0.08);
+      --sidebar-active-bg: rgba(255,255,255,0.1);
+      --sidebar-active-text: #f5f5f7;
+      --sidebar-footer-border: 0.5px solid rgba(255,255,255,0.08);
+      --nav-bg: rgba(28,28,30,0.72);
+      --nav-shadow: 0 2px 16px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.12);
+      --nav-active-color: #f5f5f7;
+      --title-color: #f5f5f7;
+      --btn-bg: rgba(255,255,255,0.2);
+      --btn-hover-bg: rgba(255,255,255,0.3);
+      --btn-hover-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      --toast-bg: rgba(60,60,67,0.92);
+      --toast-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      --toast-border: 0.5px solid rgba(255,255,255,0.12);
+      --scrollbar-thumb: rgba(255,255,255,0.15);
+      --scrollbar-thumb-hover: rgba(255,255,255,0.25);
+      --card-bg: rgba(255,255,255,0.1);
+      --card-border: 0.5px solid rgba(255,255,255,0.15);
+      --card-backdrop: blur(48px) saturate(2.2);
+      --card-box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.15), 0 1px 4px rgba(0,0,0,0.2);
+      --card-text: #f5f5f7;
+      --card-subtext: #98989d;
+      --card-hover-shadow: 0 8px 28px rgba(0,0,0,0.3);
+      --text-primary: #f5f5f7;
+      --text-secondary: #98989d;
+      --text-tertiary: #636366;
+      --header-glow-display: none;
+      --header-anim: none;
+      --header-bg-size: auto;
+      --header-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --glass-highlight: inset 0 0.5px 0 rgba(255,255,255,0.12);
     }
 
     /* ====== Theme: Gradient (colorful) ====== */
@@ -96,12 +188,19 @@
       --scrollbar-thumb: rgba(139,92,246,0.3);
       --scrollbar-thumb-hover: rgba(139,92,246,0.5);
       --card-bg: linear-gradient(135deg, #a855f7, #ec4899, #fb923c, #34d399, #60a5fa, #a855f7);
+      --card-border: 0.5px solid rgba(255,255,255,0.3);
+      --card-backdrop: blur(16px);
+      --card-box-shadow: 0 1px 4px rgba(0,0,0,0.06);
       --card-text: #fff;
       --card-subtext: rgba(255,255,255,0.8);
       --card-hover-shadow: 0 8px 25px rgba(139,92,246,0.12);
+      --text-primary: #1f2937;
+      --text-secondary: #6b7280;
+      --text-tertiary: #9ca3af;
       --header-glow-display: block;
       --header-anim: gradient-shift 8s ease infinite;
       --header-bg-size: 200% 200%;
+      --header-shadow: 0 4px 20px rgba(124,58,237,0.3);
     }
 
     /* Title gradient text (gradient theme only) */
@@ -142,9 +241,10 @@
     .btn-jelly:active { animation: jelly 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
     .widget-card-outer {
       background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 0.5px solid rgba(0,0,0,0.06);
+      backdrop-filter: var(--card-backdrop);
+      -webkit-backdrop-filter: var(--card-backdrop);
+      border: var(--card-border);
+      box-shadow: var(--card-box-shadow);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .widget-card-outer:hover {
@@ -156,19 +256,19 @@
     .mindmap-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
     .mindmap-svg line { stroke: #d1d5db; stroke-width: 2; }
     .mindmap-node {
-      position: absolute; width: 160px; background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border-radius: 18px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-      border: 0.5px solid rgba(0,0,0,0.08); cursor: pointer; z-index: 2;
+      position: absolute; width: 160px; background: var(--card-bg);
+      backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop);
+      border-radius: 18px; padding: 12px; box-shadow: var(--card-box-shadow);
+      border: var(--card-border); cursor: pointer; z-index: 2;
       transition: box-shadow 0.2s ease, border-color 0.2s ease;
       user-select: none; -webkit-user-select: none;
       -webkit-touch-callout: none;
     }
-    .mindmap-node:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.15); }
-    .mindmap-node.root { border-width: 1px; background: rgba(255,255,255,0.9); }
-    .mindmap-node.done { border-color: rgba(0,0,0,0.06); opacity: 0.7; background: rgba(255,255,255,0.6); }
-    .mindmap-node.done:hover { border-color: rgba(0,0,0,0.12); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-    .mindmap-node.done .mindmap-node-title { text-decoration: line-through; color: #9ca3af; }
+    .mindmap-node:hover { box-shadow: var(--card-hover-shadow); border-color: rgba(128,128,128,0.3); }
+    .mindmap-node.root { border-width: 0.5px; background: var(--card-bg); }
+    .mindmap-node.done { opacity: 0.7; }
+    .mindmap-node.done:hover { opacity: 0.85; }
+    .mindmap-node.done .mindmap-node-title { text-decoration: line-through; color: var(--text-tertiary); }
     .mindmap-node.shape-pill { border-radius: 50px; }
     .mindmap-node.size-small { width: 120px; padding: 8px; }
     .mindmap-node.size-small .mindmap-node-title { font-size: 0.7rem; }
@@ -176,18 +276,18 @@
     .mindmap-node.size-large { width: 210px; padding: 16px; }
     .mindmap-node.size-large .mindmap-node-title { font-size: 0.9375rem; }
     .mindmap-node.dragging { cursor: grabbing; z-index: 20; box-shadow: 0 8px 30px rgba(0,0,0,0.12); opacity: 0.9; }
-    .mindmap-node.knowledge { border-color: rgba(0,0,0,0.1); }
-    .mindmap-node.knowledge:hover { border-color: rgba(0,0,0,0.18); box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    .mindmap-node.knowledge.root { border-width: 1px; background: rgba(255,255,255,0.9); }
-    .mindmap-node-title { font-size: 0.8125rem; font-weight: 600; color: #1f2937; margin-bottom: 2px; word-break: break-word; }
+    .mindmap-node.knowledge { border: var(--card-border); }
+    .mindmap-node.knowledge:hover { box-shadow: var(--card-hover-shadow); border-color: rgba(128,128,128,0.3); }
+    .mindmap-node.knowledge.root { border-width: 0.5px; background: var(--card-bg); }
+    .mindmap-node-title { font-size: 0.8125rem; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; word-break: break-word; }
     .mindmap-dir-btn {
       position: absolute; width: 20px; height: 20px; border-radius: 50%;
-      background: #fff; border: 0.5px solid rgba(0,0,0,0.1); color: #9ca3af;
+      background: var(--card-bg); border: 0.5px solid rgba(255,255,255,0.35); color: var(--text-secondary);
       display: flex; align-items: center; justify-content: center;
       font-size: 14px; line-height: 1; cursor: pointer; z-index: 3;
       transition: all 0.2s ease; padding: 0;
     }
-    .mindmap-dir-btn:hover { border-color: rgba(0,0,0,0.3); color: #374151; background: rgba(0,0,0,0.04); transform: scale(1.2); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .mindmap-dir-btn:hover { border-color: rgba(255,255,255,0.6); color: var(--text-primary); background: var(--card-bg); transform: scale(1.2); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.4); }
     .mindmap-dir-btn.top { top: -10px; left: 50%; transform: translateX(-50%); }
     .mindmap-dir-btn.bottom { bottom: -10px; left: 50%; transform: translateX(-50%); }
     .mindmap-dir-btn.left { left: -10px; top: 50%; transform: translateY(-50%); }
@@ -197,33 +297,34 @@
     .mindmap-dir-btn.left:hover { transform: translateY(-50%) scale(1.2); }
     .mindmap-dir-btn.right:hover { transform: translateY(-50%) scale(1.2); }
     .mindmap-quick-add {
-      position: absolute; z-index: 10; background: #fff; border-radius: 18px;
-      padding: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-      border: 1px solid #e5e7eb; width: 180px;
+      position: absolute; z-index: 10; background: var(--card-bg); border-radius: 18px;
+      padding: 10px; box-shadow: 0 8px 36px rgba(0,0,0,0.12);
+      border: 0.5px solid rgba(255,255,255,0.35); width: 180px;
+      backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop);
     }
     .mindmap-quick-add input {
-      width: 100%; border: 1px solid #e5e7eb; border-radius: 12px;
+      width: 100%; border: 0.5px solid rgba(255,255,255,0.35); border-radius: 12px;
       padding: 6px 10px; font-size: 0.8125rem; outline: none; margin-bottom: 6px;
     }
-    .mindmap-quick-add input:focus { border-color: rgba(0,0,0,0.4); box-shadow: 0 0 0 2px rgba(0,0,0,0.06); }
+    .mindmap-quick-add input:focus { border-color: rgba(128,128,128,0.3); box-shadow: 0 0 0 2px rgba(255,255,255,0.1); }
     .mindmap-quick-add-btns { display: flex; gap: 6px; }
     .mindmap-quick-add-btns button { flex: 1; padding: 4px 0; border-radius: 10px; font-size: 0.75rem; font-weight: 600; border: none; cursor: pointer; }
-    .mindmap-quick-add-confirm { background: rgba(0,0,0,0.75); color: #fff; }
-    .mindmap-quick-add-cancel { background: #f3f4f6; color: #6b7280; }
-    .cal-day { aspect-ratio: 1; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; position: relative; font-size: 0.875rem; font-weight: 500; color: #374151; }
-    .cal-day:hover { background: rgba(0,0,0,0.04); }
-    .cal-day.today { background: rgba(0,0,0,0.06); color: #374151; font-weight: 700; }
-    .cal-day.selected { box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.4); font-weight: 700; }
-    .cal-day.other-month { color: #d1d5db; cursor: default; pointer-events: none; }
+    .mindmap-quick-add-confirm { background: var(--btn-bg); color: #fff; }
+    .mindmap-quick-add-cancel { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+    .cal-day { aspect-ratio: 1; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; position: relative; font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
+    .cal-day:hover { background: var(--card-bg); }
+    .cal-day.today { background: rgba(255,255,255,0.15); color: var(--text-primary); font-weight: 700; }
+    .cal-day.selected { box-shadow: inset 0 0 0 1.5px rgba(0,0,0,0.3); font-weight: 700; }
+    .cal-day.other-month { color: var(--text-tertiary); cursor: default; pointer-events: none; }
     .cal-day-legend { display: flex; gap: 2px; justify-content: center; margin-top: 2px; flex-wrap: wrap; }
     .cal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
     .memo-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
-    .memo-card:hover { border-left-color: rgba(0,0,0,0.3); box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+    .memo-card:hover { border-left-color: rgba(0,0,0,0.2); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
     .icon-btn-edit, .icon-btn-del {
       width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
-      border-radius: 12px; color: #cbd5e1; transition: all 0.2s ease; flex-shrink: 0;
+      border-radius: 12px; color: var(--text-tertiary); transition: all 0.2s ease; flex-shrink: 0;
     }
-    .icon-btn-edit:hover { color: #374151; background: rgba(0,0,0,0.06); }
+    .icon-btn-edit:hover { color: var(--text-primary); background: rgba(0,0,0,0.06); }
     .icon-btn-del:hover { color: #ef4444; background: rgba(239,68,68,0.08); }
     .cat-card-del { color: rgba(255,255,255,0.7); }
     .cat-card-del:hover { color: #fff; background: rgba(255,255,255,0.15); }
@@ -265,20 +366,23 @@
     .nav-tab.active svg { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15)); }
 
     .upload-zone {
-      border-color: #d1d5db;
+      border: var(--card-border);
       transition: all 0.3s ease;
-      background: rgba(255,255,255,0.5);
+      background: var(--card-bg);
+      backdrop-filter: var(--card-backdrop);
+      -webkit-backdrop-filter: var(--card-backdrop);
+      box-shadow: var(--card-box-shadow);
     }
     .upload-zone:hover, .upload-zone:focus-within {
-      border-color: #9ca3af;
-      background: rgba(255,255,255,0.8);
-      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      border-color: rgba(128,128,128,0.3);
+      background: var(--card-bg);
+      box-shadow: var(--card-hover-shadow);
     }
 
-    .word-preview h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; color: #1f2937; }
-    .word-preview h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: #374151; }
-    .word-preview h4 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: #4b5563; }
-    .word-preview p { margin: 0.25rem 0; font-size: 0.875rem; color: #374151; line-height: 1.6; }
+    .word-preview h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; color: var(--text-primary); }
+    .word-preview h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: var(--text-primary); }
+    .word-preview h4 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: var(--text-primary); }
+    .word-preview p { margin: 0.25rem 0; font-size: 0.875rem; color: var(--text-primary); line-height: 1.6; }
     .word-preview ul,.word-preview ol { margin: 0.25rem 0; padding-left: 1.5rem; font-size: 0.875rem; }
     .word-preview li { margin: 0.125rem 0; }
     .word-preview table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
@@ -303,11 +407,11 @@
     /* Chat */
     .chat-welcome { text-align: center; padding: 32px 16px; }
     .chat-welcome-icon { font-size: 3.5rem; margin-bottom: 12px; }
-    .chat-welcome h2 { font-size: 1.25rem; font-weight: 700; color: #1f2937; margin-bottom: 6px; }
-    .chat-welcome-sub { font-size: 0.8125rem; color: #9ca3af; margin-bottom: 20px; }
+    .chat-welcome h2 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+    .chat-welcome-sub { font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 20px; }
     .chat-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-    .chat-suggestion { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid #e5e7eb; border-radius: 20px; padding: 8px 16px; font-size: 0.8125rem; color: #374151; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
-    .chat-suggestion:hover { border-color: #9ca3af; background: rgba(0,0,0,0.04); }
+    .chat-suggestion { background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); border-radius: 20px; padding: 8px 16px; font-size: 0.8125rem; color: var(--text-primary); cursor: pointer; transition: all 0.2s ease; white-space: nowrap; box-shadow: var(--card-box-shadow); }
+    .chat-suggestion:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.08); }
     .chat-msg { display: flex; margin-bottom: 16px; animation: fadeIn 0.3s ease; }
     .chat-msg-user { justify-content: flex-end; }
     .chat-msg-ai { align-items: flex-start; gap: 8px; }
@@ -315,7 +419,7 @@
     .chat-ai-body { flex: 1; min-width: 0; }
     .chat-bubble { max-width: 85%; padding: 10px 16px; border-radius: 18px; font-size: 0.875rem; line-height: 1.6; word-break: break-word; }
     .chat-bubble-user { background: rgba(0,0,0,0.75); color: #fff; border-bottom-right-radius: 6px; }
-    .chat-bubble-ai { background: rgba(255,255,255,0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 0.5px solid rgba(0,0,0,0.06); color: #374151; border-bottom-left-radius: 6px; }
+    .chat-bubble-ai { background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.35); color: #1d1d1f; border-bottom-left-radius: 6px; box-shadow: var(--card-box-shadow); }
     .chat-bubble-ai p { margin: 0.25rem 0; }
     .chat-bubble-ai p:first-child { margin-top: 0; }
     .chat-bubble-ai p:last-child { margin-bottom: 0; }
@@ -326,8 +430,8 @@
     .chat-bubble-ai h4 { font-size: 0.9375rem; }
     .chat-bubble-ai ul, .chat-bubble-ai ol { margin: 0.25rem 0; padding-left: 1.5rem; }
     .chat-bubble-ai li { margin: 2px 0; }
-    .chat-bubble-ai a { color: #374151; text-decoration: underline; }
-    .chat-bubble-ai strong { font-weight: 600; color: #1f2937; }
+    .chat-bubble-ai a { color: var(--text-primary); text-decoration: underline; }
+    .chat-bubble-ai strong { font-weight: 600; color: var(--text-primary); }
     .chat-bubble-ai em { font-style: italic; }
     .chat-bubble-ai hr { border: none; border-top: 1px solid #e5e7eb; margin: 8px 0; }
     .chat-bubble-ai .code-block { background: #1e1e2e; color: #cdd6f4; border-radius: 12px; padding: 12px 16px; overflow-x: auto; margin: 8px 0; font-size: 0.8125rem; line-height: 1.5; position: relative; }
@@ -356,7 +460,7 @@
   <div id="app" class="flex flex-col h-screen overflow-hidden md:max-w-none">
 
     <!-- Header -->
-    <header class="text-white px-5 py-4 flex items-center justify-between shrink-0 relative z-30 overflow-hidden" style="background: var(--header-bg); background-size: var(--header-bg-size); animation: var(--header-anim); padding-top: calc(0.75rem + var(--sat)); border-bottom: var(--header-border); box-shadow: 0 4px 20px rgba(124,58,237,0.3); min-height: calc(56px + var(--sat));">
+    <header class="text-white px-5 py-4 flex items-center justify-between shrink-0 relative z-30 overflow-hidden" style="background: var(--header-bg); background-size: var(--header-bg-size); animation: var(--header-anim); padding-top: calc(0.75rem + var(--sat)); border-bottom: var(--header-border); box-shadow: var(--header-shadow); min-height: calc(56px + var(--sat)); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop);">
       <div class="absolute inset-0 opacity-20" style="background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.4) 0%, transparent 60%); display: var(--header-glow-display);"></div>
       <div class="flex items-center gap-3 relative z-10">
         <button onclick="goHome()" id="header-back-btn" class="hidden hover:opacity-80 btn-jelly transition-all p-0.5 -ml-1" style="color: var(--header-text); opacity: 0.6;">
@@ -371,7 +475,7 @@
     <div class="flex flex-1 overflow-hidden">
 
       <!-- Sidebar (hidden on mobile) -->
-      <aside class="hidden md:flex md:flex-col w-48 lg:w-56 shrink-0" style="background: var(--sidebar-bg); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); border-right: var(--sidebar-border);">
+      <aside class="hidden md:flex md:flex-col w-48 lg:w-56 shrink-0" style="background: var(--sidebar-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border-right: var(--sidebar-border); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.4);">
         <nav class="flex flex-col p-3 gap-1 flex-1" id="sidebar-nav">
           <button onclick="goHome()" id="sidebar-back-btn" class="hidden flex items-center gap-2 px-3 py-2 rounded-[20px] text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -390,7 +494,7 @@
         <!-- Home Page -->
         <div id="page-home" class="page active p-4 md:p-8 lg:p-10" style="padding-bottom: calc(1rem + 80px + var(--sab));">
           <div class="mb-5 md:mb-7">
-            <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold">我的部件</h2>
+            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">我的部件</h2>
             <p class="text-xs text-gray-400 mt-0.5">点击部件进入使用</p>
           </div>
           <div id="widgets-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -399,21 +503,31 @@
 
         <!-- About Page -->
         <div id="page-about" class="page p-4 md:p-8 lg:p-10" style="padding-bottom: calc(1rem + 80px + var(--sab));">
-          <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold mb-5">关于</h2>
+          <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold mb-5">关于</h2>
 
           <!-- Theme section -->
           <div class="mb-6">
             <p class="text-sm font-semibold text-gray-600 mb-3">主题样式</p>
             <div class="grid grid-cols-2 gap-3 max-w-sm">
-              <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #f0f0f2;" data-theme="glass" id="theme-opt-glass">
-                <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.72); backdrop-filter: blur(12px);"></div>
+              <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #e5e5ea;" data-theme="glass" id="theme-opt-glass">
+                <div class="w-full h-10 rounded-xl mb-2" style="background: var(--card-bg); backdrop-filter: blur(24px); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.55);"></div>
                 <p class="text-sm font-semibold text-gray-700">玻璃</p>
-                <p class="text-xs text-gray-400">简洁通透</p>
+                <p class="text-xs text-gray-400">iOS 风格</p>
+              </button>
+              <button onclick="applyTheme('white')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #ffffff;" data-theme="white" id="theme-opt-white">
+                <div class="w-full h-10 rounded-xl mb-2" style="background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"></div>
+                <p class="text-sm font-semibold text-gray-700">白色</p>
+                <p class="text-xs text-gray-400">清爽纯白</p>
               </button>
               <button onclick="applyTheme('gradient')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(135deg, #faf5ff, #fdf2f8);" data-theme="gradient" id="theme-opt-gradient">
                 <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(135deg, #7c3aed, #a855f7, #ec4899);"></div>
                 <p class="text-sm font-semibold text-gray-700">渐变</p>
                 <p class="text-xs text-gray-400">色彩流动</p>
+              </button>
+              <button onclick="applyTheme('dark')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #1c1c1e;" data-theme="dark" id="theme-opt-dark">
+                <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
+                <p class="text-sm font-semibold text-white">暗黑</p>
+                <p class="text-xs text-gray-400">护眼深色</p>
               </button>
             </div>
           </div>
@@ -441,7 +555,7 @@
         <div id="page-categories" class="page p-4 md:p-6 lg:p-8">
           <div class="flex items-center justify-between mb-5 md:mb-7">
             <div>
-              <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold">分类管理</h2>
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">分类管理</h2>
               <p class="text-xs text-gray-400 mt-0.5">管理你的资料分类</p>
             </div>
             <button onclick="showAddCategory()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建分类</button>
@@ -459,7 +573,7 @@
             </div>
             <div class="relative">
               <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-              <input type="text" id="file-search" oninput="renderFiles()" placeholder="搜索文件名..." class="w-full sm:w-48 lg:w-56 text-sm bg-white/80 backdrop-blur border border-gray-200 rounded-[20px] pl-9 pr-3 py-2 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all shrink-0">
+              <input type="text" id="file-search" oninput="renderFiles()" placeholder="搜索文件名..." class="w-full sm:w-48 lg:w-56 text-sm border rounded-[20px] pl-9 pr-3 py-2 focus:outline-none transition-all shrink-0" style="background: rgba(255,255,255,0.15); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); color: var(--text-primary);">
             </div>
           </div>
           <div id="files-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -472,13 +586,13 @@
           <div class="flex flex-col lg:flex-row gap-5 lg:gap-8">
             <!-- Left: File selection -->
             <div class="flex-1">
-              <label for="file-input" class="upload-zone bg-white/70 backdrop-blur rounded-[28px] p-8 md:p-10 text-center border-2 border-dashed mb-5 block cursor-pointer relative overflow-hidden">
+              <label for="file-input" class="upload-zone rounded-[28px] p-8 md:p-10 text-center border-2 border-dashed mb-5 block cursor-pointer relative overflow-hidden">
                 <input type="file" id="file-input" onchange="onFileSelected(this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                 <div class="text-5xl md:text-6xl mb-4 relative z-10" style="animation: float 3s ease-in-out infinite;">📤</div>
                 <p class="text-gray-600 text-sm md:text-base font-medium relative z-10">点击选择文件</p>
                 <p class="text-gray-400 text-xs mt-1.5 relative z-10">支持 PDF、图片、Word、Excel 格式</p>
               </label>
-              <div id="selected-file-info" class="hidden bg-white/80 backdrop-blur rounded-[20px] p-4 mb-5 shadow-sm">
+              <div id="selected-file-info" class="hidden rounded-[20px] p-4 mb-5 shadow-sm" style="background: rgba(255,255,255,0.15); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.35); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.4);">
                 <div class="flex items-center gap-3">
                   <span class="text-2xl" id="selected-file-icon">📄</span>
                   <div class="flex-1 min-w-0">
@@ -510,7 +624,7 @@
         <div id="page-memos" class="page p-4 md:p-6 lg:p-8">
           <div class="flex items-center justify-between mb-5 md:mb-7">
             <div>
-              <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold">备忘录</h2>
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">备忘录</h2>
               <p class="text-xs text-gray-400 mt-0.5">记录待办事项，设置截止日期</p>
             </div>
             <button onclick="showAddMemo()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
@@ -526,7 +640,7 @@
           <div id="workflows-list-view">
             <div class="flex items-center justify-between mb-5 md:mb-7">
               <div>
-                <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold">思维导图</h2>
+                <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">思维导图</h2>
                 <p class="text-xs text-gray-400 mt-0.5">自由展开的思维导图，点击卡片进入</p>
               </div>
               <button onclick="showAddWorkflow()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建思维导图</button>
@@ -541,7 +655,7 @@
               <button onclick="backToWorkflowsList()" class="text-gray-400 hover:text-gray-600 btn-jelly transition-all p-1">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
               </button>
-              <h2 id="workflow-detail-title" class="title-gradient text-lg md:text-xl font-bold flex-1" style="color: #1f2937;"></h2>
+              <h2 id="workflow-detail-title" class="title-gradient text-lg md:text-xl font-bold flex-1" style="color: var(--text-primary);"></h2>
               <div class="flex items-center gap-1 text-xs" style="background:rgba(255,255,255,0.6); border-radius:14px; padding:2px 6px;">
                 <button onclick="mindmapZoomOut()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 btn-jelly transition-all text-gray-500 font-bold">−</button>
                 <span id="mindmap-zoom-label" class="min-w-[38px] text-center font-medium text-gray-600">100%</span>
@@ -566,7 +680,7 @@
               </div>
               <button onclick="deleteCurrentWorkflow()" class="icon-btn-del" title="删除思维导图"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
             </div>
-            <div id="mindmap-canvas" class="mindmap-canvas bg-white/40 backdrop-blur rounded-[28px] border border-gray-100" style="position:relative; overflow:auto; min-height:700px;">
+            <div id="mindmap-canvas" class="mindmap-canvas rounded-[28px]" style="position:relative; overflow:auto; min-height:700px; background: rgba(255,255,255,0.1); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.25);">
               <div class="text-center text-gray-400 py-12 text-sm">加载中...</div>
             </div>
           </div>
@@ -576,7 +690,7 @@
         <div id="page-calendar" class="page p-4 md:p-6 lg:p-8">
           <div class="flex items-center justify-between mb-4 md:mb-5">
             <div>
-              <h2 style="color: #1f2937;" class="title-gradient text-lg md:text-xl font-bold">日历</h2>
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">日历</h2>
               <p class="text-xs text-gray-400 mt-0.5" id="calendar-subtitle">查看截止日期分布</p>
             </div>
             <button onclick="showAddMemo()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
@@ -606,7 +720,7 @@
         <div id="page-chat" class="page">
           <div class="flex-1 flex flex-col" style="max-width:900px; margin:0 auto; width:100%;">
             <div class="flex items-center justify-between px-4 py-2 shrink-0">
-              <button onclick="toggleModel()" class="text-xs px-3 py-1.5 rounded-full font-medium bg-white/70 backdrop-blur border border-gray-200 hover:border-gray-400 transition-colors btn-jelly">
+              <button onclick="toggleModel()" class="text-xs px-3 py-1.5 rounded-full font-medium transition-colors btn-jelly" style="background: rgba(255,255,255,0.15); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.35); color: var(--text-primary);">
                 <span id="chat-model-label">DeepSeek-R1</span>
                 <span class="text-gray-400 ml-1">↔</span>
               </button>
@@ -614,7 +728,7 @@
             </div>
             <div id="chat-messages" class="flex-1 overflow-y-auto px-4"></div>
             <div class="p-3 shrink-0">
-              <div class="flex items-end gap-2 bg-white/80 backdrop-blur rounded-[20px] border border-gray-200 p-2 focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-200 transition-all">
+              <div class="flex items-end gap-2 rounded-[20px] p-2 focus-within:border-gray-400 focus-within:ring-1 focus-within:ring-gray-200 transition-all" style="background: rgba(255,255,255,0.15); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.35);">
                 <textarea id="chat-input" rows="1" placeholder="输入消息..." oninput="onChatInput(event)" onkeydown="onChatKeydown(event)" class="flex-1 resize-none bg-transparent text-sm px-2 py-1.5 focus:outline-none" style="max-height:120px"></textarea>
                 <button id="chat-send-btn" onclick="sendMessage()" disabled class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center btn-gradient text-white disabled:opacity-40 transition-all">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
@@ -626,12 +740,12 @@
 
     <!-- Home bottom switch bar -->
     <div id="home-switch-bar" class="fixed bottom-3 left-4 right-4 z-50 mx-auto flex justify-center" style="margin-bottom: var(--sab);">
-      <div class="flex rounded-2xl p-1 gap-1" style="background: var(--nav-bg); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); box-shadow: var(--nav-shadow);">
-        <button onclick="switchHomeTab('widgets')" id="home-switch-widgets" class="px-6 py-2 rounded-xl text-sm font-semibold transition-all" style="background: rgba(0,0,0,0.06); color: #374151;">部件</button>
-        <button onclick="switchHomeTab('about')" id="home-switch-about" class="px-6 py-2 rounded-xl text-sm font-medium transition-all text-gray-400">关于</button>
+      <div class="flex rounded-2xl p-1 gap-1" style="background: var(--nav-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--nav-shadow);">
+        <button onclick="switchHomeTab('widgets')" id="home-switch-widgets" class="px-6 py-2 rounded-xl text-sm font-semibold transition-all" style="background: rgba(0,0,0,0.06); color: var(--text-primary);">部件</button>
+        <button onclick="switchHomeTab('about')" id="home-switch-about" class="px-6 py-2 rounded-xl text-sm font-medium transition-all" style="color: var(--text-secondary);">关于</button>
       </div>
     </div>
-    <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 z-50 mx-auto max-w-sm hidden" style="background: var(--nav-bg); backdrop-filter: blur(24px) saturate(1.8); -webkit-backdrop-filter: blur(24px) saturate(1.8); border-radius: 24px; box-shadow: var(--nav-shadow); margin-bottom: var(--sab);">
+    <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 z-50 mx-auto max-w-sm hidden" style="background: var(--nav-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border-radius: 24px; box-shadow: var(--nav-shadow); margin-bottom: var(--sab);">
       <div id="bottom-nav-tabs-container" class="flex justify-around py-1.5"></div>
     </nav>
 
@@ -665,7 +779,7 @@
     <!-- Category Modal -->
     <div id="category-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
       <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
-        <h3 class="title-gradient text-lg font-bold mb-4" style="color: #1f2937;">新建分类</h3>
+        <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建分类</h3>
         <input type="text" id="new-cat-name" placeholder="分类名称，如：英语、政治" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">选择颜色</label>
         <div class="grid grid-cols-6 gap-2.5 mb-5" id="color-picker"></div>
@@ -679,7 +793,7 @@
     <!-- Memo Modal -->
     <div id="memo-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
       <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
-        <h3 id="memo-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: #1f2937;">新建备忘录</h3>
+        <h3 id="memo-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建备忘录</h3>
         <input type="text" id="memo-title-input" placeholder="标题" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <textarea id="memo-content-input" rows="3" placeholder="内容（可选）" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50 resize-none"></textarea>
         <label class="block text-sm font-semibold text-gray-700 mb-2">截止日期（可选）</label>
@@ -698,7 +812,7 @@
     <!-- Workflow Modal -->
     <div id="workflow-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
       <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
-        <h3 id="workflow-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: #1f2937;">新建思维导图</h3>
+        <h3 id="workflow-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建思维导图</h3>
         <input type="text" id="workflow-name-input" placeholder="思维导图名称" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <div id="workflow-node-fields" class="hidden">
           <input type="text" id="node-title-input" placeholder="节点标题" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
@@ -748,8 +862,8 @@
     }
 
     function updateThemeMeta(theme) {
-      const color = theme === 'gradient' ? '#7c3aed' : '#f0f0f2';
-      document.querySelector('meta[name="theme-color"]').setAttribute('content', color);
+      var colors = { glass: '#e5e5ea', white: '#ffffff', gradient: '#7c3aed', dark: '#1c1c1e' };
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
     }
 
     if ('serviceWorker' in navigator) {

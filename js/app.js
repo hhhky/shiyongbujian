@@ -162,10 +162,10 @@ function switchHomeTab(tab) {
     homePage.classList.remove('active');
     aboutPage.classList.add('active');
     widgetsBtn.style.background = 'transparent';
-    widgetsBtn.style.color = '#9ca3af';
+    widgetsBtn.style.color = 'var(--text-tertiary)';
     widgetsBtn.style.fontWeight = '500';
     aboutBtn.style.background = 'rgba(0,0,0,0.06)';
-    aboutBtn.style.color = '#374151';
+    aboutBtn.style.color = 'var(--text-primary)';
     aboutBtn.style.fontWeight = '600';
     updateAboutVersion();
     updateThemeSelection();
@@ -173,10 +173,10 @@ function switchHomeTab(tab) {
     aboutPage.classList.remove('active');
     homePage.classList.add('active');
     aboutBtn.style.background = 'transparent';
-    aboutBtn.style.color = '#9ca3af';
+    aboutBtn.style.color = 'var(--text-tertiary)';
     aboutBtn.style.fontWeight = '500';
     widgetsBtn.style.background = 'rgba(0,0,0,0.06)';
-    widgetsBtn.style.color = '#374151';
+    widgetsBtn.style.color = 'var(--text-primary)';
     widgetsBtn.style.fontWeight = '600';
   }
 }
@@ -184,23 +184,21 @@ function switchHomeTab(tab) {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('app-theme', theme);
-  var color = theme === 'gradient' ? '#7c3aed' : '#f0f0f2';
-  document.querySelector('meta[name="theme-color"]').setAttribute('content', color);
+  var colors = { glass: '#e5e5ea', white: '#ffffff', gradient: '#7c3aed', dark: '#1c1c1e' };
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   updateThemeSelection();
 }
 
 function updateThemeSelection() {
   var current = document.documentElement.getAttribute('data-theme') || 'glass';
-  var glassOpt = document.getElementById('theme-opt-glass');
-  var gradOpt = document.getElementById('theme-opt-gradient');
-  if (glassOpt) {
-    glassOpt.style.borderColor = current === 'glass' ? '#374151' : 'transparent';
-    glassOpt.style.boxShadow = current === 'glass' ? '0 0 0 1px #374151' : 'none';
-  }
-  if (gradOpt) {
-    gradOpt.style.borderColor = current === 'gradient' ? '#374151' : 'transparent';
-    gradOpt.style.boxShadow = current === 'gradient' ? '0 0 0 1px #374151' : 'none';
-  }
+  ['glass', 'white', 'gradient', 'dark'].forEach(function(t) {
+    var opt = document.getElementById('theme-opt-' + t);
+    if (opt) {
+      var active = current === t;
+      opt.style.borderColor = active ? 'var(--text-primary)' : 'transparent';
+      opt.style.boxShadow = active ? '0 0 0 1px var(--text-primary)' : 'none';
+    }
+  });
 }
 
 function updateAboutVersion() {
