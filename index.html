@@ -111,6 +111,15 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
+
+    /* Widget card flowing animation (gradient theme only) */
+    [data-theme="gradient"] .widget-card-outer {
+      background-size: 300% 300%;
+      animation: border-flow 10s ease infinite;
+    }
+    [data-theme="gradient"] .widget-card-outer:hover {
+      animation: border-flow 3s ease infinite;
+    }
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
     .page { display: none; }
     .page.active { display: block; }
