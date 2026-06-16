@@ -1,17 +1,21 @@
 #!/bin/bash
-# Run this script after "gh auth login"
+# 在 gh auth login 之后运行此脚本
 
-BASE64=$(cat android/app/release.keystore.b64)
+KEYSTORE="android/app/release.keystore"
 
-echo "Setting GitHub secrets..."
+if [ ! -f "$KEYSTORE" ]; then
+  echo "错误: 找不到 $KEYSTORE"
+  echo "请先在 apk-app/android/app/ 目录下生成 release.keystore"
+  exit 1
+fi
 
+echo "正在 base64 编码 keystore..."
+BASE64=$(base64 -w0 "$KEYSTORE")
+
+echo "正在设置 GitHub Secrets..."
 echo "$BASE64" | gh secret set KEYSTORE_BASE64
-
 gh secret set KEYSTORE_PASSWORD --body "shiyongbujian2026"
-gh secret set KEY_ALIAS --body "shiyongbujian"
-gh secret set KEY_PASSWORD --body "shiyongbujian2026"
+gh secret set KEY_ALIAS        --body "shiyongbujian"
+gh secret set KEY_PASSWORD     --body "shiyongbujian2026"
 
-echo "Done! 4 secrets configured."
-echo "Clean up base64 file..."
-rm -f android/app/release.keystore.b64
-echo "All set."
+echo "完成! 4 个 Secrets 已配置。"
