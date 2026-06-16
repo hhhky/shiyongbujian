@@ -20,9 +20,10 @@ android {
     signingConfigs {
         release {
             storeFile file("release.keystore")
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
+            storeType "PKCS12"
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "shiyongbujian2026"
             keyAlias System.getenv("KEY_ALIAS") ?: "shiyongbujian"
-            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+            keyPassword System.getenv("KEY_PASSWORD") ?: "shiyongbujian2026"
         }
     }
 
