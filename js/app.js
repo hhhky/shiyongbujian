@@ -14,7 +14,7 @@ const COLORS = [
   '#3b82f6','#60a5fa','#6366f1','#8b5cf6','#7c3aed','#6d28d9'
 ];
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 let selectedColor = COLORS[0];
 let selectedFile = null;
 let selectedUploadCat = null;
