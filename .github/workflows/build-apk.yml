@@ -22,8 +22,10 @@ jobs:
 
       - name: Setup Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager "platforms;android-36" "build-tools;35.0.0" "platform-tools"
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          SDKMANAGER=$(ls $ANDROID_HOME/cmdline-tools/*/bin/sdkmanager | head -1)
+          yes | $SDKMANAGER --licenses > /dev/null 2>&1 || true
+          $SDKMANAGER "platforms;android-36" "build-tools;35.0.0" "platform-tools"
 
       - name: Setup Node
         uses: actions/setup-node@v4
