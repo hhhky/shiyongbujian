@@ -162,63 +162,6 @@
       --glass-highlight: inset 0 0.5px 0 rgba(255,255,255,0.12);
     }
 
-    /* ====== Theme: Gradient (colorful) ====== */
-    [data-theme="gradient"] {
-      --bg-body: linear-gradient(135deg, #faf5ff 0%, #fdf2f8 30%, #fff7ed 60%, #f0f9ff 100%);
-      --header-bg: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 30%, #a855f7 60%, #ec4899 100%);
-      --header-text: #fff;
-      --header-badge-bg: rgba(255,255,255,0.2);
-      --header-badge-text: #fff;
-      --header-border: none;
-      --sidebar-bg: rgba(255,255,255,0.85);
-      --sidebar-border: 1px solid rgba(139,92,246,0.1);
-      --sidebar-active-bg: linear-gradient(135deg, #ede9fe, #fce7f3);
-      --sidebar-active-text: #7c3aed;
-      --sidebar-footer-border: 1px solid rgba(139,92,246,0.1);
-      --nav-bg: rgba(255,255,255,0.9);
-      --nav-shadow: 0 4px 24px rgba(139,92,246,0.15), 0 1px 4px rgba(0,0,0,0.05);
-      --nav-active-color: #7c3aed;
-      --title-color: transparent;
-      --btn-bg: linear-gradient(135deg, #8b5cf6, #ec4899);
-      --btn-hover-bg: linear-gradient(135deg, #7c3aed, #db2777);
-      --btn-hover-shadow: 0 4px 20px rgba(139,92,246,0.4);
-      --toast-bg: linear-gradient(135deg, rgba(30,10,40,0.9), rgba(60,20,60,0.9));
-      --toast-shadow: 0 8px 32px rgba(139,92,246,0.3);
-      --toast-border: 1px solid rgba(255,255,255,0.15);
-      --scrollbar-thumb: rgba(139,92,246,0.3);
-      --scrollbar-thumb-hover: rgba(139,92,246,0.5);
-      --card-bg: linear-gradient(135deg, #a855f7, #ec4899, #fb923c, #34d399, #60a5fa, #a855f7);
-      --card-border: 0.5px solid rgba(255,255,255,0.3);
-      --card-backdrop: blur(16px);
-      --card-box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-      --card-text: #fff;
-      --card-subtext: rgba(255,255,255,0.8);
-      --card-hover-shadow: 0 8px 25px rgba(139,92,246,0.12);
-      --text-primary: #1f2937;
-      --text-secondary: #6b7280;
-      --text-tertiary: #9ca3af;
-      --header-glow-display: block;
-      --header-anim: gradient-shift 8s ease infinite;
-      --header-bg-size: 200% 200%;
-      --header-shadow: 0 4px 20px rgba(124,58,237,0.3);
-    }
-
-    /* Title gradient text (gradient theme only) */
-    [data-theme="gradient"] .title-gradient {
-      background: linear-gradient(135deg, #7c3aed, #ec4899);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    /* Widget card flowing animation (gradient theme only) */
-    [data-theme="gradient"] .widget-card-outer {
-      background-size: 300% 300%;
-      animation: border-flow 10s ease infinite;
-    }
-    [data-theme="gradient"] .widget-card-outer:hover {
-      animation: border-flow 3s ease infinite;
-    }
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
     .page { display: none; }
     .page.active { display: block; }
@@ -228,9 +171,6 @@
     @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 8px rgba(139,92,246,0.3); } 50% { box-shadow: 0 0 20px rgba(139,92,246,0.6); } }
-    @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    @keyframes border-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    @keyframes hue-rotate-slow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
     @keyframes jelly {
       0%   { transform: scale(1); }
       25%  { transform: scale(0.9); }
@@ -518,11 +458,6 @@
                 <div class="w-full h-10 rounded-xl mb-2" style="background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"></div>
                 <p class="text-sm font-semibold text-gray-700">白色</p>
                 <p class="text-xs text-gray-400">清爽纯白</p>
-              </button>
-              <button onclick="applyTheme('gradient')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(135deg, #faf5ff, #fdf2f8);" data-theme="gradient" id="theme-opt-gradient">
-                <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(135deg, #7c3aed, #a855f7, #ec4899);"></div>
-                <p class="text-sm font-semibold text-gray-700">渐变</p>
-                <p class="text-xs text-gray-400">色彩流动</p>
               </button>
               <button onclick="applyTheme('dark')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #1c1c1e;" data-theme="dark" id="theme-opt-dark">
                 <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
@@ -853,16 +788,8 @@
       updateThemeMeta(saved);
     })();
 
-    function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme');
-      const next = current === 'glass' ? 'gradient' : 'glass';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('app-theme', next);
-      updateThemeMeta(next);
-    }
-
     function updateThemeMeta(theme) {
-      var colors = { glass: '#e5e5ea', white: '#ffffff', gradient: '#7c3aed', dark: '#1c1c1e' };
+      var colors = { glass: '#e5e5ea', white: '#ffffff', dark: '#1c1c1e' };
       document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
     }
 

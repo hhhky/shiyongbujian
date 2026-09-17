@@ -184,14 +184,14 @@ function switchHomeTab(tab) {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('app-theme', theme);
-  var colors = { glass: '#e5e5ea', white: '#ffffff', gradient: '#7c3aed', dark: '#1c1c1e' };
+  var colors = { glass: '#e5e5ea', white: '#ffffff', dark: '#1c1c1e' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   updateThemeSelection();
 }
 
 function updateThemeSelection() {
   var current = document.documentElement.getAttribute('data-theme') || 'glass';
-  ['glass', 'white', 'gradient', 'dark'].forEach(function(t) {
+  ['glass', 'white', 'dark'].forEach(function(t) {
     var opt = document.getElementById('theme-opt-' + t);
     if (opt) {
       var active = current === t;
@@ -1876,10 +1876,7 @@ async function renderMindmapToCanvas(scale) {
     var x = pos.x, y = pos.y;
     var isRoot = n.parentId == null;
     var shape = n.shape || 'rounded';
-    var isGlass = document.documentElement.getAttribute('data-theme') !== 'gradient';
-    var borderColor = isGlass
-      ? (n.done ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.18)')
-      : (isKnowledge ? '#8b5cf6' : (n.done ? '#10b981' : '#f43f5e'));
+    var borderColor = n.done ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.18)';
 
     ctx.save();
     var radius = shape === 'pill' ? h / 2 : 12;
@@ -1891,22 +1888,14 @@ async function renderMindmapToCanvas(scale) {
 
     if (isRoot) {
       var grad = ctx.createLinearGradient(x, y, x + w, y + h);
-      if (isGlass) {
-        grad.addColorStop(0, 'rgba(0,0,0,0.03)');
-        grad.addColorStop(1, 'rgba(0,0,0,0.01)');
-      } else if (isKnowledge) {
-        grad.addColorStop(0, 'rgba(139,92,246,0.06)');
-        grad.addColorStop(1, 'rgba(168,85,247,0.04)');
-      } else {
-        grad.addColorStop(0, 'rgba(139,92,246,0.06)');
-        grad.addColorStop(1, 'rgba(236,72,153,0.04)');
-      }
+      grad.addColorStop(0, 'rgba(0,0,0,0.03)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.01)');
       ctx.fillStyle = grad;
       ctx.fillRect(x, y, w, h);
     }
 
     if (n.done && !isKnowledge) {
-      ctx.fillStyle = isGlass ? 'rgba(0,0,0,0.04)' : 'rgba(16,185,129,0.06)';
+      ctx.fillStyle = 'rgba(0,0,0,0.04)';
       ctx.fillRect(x, y, w, h);
     }
 
