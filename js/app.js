@@ -14,7 +14,7 @@ const COLORS = [
   '#3b82f6','#60a5fa','#6366f1','#8b5cf6','#7c3aed','#6d28d9'
 ];
 
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.1.0';
 let selectedColor = COLORS[0];
 let selectedFile = null;
 let selectedUploadCat = null;
@@ -30,6 +30,13 @@ let pinchZoom0 = 1;
 
 // ── Widget Registry ────────────────────────
 const WIDGETS = [
+  {
+    id: 'focus', name: '专注', icon: '🍅', desc: '任务计时 · 学习时长统计与打卡', color: '#f97316',
+    tabs: [
+      { id: 'pomodoro', name: '计时', shortName: '计时', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
+      { id: 'stats', name: '数据统计', shortName: '统计', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>' }
+    ]
+  },
   {
     id: 'review', name: '资料管理', icon: '📁', desc: '分类管理、上传和预览各类资料', color: '#8b5cf6',
     tabs: [
@@ -119,6 +126,7 @@ function enterWidget(id) {
   if (id === 'memo') { var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
   if (id === 'mindmap') { currentWorkflowId = null; currentMindmapType = 'workflow'; backToWorkflowsList(true); }
   if (id === 'deepseek' && typeof initChat === 'function') initChat();
+  if (id === 'focus' && typeof initFocus === 'function') initFocus();
 }
 
 function goHome() {
@@ -187,6 +195,8 @@ function applyTheme(theme) {
   var colors = { glass: '#e5e5ea', white: '#ffffff', dark: '#1c1c1e' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   updateThemeSelection();
+  // 统计页图表依赖主题色，切主题后重绘
+  if (currentWidget === 'focus' && typeof renderStats === 'function') setTimeout(renderStats, 60);
 }
 
 function updateThemeSelection() {
@@ -286,6 +296,8 @@ async function refreshAll() {
     if (badge) badge.textContent = typeof CONST_DEEPSEEK_MODEL !== 'undefined' && CONST_DEEPSEEK_MODEL === 'deepseek-reasoner' ? 'R1 推理' : 'V3 对话';
     var sc = document.getElementById('sidebar-footer-text');
     if (sc) sc.textContent = 'DeepSeek AI';
+  } else if (currentWidget === 'focus') {
+    if (typeof refreshFocus === 'function') await refreshFocus();
   }
 }
 
@@ -323,6 +335,13 @@ function switchTab(tab) {
     backToWorkflowsList(true); renderWorkflows();
   } else if (currentWidget === 'deepseek') {
     if (tab === 'chat' && typeof initChat === 'function') initChat();
+  } else if (currentWidget === 'focus') {
+    if (tab === 'stats') {
+      if (typeof renderStats === 'function') renderStats();
+    } else {
+      if (typeof renderFocusTasks === 'function') renderFocusTasks();
+      if (typeof updateFocusTimerDisplay === 'function') updateFocusTimerDisplay();
+    }
   }
 }
 

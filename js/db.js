@@ -1,45 +1,58 @@
 const DB_NAME = 'ReviewAppDB';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
+
+// 统一的数据库结构升级逻辑（openDB / dbOp 共用）
+function upgradeSchema(db, oldVersion) {
+  if (oldVersion < 1) {
+    if (!db.objectStoreNames.contains('categories')) {
+      db.createObjectStore('categories', { keyPath: 'id', autoIncrement: true });
+    }
+    if (!db.objectStoreNames.contains('files')) {
+      const fs = db.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+      fs.createIndex('categoryId', 'categoryId', { unique: false });
+    }
+  }
+
+  if (oldVersion < 2) {
+    if (!db.objectStoreNames.contains('memos')) {
+      const ms = db.createObjectStore('memos', { keyPath: 'id', autoIncrement: true });
+      ms.createIndex('createdAt', 'createdAt', { unique: false });
+    }
+    if (!db.objectStoreNames.contains('workflows')) {
+      db.createObjectStore('workflows', { keyPath: 'id', autoIncrement: true });
+    }
+    if (!db.objectStoreNames.contains('workflow_nodes')) {
+      const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
+      wns.createIndex('workflowId', 'workflowId', { unique: false });
+    }
+  }
+
+  if (oldVersion < 3) {
+    if (db.objectStoreNames.contains('workflow_nodes')) {
+      db.deleteObjectStore('workflow_nodes');
+    }
+    const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
+    wns.createIndex('workflowId', 'workflowId', { unique: false });
+  }
+
+  if (oldVersion < 4) {
+    if (!db.objectStoreNames.contains('focus_tasks')) {
+      db.createObjectStore('focus_tasks', { keyPath: 'id', autoIncrement: true });
+    }
+    if (!db.objectStoreNames.contains('focus_sessions')) {
+      const fss = db.createObjectStore('focus_sessions', { keyPath: 'id', autoIncrement: true });
+      fss.createIndex('taskId', 'taskId', { unique: false });
+      fss.createIndex('startAt', 'startAt', { unique: false });
+    }
+  }
+}
 
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
     req.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      const oldVersion = e.oldVersion || 0;
-
-      if (oldVersion < 1) {
-        if (!db.objectStoreNames.contains('categories')) {
-          db.createObjectStore('categories', { keyPath: 'id', autoIncrement: true });
-        }
-        if (!db.objectStoreNames.contains('files')) {
-          const fs = db.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
-          fs.createIndex('categoryId', 'categoryId', { unique: false });
-        }
-      }
-
-      if (oldVersion < 2) {
-        if (!db.objectStoreNames.contains('memos')) {
-          const ms = db.createObjectStore('memos', { keyPath: 'id', autoIncrement: true });
-          ms.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-        if (!db.objectStoreNames.contains('workflows')) {
-          db.createObjectStore('workflows', { keyPath: 'id', autoIncrement: true });
-        }
-        if (!db.objectStoreNames.contains('workflow_nodes')) {
-          const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
-          wns.createIndex('workflowId', 'workflowId', { unique: false });
-        }
-      }
-
-      if (oldVersion < 3) {
-        if (db.objectStoreNames.contains('workflow_nodes')) {
-          db.deleteObjectStore('workflow_nodes');
-        }
-        const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
-        wns.createIndex('workflowId', 'workflowId', { unique: false });
-      }
+      upgradeSchema(e.target.result, e.oldVersion || 0);
     };
 
     req.onsuccess = (e) => { const db = e.target.result; resolve(db); };
@@ -53,40 +66,7 @@ function dbOp(storeName, mode, callback) {
     const openReq = indexedDB.open(DB_NAME, DB_VERSION);
 
     openReq.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      const oldVersion = e.oldVersion || 0;
-
-      if (oldVersion < 1) {
-        if (!db.objectStoreNames.contains('categories')) {
-          db.createObjectStore('categories', { keyPath: 'id', autoIncrement: true });
-        }
-        if (!db.objectStoreNames.contains('files')) {
-          const fs = db.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
-          fs.createIndex('categoryId', 'categoryId', { unique: false });
-        }
-      }
-
-      if (oldVersion < 2) {
-        if (!db.objectStoreNames.contains('memos')) {
-          const ms = db.createObjectStore('memos', { keyPath: 'id', autoIncrement: true });
-          ms.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-        if (!db.objectStoreNames.contains('workflows')) {
-          db.createObjectStore('workflows', { keyPath: 'id', autoIncrement: true });
-        }
-        if (!db.objectStoreNames.contains('workflow_nodes')) {
-          const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
-          wns.createIndex('workflowId', 'workflowId', { unique: false });
-        }
-      }
-
-      if (oldVersion < 3) {
-        if (db.objectStoreNames.contains('workflow_nodes')) {
-          db.deleteObjectStore('workflow_nodes');
-        }
-        const wns = db.createObjectStore('workflow_nodes', { keyPath: 'id', autoIncrement: true });
-        wns.createIndex('workflowId', 'workflowId', { unique: false });
-      }
+      upgradeSchema(e.target.result, e.oldVersion || 0);
     };
 
     openReq.onsuccess = (e) => {
@@ -293,4 +273,55 @@ async function deleteWorkflowNode(id) {
   for (var i = 0; i < toDelete.length; i++) {
     await dbOp('workflow_nodes', 'readwrite', (s) => s.delete(toDelete[i]));
   }
+}
+
+// ── Focus / Pomodoro operations ────────────────
+// focus_tasks:    { id, name, color, createdAt }
+// focus_sessions: { id, taskId, taskName, startAt, endAt, durationSec, mode, completed }
+
+async function addFocusTask(name, color) {
+  return dbOp('focus_tasks', 'readwrite', (s) => s.add({ name, color, createdAt: Date.now() }));
+}
+
+async function getFocusTasks() {
+  return dbOp('focus_tasks', 'readonly', (s) => s.getAll());
+}
+
+async function updateFocusTask(id, updates) {
+  return new Promise((resolve, reject) => {
+    var openReq = indexedDB.open(DB_NAME, DB_VERSION);
+    openReq.onsuccess = function(e) {
+      var db = e.target.result;
+      var tx = db.transaction('focus_tasks', 'readwrite');
+      var store = tx.objectStore('focus_tasks');
+      var getReq = store.get(id);
+      getReq.onsuccess = function() {
+        var task = getReq.result;
+        if (!task) { db.close(); reject(new Error('任务不存在')); return; }
+        if (updates.name !== undefined) task.name = updates.name;
+        if (updates.color !== undefined) task.color = updates.color;
+        store.put(task);
+      };
+      getReq.onerror = function() { db.close(); reject(getReq.error); };
+      tx.oncomplete = function() { db.close(); resolve(); };
+      tx.onerror = function() { db.close(); reject(tx.error); };
+    };
+    openReq.onerror = function(e) { reject(e.target.error); };
+  });
+}
+
+async function deleteFocusTask(id) {
+  return dbOp('focus_tasks', 'readwrite', (s) => s.delete(id));
+}
+
+async function addFocusSession(session) {
+  return dbOp('focus_sessions', 'readwrite', (s) => s.add(session));
+}
+
+async function getFocusSessions() {
+  return dbOp('focus_sessions', 'readonly', (s) => s.getAll());
+}
+
+async function deleteFocusSession(id) {
+  return dbOp('focus_sessions', 'readwrite', (s) => s.delete(id));
 }
