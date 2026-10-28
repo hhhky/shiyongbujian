@@ -165,8 +165,20 @@
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
     .page { display: none; }
     .page.active { display: block; }
-    .toast { animation: slideUp 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 99999; }
-    @keyframes slideUp { from { transform: translateY(80px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+    /* Toast：用 margin 自动水平居中，动画只做透明度/缩放，避免 transform 覆盖定位导致先偏右再回弹 */
+    .toast {
+      position: fixed;
+      left: 0;
+      right: 0;
+      margin-left: auto;
+      margin-right: auto;
+      width: max-content;
+      max-width: calc(100vw - 40px);
+      text-align: center;
+      animation: toastIn 0.22s ease-out;
+      z-index: 99999;
+    }
+    @keyframes toastIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
@@ -907,7 +919,7 @@
     </div>
 
     <!-- Toast -->
-    <div id="toast" class="fixed top-20 left-1/2 -translate-x-1/2 text-white px-5 py-2.5 rounded-full text-sm hidden toast font-medium" style="background: var(--toast-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--toast-shadow); border: var(--toast-border);"></div>
+    <div id="toast" class="fixed top-20 text-white px-5 py-2.5 rounded-full text-sm hidden toast font-medium" style="background: var(--toast-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: var(--toast-shadow); border: var(--toast-border);"></div>
 
   </div>
 
