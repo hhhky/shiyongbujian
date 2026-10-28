@@ -632,7 +632,6 @@
             </div>
 
             <div id="stats-overview" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4"></div>
-            <div id="stats-goal-card" class="mb-4"></div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
               <div class="flex items-center justify-between mb-2">
@@ -649,17 +648,53 @@
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
-              <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center justify-between gap-2 mb-2">
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">打卡热力图</h3>
-                <span class="text-xs" style="color: var(--text-tertiary);">最近 18 周</span>
+                <div class="flex items-center gap-1">
+                  <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
+                  <input type="month" id="focus-heatmap-month" onchange="setFocusStatsMonth(this.value)" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);max-width:135px;">
+                  <button onclick="changeFocusStatsMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
+                </div>
               </div>
-              <canvas id="chart-heatmap" height="148"></canvas>
+              <canvas id="chart-heatmap" height="250"></canvas>
+              <div class="flex items-center justify-end gap-1 mt-2 text-xs" style="color: var(--text-tertiary);">
+                <span>少</span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(128,128,128,0.08);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.18);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.34);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.50);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.66);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.82);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.96);"></span>
+                <span>多</span>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">月度专注统计</h3>
+                <div class="flex items-center gap-1">
+                  <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
+                  <span id="focus-monthly-label" class="text-xs px-1" style="color:var(--text-secondary);"></span>
+                  <button onclick="changeFocusStatsMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
+                </div>
+              </div>
+              <div class="flex items-stretch gap-1">
+                <canvas id="chart-monthly-y" style="width:34px;height:200px;flex-shrink:0;"></canvas>
+                <div id="chart-monthly-wrap" class="flex-1 min-w-0" style="overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x;">
+                  <canvas id="chart-monthly" height="200"></canvas>
+                </div>
+              </div>
+              <div class="flex items-center justify-between mt-2 text-xs" style="color: var(--text-tertiary);">
+                <span>纵轴：分钟 · 横轴：日期</span>
+                <span id="focus-monthly-total"></span>
+              </div>
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
               <div class="grid md:grid-cols-2 gap-4 items-center">
                 <div>
-                  <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">任务占比</h3>
+                  <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">专注时长分布</h3>
                   <canvas id="chart-donut" height="190"></canvas>
                 </div>
                 <div id="stats-task-rank"></div>
@@ -667,8 +702,47 @@
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
-              <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">最近记录</h3>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">最近记录</h3>
+                <button onclick="showFocusManualModal()" class="text-xs px-3 py-1.5 rounded-full font-semibold text-white btn-jelly" style="background:#f97316;">＋ 补录</button>
+              </div>
               <div id="stats-recent"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Focus Calendar Page -->
+        <div id="page-focus-calendar" class="page p-4 md:p-6 lg:p-8">
+          <div class="max-w-2xl mx-auto">
+            <div class="flex items-center justify-between mb-5 md:mb-6">
+              <div>
+                <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">专注日历</h2>
+                <p class="text-xs text-gray-400 mt-0.5">选择日期，查看当天每个时段完成了哪个专注任务</p>
+              </div>
+              <button onclick="focusCalendarToday()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background:rgba(249,115,22,0.14);color:#f97316;">今天</button>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between mb-3">
+                <button onclick="changeFocusCalendarMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
+                <span id="focus-cal-label" class="text-sm font-semibold" style="color:var(--text-primary);"></span>
+                <button onclick="changeFocusCalendarMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
+              </div>
+              <div class="grid grid-cols-7 gap-1 text-center text-xs mb-1" style="color:var(--text-tertiary);">
+                <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+              </div>
+              <div id="focus-cal-grid" class="grid grid-cols-7 gap-1"></div>
+            </div>
+
+            <div class="rounded-[28px] p-5" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <div class="min-w-0">
+                  <h3 id="focus-cal-day-title" class="text-sm font-bold" style="color:var(--text-primary);">今天</h3>
+                  <p id="focus-cal-day-summary" class="text-xs mt-0.5" style="color:var(--text-tertiary);"></p>
+                </div>
+                <button onclick="showFocusManualModal(focusCalSelected)" class="text-xs px-3 py-1.5 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">＋ 补录</button>
+              </div>
+              <div id="focus-cal-day-list"></div>
             </div>
           </div>
         </div>
@@ -908,12 +982,36 @@
       <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
         <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">计时设置</h3>
         <label class="block text-sm font-semibold text-gray-700 mb-2">番茄钟时长（分钟）</label>
-        <input type="number" id="focus-set-pomodoro" min="1" max="180" value="25" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 bg-gray-50">
-        <label class="block text-sm font-semibold text-gray-700 mb-2">每日目标（分钟）</label>
-        <input type="number" id="focus-set-goal" min="1" max="1440" value="120" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-5 focus:outline-none focus:border-gray-400 bg-gray-50">
+        <input type="number" id="focus-set-pomodoro" min="1" max="180" value="25" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-5 focus:outline-none focus:border-gray-400 bg-gray-50">
         <div class="flex gap-3">
           <button onclick="hideFocusSettings()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
           <button onclick="confirmFocusSettings()" class="flex-1 py-3 rounded-[20px] font-semibold text-white text-sm btn-gradient">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Focus Manual Record Modal -->
+    <div id="focus-manual-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+        <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">补录专注记录</h3>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">任务</label>
+        <select id="focus-manual-task" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-gray-400 bg-gray-50"></select>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">日期</label>
+            <input type="date" id="focus-manual-date" class="w-full border border-gray-200 rounded-[20px] px-3 py-3 text-sm focus:outline-none focus:border-gray-400 bg-gray-50">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">开始时间</label>
+            <input type="time" id="focus-manual-time" class="w-full border border-gray-200 rounded-[20px] px-3 py-3 text-sm focus:outline-none focus:border-gray-400 bg-gray-50">
+          </div>
+        </div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">专注时长（分钟）</label>
+        <input type="number" id="focus-manual-minutes" min="1" max="1440" value="30" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-2 focus:outline-none focus:border-gray-400 bg-gray-50">
+        <p class="text-xs text-gray-400 mb-4">补录后会立即计入统计、热力图和日历</p>
+        <div class="flex gap-3">
+          <button onclick="hideFocusManualModal()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
+          <button onclick="confirmFocusManual()" class="flex-1 py-3 rounded-[20px] font-semibold text-white text-sm btn-gradient">保存</button>
         </div>
       </div>
     </div>

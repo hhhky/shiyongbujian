@@ -18,8 +18,13 @@ var focusInited = false;
 var focusEditingTaskId = null;
 var focusTaskColor = FOCUS_TASK_COLORS[0];
 var focusStatsRange = 7;
+var focusStatsMonth = null; // 热力图 / 月度统计共同查看的月份，格式 YYYY-MM
+var focusMonthlyScrolledMonth = null;
+var focusCalYear = null;
+var focusCalMonth = null;
+var focusCalSelected = null; // YYYY-MM-DD
 
-var focusSettings = { pomodoroMin: 25, goalMin: 120 };
+var focusSettings = { pomodoroMin: 25 };
 var FOCUS_SETTINGS_KEY = 'focus-settings';
 var FOCUS_TIMER_KEY = 'focus-timer-state';
 
@@ -57,6 +62,7 @@ async function refreshFocus() {
   updateFocusTimerDisplay();
   updateFocusModeUI();
   renderStats();
+  renderFocusCalendar();
   var badges = document.querySelectorAll('#header-badge');
   if (badges.length && currentWidget === 'focus') {
     var s = focusSummary();
@@ -95,7 +101,6 @@ function loadFocusSettings() {
     if (raw) {
       var s = JSON.parse(raw);
       if (s && s.pomodoroMin) focusSettings.pomodoroMin = s.pomodoroMin;
-      if (s && s.goalMin) focusSettings.goalMin = s.goalMin;
     }
   } catch (e) { /* ignore */ }
   if (!focusTimer.targetSec && focusTimer.mode === 'down') {
@@ -109,9 +114,7 @@ function saveFocusSettings() {
 
 function showFocusSettings() {
   var p = document.getElementById('focus-set-pomodoro');
-  var g = document.getElementById('focus-set-goal');
   if (p) p.value = focusSettings.pomodoroMin;
-  if (g) g.value = focusSettings.goalMin;
   document.getElementById('focus-settings-modal').classList.remove('hidden');
 }
 
@@ -121,11 +124,8 @@ function hideFocusSettings() {
 
 function confirmFocusSettings() {
   var p = parseInt(document.getElementById('focus-set-pomodoro').value, 10);
-  var g = parseInt(document.getElementById('focus-set-goal').value, 10);
   if (!p || p < 1 || p > 180) { toast('番茄时长请填 1–180 分钟'); return; }
-  if (!g || g < 1 || g > 1440) { toast('每日目标请填 1–1440 分钟'); return; }
   focusSettings.pomodoroMin = p;
-  focusSettings.goalMin = g;
   saveFocusSettings();
   if (focusTimer.mode === 'down' && !focusTimer.running && focusTimer.accumulated === 0) {
     focusTimer.targetSec = p * 60;
@@ -587,7 +587,7 @@ function focusSummary() {
   var res = { todaySec: 0, weekSec: 0, monthSec: 0, totalSec: 0, todayCount: 0, totalCount: 0 };
   focusSessions.forEach(function(s) {
     var sec = s.durationSec || 0;
-    var ts = s.endAt || s.startAt || 0;
+    var ts = focusSessionTs(s);
     res.totalSec += sec;
     res.totalCount++;
     if (ts >= todayStart) { res.todaySec += sec; res.todayCount++; }
@@ -600,7 +600,7 @@ function focusSummary() {
 function focusDayMap() {
   var map = {};
   focusSessions.forEach(function(s) {
-    var ts = s.endAt || s.startAt || 0;
+    var ts = focusSessionTs(s);
     var k = dayKey(ts);
     map[k] = (map[k] || 0) + (s.durationSec || 0);
   });
@@ -628,7 +628,7 @@ function focusRangeDays(range) {
   if (range === 'all') {
     var earliest = null;
     focusSessions.forEach(function(s) {
-      var ts = s.endAt || s.startAt;
+      var ts = focusSessionTs(s);
       if (ts && (earliest === null || ts < earliest)) earliest = ts;
     });
     var start = earliest ? startOfDay(earliest) : today - 29 * 86400000;
@@ -676,10 +676,10 @@ function renderStats() {
   if (!document.getElementById('page-stats')) return;
   updateStatsRangeUI();
   renderStatsOverview();
-  renderStatsGoal();
   drawTrendChart();
   drawHourChart();
   drawHeatmap();
+  drawMonthlyChart();
   drawDonutAndRank();
   renderRecentSessions();
 }
@@ -711,33 +711,6 @@ function renderStatsOverview() {
       + '<p class="text-xs mt-0.5" style="color: var(--text-tertiary);">' + c.sub + '</p>'
     + '</div>';
   }).join('');
-}
-
-function renderStatsGoal() {
-  var el = document.getElementById('stats-goal-card');
-  if (!el) return;
-  var s = focusSummary();
-  var goalSec = focusSettings.goalMin * 60;
-  var pct = goalSec > 0 ? Math.min(100, Math.round(s.todaySec / goalSec * 100)) : 0;
-  var streak = focusStreak();
-  el.innerHTML = '<div class="rounded-[24px] p-4 flex items-center gap-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop);">'
-    + '<div class="shrink-0 relative" style="width:64px;height:64px;">'
-      + '<svg viewBox="0 0 64 64" class="w-full h-full" style="transform:rotate(-90deg);">'
-        + '<circle cx="32" cy="32" r="27" fill="none" stroke="rgba(128,128,128,0.16)" stroke-width="6"/>'
-        + '<circle cx="32" cy="32" r="27" fill="none" stroke="' + FOCUS_ACCENT + '" stroke-width="6" stroke-linecap="round" stroke-dasharray="' + (2 * Math.PI * 27).toFixed(1) + '" stroke-dashoffset="' + (2 * Math.PI * 27 * (1 - pct / 100)).toFixed(1) + '"/>'
-      + '</svg>'
-      + '<div class="absolute inset-0 flex items-center justify-center text-sm font-bold" style="color: var(--text-primary);">' + pct + '%</div>'
-    + '</div>'
-    + '<div class="flex-1 min-w-0">'
-      + '<div class="flex items-center justify-between text-xs mb-1.5"><span style="color: var(--text-secondary);">今日目标</span><span style="color: var(--text-primary);font-weight:600;">' + Math.round(s.todaySec / 60) + ' / ' + focusSettings.goalMin + ' 分钟</span></div>'
-      + '<div class="rounded-full overflow-hidden" style="height:7px;background:rgba(128,128,128,0.16);"><div style="height:100%;width:' + pct + '%;background:' + FOCUS_ACCENT + ';border-radius:999px;transition:width .3s;"></div></div>'
-      + '<div class="flex items-center gap-3 mt-2 text-xs" style="color: var(--text-tertiary);">'
-        + '<span>🔥 连续专注 <b style="color:' + FOCUS_ACCENT + ';">' + streak + '</b> 天</span>'
-        + '<span>今日 ' + s.todayCount + ' 次</span>'
-      + '</div>'
-    + '</div>'
-    + '<button onclick="showFocusSettings()" class="shrink-0 text-xs px-3 py-1.5 rounded-full" style="background:rgba(128,128,128,0.12);color:var(--text-secondary);">设置</button>'
-  + '</div>';
 }
 
 // ── Canvas 工具 ───────────────────────────────
@@ -871,7 +844,7 @@ function drawHourChart() {
   var start = days[0] || 0;
   var end = (days[days.length - 1] || Date.now()) + 86400000;
   focusSessions.forEach(function(s) {
-    var ts = s.endAt || s.startAt || 0;
+    var ts = focusSessionTs(s);
     if (ts < start || ts >= end) return;
     var hour = new Date(s.startAt || ts).getHours();
     hours[hour] += Math.round((s.durationSec || 0) / 60);
@@ -934,75 +907,281 @@ function drawHourChart() {
   }
 }
 
-// ── 打卡热力图 ────────────────────────────────
-function drawHeatmap() {
-  var cv = focusCanvas('chart-heatmap', 148);
-  if (!cv) return;
-  var ctx = cv.ctx, W = cv.w, H = cv.h;
-  var weeks = 18;
-  var today = startOfDay(Date.now());
-  var dow = (new Date(today).getDay() + 6) % 7;
-  var endMonday = today - dow * 86400000;
-  var start = endMonday - (weeks - 1) * 7 * 86400000;
-  var map = focusDayMap();
-  var text = focusCssVar('--text-tertiary', '#8e8e93');
-
-  var gap = 3;
-  var cell = Math.floor((W - gap * (weeks - 1)) / weeks);
-  cell = Math.max(6, Math.min(15, cell));
-  var gridW = weeks * cell + (weeks - 1) * gap;
-  var ox = Math.max(0, (W - gridW) / 2);
-  var oy = 16;
-
-  ctx.font = '9px -apple-system, BlinkMacSystemFont, sans-serif';
-  ctx.fillStyle = text;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-
-  var lastMonth = -1;
-  for (var w = 0; w < weeks; w++) {
-    var colTs = start + w * 7 * 86400000;
-    var md = new Date(colTs);
-    if (md.getMonth() !== lastMonth) {
-      lastMonth = md.getMonth();
-      if (w > 0) ctx.fillText((md.getMonth() + 1) + '月', ox + w * (cell + gap), 0);
-    }
+// ── 月份选择 ──────────────────────────────────
+function focusMonthParts() {
+  if (!focusStatsMonth) {
+    var now = new Date();
+    focusStatsMonth = now.getFullYear() + '-' + pad2(now.getMonth() + 1);
   }
-
-  for (var c = 0; c < weeks; c++) {
-    for (var r = 0; r < 7; r++) {
-      var ts = start + (c * 7 + r) * 86400000;
-      if (ts > today) continue;
-      var mins = Math.round((map[dayKey(ts)] || 0) / 60);
-      var color;
-      if (!mins) color = 'rgba(128,128,128,0.14)';
-      else if (mins < 30) color = 'rgba(249,115,22,0.25)';
-      else if (mins < 60) color = 'rgba(249,115,22,0.45)';
-      else if (mins < 120) color = 'rgba(249,115,22,0.68)';
-      else color = 'rgba(249,115,22,0.95)';
-      ctx.fillStyle = color;
-      roundRectPath(ctx, ox + c * (cell + gap), oy + r * (cell + gap), cell, cell, 2);
-      ctx.fill();
-    }
-  }
-
-  // 今天描边
-  var todayCol = Math.floor((today - start) / 86400000 / 7);
-  var todayRow = (new Date(today).getDay() + 6) % 7;
-  ctx.strokeStyle = 'rgba(249,115,22,0.9)';
-  ctx.lineWidth = 1.2;
-  roundRectPath(ctx, ox + todayCol * (cell + gap) - 1, oy + todayRow * (cell + gap) - 1, cell + 2, cell + 2, 3);
-  ctx.stroke();
+  var p = focusStatsMonth.split('-');
+  return { year: parseInt(p[0], 10), month: parseInt(p[1], 10) - 1 };
 }
 
-// ── 任务占比 + 排行 ───────────────────────────
+function syncFocusMonthInputs() {
+  var mp = focusMonthParts();
+  var input = document.getElementById('focus-heatmap-month');
+  if (input && input.value !== focusStatsMonth) input.value = focusStatsMonth;
+  var lbl = document.getElementById('focus-monthly-label');
+  if (lbl) lbl.textContent = mp.year + '年' + (mp.month + 1) + '月';
+}
+
+function setFocusStatsMonth(value) {
+  if (!/^\d{4}-\d{2}$/.test(value || '')) return;
+  focusStatsMonth = value;
+  syncFocusMonthInputs();
+  drawHeatmap();
+  drawMonthlyChart();
+}
+
+function changeFocusStatsMonth(delta) {
+  var mp = focusMonthParts();
+  var d = new Date(mp.year, mp.month + delta, 1);
+  setFocusStatsMonth(d.getFullYear() + '-' + pad2(d.getMonth() + 1));
+}
+
+// ── 打卡热力图（按月份显示，时长越长颜色越深） ──
+function focusHeatLevel(mins) {
+  if (mins <= 0) return { bg: 'rgba(128,128,128,0.08)', strong: false };
+  if (mins < 30) return { bg: 'rgba(249,115,22,0.18)', strong: false };
+  if (mins < 60) return { bg: 'rgba(249,115,22,0.34)', strong: false };
+  if (mins < 90) return { bg: 'rgba(249,115,22,0.50)', strong: false };
+  if (mins < 120) return { bg: 'rgba(249,115,22,0.66)', strong: true };
+  if (mins < 180) return { bg: 'rgba(249,115,22,0.82)', strong: true };
+  return { bg: 'rgba(249,115,22,0.96)', strong: true };
+}
+
+function drawHeatmap() {
+  var probe = focusCanvas('chart-heatmap', 250);
+  if (!probe) return;
+  syncFocusMonthInputs();
+
+  var mp = focusMonthParts();
+  var dayCount = new Date(mp.year, mp.month + 1, 0).getDate();
+  var firstDow = (new Date(mp.year, mp.month, 1).getDay() + 6) % 7;
+  var rows = Math.ceil((firstDow + dayCount) / 7);
+  var gap = 4, top = 20, bottom = 4;
+  var cell = Math.floor((probe.w - gap * 6) / 7);
+  cell = Math.max(18, Math.min(38, cell));
+  var height = top + rows * (cell + gap) + bottom;
+
+  var cv = height === 250 ? probe : focusCanvas('chart-heatmap', height);
+  if (!cv) return;
+  var ctx = cv.ctx, W = cv.w;
+  var gridW = 7 * cell + 6 * gap;
+  var ox = Math.max(0, (W - gridW) / 2);
+  var oy = 18;
+  var text = focusCssVar('--text-tertiary', '#8e8e93');
+  var primary = focusCssVar('--text-primary', '#1d1d1f');
+  var map = focusDayMap();
+  var now = new Date();
+  var todayKeyStr = dayKey(now.getTime());
+
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = text;
+  var wd = ['一', '二', '三', '四', '五', '六', '日'];
+  for (var w = 0; w < 7; w++) {
+    ctx.fillText(wd[w], ox + w * (cell + gap) + cell / 2, 8);
+  }
+
+  for (var d = 1; d <= dayCount; d++) {
+    var k = mp.year + '-' + pad2(mp.month + 1) + '-' + pad2(d);
+    var mins = Math.round((map[k] || 0) / 60);
+    var idx = firstDow + d - 1;
+    var x = ox + (idx % 7) * (cell + gap);
+    var y = oy + Math.floor(idx / 7) * (cell + gap);
+    var lvl = focusHeatLevel(mins);
+    ctx.fillStyle = lvl.bg;
+    roundRectPath(ctx, x, y, cell, cell, 4);
+    ctx.fill();
+
+    ctx.font = (cell >= 30 ? '11px' : '9px') + ' -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = lvl.strong ? '#ffffff' : (mins > 0 ? primary : text);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(d), x + cell / 2, y + cell / 2 + 0.5);
+
+    if (k === todayKeyStr) {
+      ctx.strokeStyle = lvl.strong ? 'rgba(255,255,255,0.95)' : 'rgba(249,115,22,0.95)';
+      ctx.lineWidth = 1.5;
+      roundRectPath(ctx, x - 1, y - 1, cell + 2, cell + 2, 5);
+      ctx.stroke();
+    }
+  }
+}
+
+// ── 月度专注曲线（可左右滑动） ─────────────────
+function focusCanvasSized(id, height, width) {
+  var c = document.getElementById(id);
+  if (!c) return null;
+  c.style.width = width + 'px';
+  c.style.height = height + 'px';
+  var dpr = window.devicePixelRatio || 1;
+  c.width = Math.round(width * dpr);
+  c.height = Math.round(height * dpr);
+  var ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  return { ctx: ctx, w: width, h: height, canvas: c };
+}
+
+function focusBuildCurve(ctx, pts, topY, bottomY) {
+  for (var i = 0; i < pts.length - 1; i++) {
+    var p0 = pts[i - 1] || pts[i];
+    var p1 = pts[i];
+    var p2 = pts[i + 1];
+    var p3 = pts[i + 2] || p2;
+    var c1x = p1.x + (p2.x - p0.x) / 6;
+    var c1y = p1.y + (p2.y - p0.y) / 6;
+    var c2x = p2.x - (p3.x - p1.x) / 6;
+    var c2y = p2.y - (p3.y - p1.y) / 6;
+    c1y = Math.max(topY, Math.min(bottomY, c1y));
+    c2y = Math.max(topY, Math.min(bottomY, c2y));
+    ctx.bezierCurveTo(c1x, c1y, c2x, c2y, p2.x, p2.y);
+  }
+}
+
+function drawMonthlyChart() {
+  var wrap = document.getElementById('chart-monthly-wrap');
+  if (!wrap) return;
+  syncFocusMonthInputs();
+
+  var mp = focusMonthParts();
+  var n = new Date(mp.year, mp.month + 1, 0).getDate();
+  var pad = { l: 2, r: 12, t: 12, b: 24 };
+  var slot = 42;
+  var width = Math.max(wrap.clientWidth || 320, pad.l + n * slot + pad.r);
+  var cv = focusCanvasSized('chart-monthly', 200, width);
+  if (!cv) return;
+  var ctx = cv.ctx, W = cv.w, H = cv.h;
+  var map = focusDayMap();
+  var vals = [];
+  for (var i = 0; i < n; i++) {
+    var k = mp.year + '-' + pad2(mp.month + 1) + '-' + pad2(i + 1);
+    vals.push(Math.round((map[k] || 0) / 60));
+  }
+  var total = vals.reduce(function(a, v) { return a + v; }, 0);
+  var activeDays = vals.filter(function(v) { return v > 0; }).length;
+  var totalEl = document.getElementById('focus-monthly-total');
+  if (totalEl) totalEl.textContent = '共 ' + total + ' 分钟 · ' + activeDays + ' 天';
+
+  var maxV = Math.max.apply(null, vals.concat([1]));
+  var top = Math.max(30, Math.ceil(maxV / 15) * 15);
+  var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  var bottom = pad.t + ph;
+  var text = focusCssVar('--text-tertiary', '#8e8e93');
+
+  // 固定在左侧的纵轴刻度（不随横向滚动移动）
+  var ycv = focusCanvasSized('chart-monthly-y', 200, 34);
+  if (ycv) {
+    var yctx = ycv.ctx;
+    yctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+    yctx.fillStyle = text;
+    yctx.textAlign = 'right';
+    yctx.textBaseline = 'middle';
+    for (var yg = 0; yg <= 3; yg++) {
+      yctx.fillText(String(Math.round(top * yg / 3)), 30, pad.t + ph - ph * yg / 3);
+    }
+  }
+
+  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  for (var g = 0; g <= 3; g++) {
+    var gy = pad.t + ph - ph * g / 3;
+    ctx.strokeStyle = 'rgba(128,128,128,0.16)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, gy + 0.5);
+    ctx.lineTo(W - pad.r, gy + 0.5);
+    ctx.stroke();
+  }
+
+  var xAt = function(i) { return pad.l + i * slot + slot / 2; };
+  var yAt = function(v) { return pad.t + ph - ph * Math.min(1, v / top); };
+  var pts = vals.map(function(v, i) { return { x: xAt(i), y: yAt(v) }; });
+
+  if (total === 0) {
+    ctx.fillStyle = text;
+    ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('这个月还没有专注记录', pad.l + pw / 2, pad.t + ph / 2);
+  } else {
+    var fill = ctx.createLinearGradient(0, pad.t, 0, bottom);
+    fill.addColorStop(0, 'rgba(249,115,22,0.30)');
+    fill.addColorStop(1, 'rgba(249,115,22,0.02)');
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, bottom);
+    ctx.lineTo(pts[0].x, pts[0].y);
+    focusBuildCurve(ctx, pts, pad.t, bottom);
+    ctx.lineTo(pts[pts.length - 1].x, bottom);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    focusBuildCurve(ctx, pts, pad.t, bottom);
+    ctx.stroke();
+
+    vals.forEach(function(v, i) {
+      if (v <= 0) return;
+      ctx.beginPath();
+      ctx.arc(pts[i].x, pts[i].y, 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = '#f97316';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  }
+
+  var now = new Date();
+  var todayStr = dayKey(now.getTime());
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (var d = 0; d < n; d++) {
+    var dayK = mp.year + '-' + pad2(mp.month + 1) + '-' + pad2(d + 1);
+    var isToday = dayK === todayStr;
+    ctx.fillStyle = isToday ? FOCUS_ACCENT : text;
+    ctx.font = (isToday ? 'bold ' : '') + '9px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(String(d + 1), xAt(d), bottom + 6);
+    if (isToday) {
+      ctx.strokeStyle = 'rgba(249,115,22,0.35)';
+      ctx.setLineDash([3, 3]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(xAt(d), pad.t);
+      ctx.lineTo(xAt(d), bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // 当前月份自动滚动到今天附近
+  var statsVisible = document.getElementById('page-stats') && document.getElementById('page-stats').classList.contains('active');
+  if (statsVisible && focusMonthlyScrolledMonth !== focusStatsMonth) {
+    focusMonthlyScrolledMonth = focusStatsMonth;
+    if (mp.year === now.getFullYear() && mp.month === now.getMonth()) {
+      wrap.scrollLeft = Math.max(0, xAt(now.getDate() - 1) - Math.min(wrap.clientWidth * 0.75, 240));
+    } else {
+      wrap.scrollLeft = 0;
+    }
+  }
+}
+
+// ── 时长分布 + 排行 ───────────────────────────
 function focusTaskGroups() {
   var groups = {};
   var days = focusRangeDays(focusStatsRange);
   var start = days[0] || 0;
   var end = (days[days.length - 1] || Date.now()) + 86400000;
   focusSessions.forEach(function(s) {
-    var ts = s.endAt || s.startAt || 0;
+    var ts = focusSessionTs(s);
     if (ts < start || ts >= end) return;
     var name = s.taskName || '未命名';
     if (!groups[name]) groups[name] = { name: name, sec: 0, taskId: s.taskId };
@@ -1091,6 +1270,218 @@ function drawDonutAndRank() {
   }).join('');
 }
 
+// ── 补录记录 ──────────────────────────────────
+function focusSessionTs(s) {
+  // 补录记录按用户选择的日期（开始时间）归日，其余按结束时间
+  if (s.mode === 'manual') return s.startAt || s.endAt || 0;
+  return s.endAt || s.startAt || 0;
+}
+
+function focusModeLabel(mode) {
+  if (mode === 'manual') return '补录';
+  return mode === 'down' ? '番茄钟' : '正计时';
+}
+
+function showFocusManualModal(dateStr) {
+  if (!focusDataReady) return;
+  var sel = document.getElementById('focus-manual-task');
+  if (sel) {
+    if (focusTasks.length) {
+      sel.innerHTML = focusTasks.map(function(t) {
+        return '<option value="' + t.id + '">' + esc(t.name) + '</option>';
+      }).join('');
+      if (focusSelectedTaskId !== null) sel.value = String(focusSelectedTaskId);
+    } else {
+      sel.innerHTML = '<option value="">未命名专注</option>';
+    }
+  }
+
+  var dateEl = document.getElementById('focus-manual-date');
+  var timeEl = document.getElementById('focus-manual-time');
+  var minEl = document.getElementById('focus-manual-minutes');
+  var now = new Date();
+  if (dateEl) dateEl.value = dateStr || dayKey(now.getTime());
+  if (timeEl) timeEl.value = pad2(now.getHours()) + ':' + pad2(now.getMinutes());
+  if (minEl) minEl.value = 30;
+
+  var modal = document.getElementById('focus-manual-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function hideFocusManualModal() {
+  var modal = document.getElementById('focus-manual-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function confirmFocusManual() {
+  var taskSel = document.getElementById('focus-manual-task');
+  var dateVal = (document.getElementById('focus-manual-date') || {}).value || '';
+  var timeVal = (document.getElementById('focus-manual-time') || {}).value || '';
+  var minutes = parseInt((document.getElementById('focus-manual-minutes') || {}).value, 10);
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) { toast('请选择日期'); return; }
+  if (!minutes || minutes < 1 || minutes > 1440) { toast('请输入 1–1440 分钟'); return; }
+  if (!/^\d{2}:\d{2}$/.test(timeVal)) timeVal = '00:00';
+
+  var dp = dateVal.split('-');
+  var tp = timeVal.split(':');
+  var startAt = new Date(+dp[0], +dp[1] - 1, +dp[2], +tp[0], +tp[1], 0, 0).getTime();
+  if (isNaN(startAt)) { toast('时间格式有误'); return; }
+
+  var taskId = taskSel && taskSel.value ? Number(taskSel.value) : null;
+  var task = taskId ? focusTaskById(taskId) : null;
+  var durationSec = minutes * 60;
+
+  await addFocusSession({
+    taskId: taskId,
+    taskName: task ? task.name : '未命名专注',
+    startAt: startAt,
+    endAt: startAt + durationSec * 1000,
+    durationSec: durationSec,
+    mode: 'manual',
+    completed: true
+  });
+
+  hideFocusManualModal();
+  await loadFocusData();
+  renderFocusTasks();
+  renderStats();
+  renderFocusCalendar();
+  refreshFocusBadge();
+  toast('已补录 ' + minutes + ' 分钟' + (task ? ' · ' + task.name : ''));
+}
+
+// ── 专注日历 ──────────────────────────────────
+function ensureFocusCalendarState() {
+  var now = new Date();
+  if (focusCalYear === null || focusCalMonth === null) {
+    focusCalYear = now.getFullYear();
+    focusCalMonth = now.getMonth();
+  }
+  if (!focusCalSelected) focusCalSelected = dayKey(now.getTime());
+}
+
+function focusCalMonthKey() {
+  return focusCalYear + '-' + pad2(focusCalMonth + 1);
+}
+
+function renderFocusCalendar() {
+  var grid = document.getElementById('focus-cal-grid');
+  if (!grid || !focusDataReady) return;
+  ensureFocusCalendarState();
+
+  var label = document.getElementById('focus-cal-label');
+  if (label) label.textContent = focusCalYear + '年' + (focusCalMonth + 1) + '月';
+
+  var dayCount = new Date(focusCalYear, focusCalMonth + 1, 0).getDate();
+  var firstDow = (new Date(focusCalYear, focusCalMonth, 1).getDay() + 6) % 7;
+  var map = focusDayMap();
+  var todayStr = dayKey(Date.now());
+  var prefix = focusCalMonthKey() + '-';
+  var html = '';
+
+  for (var b = 0; b < firstDow; b++) html += '<div></div>';
+
+  for (var d = 1; d <= dayCount; d++) {
+    var key = prefix + pad2(d);
+    var mins = Math.round((map[key] || 0) / 60);
+    var lvl = focusHeatLevel(mins);
+    var selected = key === focusCalSelected;
+    var isToday = key === todayStr;
+    var style = 'min-height:46px;border-radius:10px;padding:4px 0;line-height:1.05;background:' + lvl.bg + ';';
+    if (selected) style += 'box-shadow:inset 0 0 0 2px ' + (lvl.strong ? 'rgba(255,255,255,0.95)' : FOCUS_ACCENT) + ';';
+    else if (isToday) style += 'box-shadow:inset 0 0 0 1px rgba(249,115,22,0.55);';
+    var numColor = lvl.strong ? '#ffffff' : (isToday ? FOCUS_ACCENT : 'var(--text-primary)');
+    var subColor = lvl.strong ? 'rgba(255,255,255,0.85)' : 'var(--text-tertiary)';
+    html += '<div onclick="selectFocusCalendarDay(\'' + key + '\')" style="cursor:pointer;' + style + '">'
+      + '<div style="font-size:12px;font-weight:600;color:' + numColor + ';">' + d + '</div>'
+      + (mins > 0
+        ? '<div style="font-size:9px;margin-top:2px;color:' + subColor + ';">' + mins + '分</div>'
+        : '<div style="font-size:9px;margin-top:2px;color:transparent;">·</div>')
+      + '</div>';
+  }
+
+  grid.innerHTML = html;
+  renderFocusCalendarDay();
+}
+
+function renderFocusCalendarDay() {
+  var listEl = document.getElementById('focus-cal-day-list');
+  var titleEl = document.getElementById('focus-cal-day-title');
+  var sumEl = document.getElementById('focus-cal-day-summary');
+  if (!listEl || !focusCalSelected) return;
+
+  var parts = focusCalSelected.split('-');
+  var d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+  var weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()];
+  var isToday = focusCalSelected === dayKey(Date.now());
+  if (titleEl) {
+    titleEl.textContent = (+parts[1]) + '月' + (+parts[2]) + '日 · ' + weekday + (isToday ? '（今天）' : '');
+  }
+
+  var sessions = focusSessions.filter(function(s) {
+    return dayKey(focusSessionTs(s)) === focusCalSelected;
+  }).sort(function(a, b) { return (a.startAt || 0) - (b.startAt || 0); });
+
+  var totalSec = sessions.reduce(function(a, s) { return a + (s.durationSec || 0); }, 0);
+  if (sumEl) {
+    sumEl.textContent = sessions.length
+      ? formatFocusDuration(totalSec) + ' · ' + sessions.length + ' 次专注'
+      : '这一天还没有专注记录';
+  }
+
+  if (!sessions.length) {
+    listEl.innerHTML = '<p class="text-xs text-center py-6" style="color: var(--text-tertiary);">点右上角“＋ 补录”可以把漏记的专注补上</p>';
+    return;
+  }
+
+  listEl.innerHTML = sessions.map(function(s) {
+    var t = focusTaskById(s.taskId);
+    var color = t ? t.color : '#9ca3af';
+    var a = new Date(s.startAt || focusSessionTs(s));
+    var b = new Date((s.startAt || focusSessionTs(s)) + (s.durationSec || 0) * 1000);
+    var range = pad2(a.getHours()) + ':' + pad2(a.getMinutes()) + ' – ' + pad2(b.getHours()) + ':' + pad2(b.getMinutes());
+    return '<div class="flex items-center gap-3 py-2.5" style="border-bottom:0.5px solid rgba(128,128,128,0.12);">'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>'
+      + '<div class="flex-1 min-w-0">'
+        + '<p class="text-xs truncate font-medium" style="color: var(--text-primary);">' + esc(s.taskName || '未命名') + '</p>'
+        + '<p class="text-xs mt-0.5" style="color: var(--text-tertiary);">' + range + ' · ' + focusModeLabel(s.mode) + '</p>'
+      + '</div>'
+      + '<span class="text-xs font-medium shrink-0" style="color: var(--text-secondary);">' + formatFocusDuration(s.durationSec || 0) + '</span>'
+      + '<button onclick="deleteFocusSessionById(' + s.id + ')" class="icon-btn-del" title="删除记录"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
+    + '</div>';
+  }).join('');
+}
+
+function changeFocusCalendarMonth(delta) {
+  ensureFocusCalendarState();
+  var d = new Date(focusCalYear, focusCalMonth + delta, 1);
+  focusCalYear = d.getFullYear();
+  focusCalMonth = d.getMonth();
+
+  var now = new Date();
+  var inThisMonth = focusCalYear === now.getFullYear() && focusCalMonth === now.getMonth();
+  focusCalSelected = focusCalMonthKey() + '-' + pad2(inThisMonth ? now.getDate() : 1);
+  renderFocusCalendar();
+}
+
+function selectFocusCalendarDay(key) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(key || '')) return;
+  focusCalSelected = key;
+  var parts = key.split('-');
+  focusCalYear = +parts[0];
+  focusCalMonth = +parts[1] - 1;
+  renderFocusCalendar();
+}
+
+function focusCalendarToday() {
+  var now = new Date();
+  focusCalYear = now.getFullYear();
+  focusCalMonth = now.getMonth();
+  focusCalSelected = dayKey(now.getTime());
+  renderFocusCalendar();
+}
+
 // ── 最近记录 ──────────────────────────────────
 function renderRecentSessions() {
   var el = document.getElementById('stats-recent');
@@ -1100,19 +1491,19 @@ function renderRecentSessions() {
     return;
   }
   var list = focusSessions.slice().sort(function(a, b) {
-    return (b.endAt || b.startAt) - (a.endAt || a.startAt);
+    return focusSessionTs(b) - focusSessionTs(a);
   }).slice(0, 20);
 
   el.innerHTML = list.map(function(s) {
     var t = focusTaskById(s.taskId);
     var color = t ? t.color : '#9ca3af';
-    var d = new Date(s.endAt || s.startAt);
+    var d = new Date(focusSessionTs(s));
     var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
     return '<div class="flex items-center gap-3 py-2" style="border-bottom:0.5px solid rgba(128,128,128,0.12);">'
       + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>'
       + '<div class="flex-1 min-w-0">'
         + '<p class="text-xs truncate" style="color: var(--text-primary);">' + esc(s.taskName || '未命名') + '</p>'
-        + '<p class="text-xs" style="color: var(--text-tertiary);">' + when + ' · ' + (s.mode === 'down' ? '番茄钟' : '正计时') + '</p>'
+        + '<p class="text-xs" style="color: var(--text-tertiary);">' + when + ' · ' + focusModeLabel(s.mode) + '</p>'
       + '</div>'
       + '<span class="text-xs font-medium" style="color: var(--text-secondary);">' + formatFocusDuration(s.durationSec || 0) + '</span>'
       + '<button onclick="deleteFocusSessionById(' + s.id + ')" class="icon-btn-del" title="删除记录"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
@@ -1125,6 +1516,7 @@ async function deleteFocusSessionById(id) {
   await deleteFocusSession(id);
   await loadFocusData();
   renderStats();
+  renderFocusCalendar();
   renderFocusTasks();
   refreshFocusBadge();
   toast('记录已删除');
