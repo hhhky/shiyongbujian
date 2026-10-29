@@ -747,6 +747,44 @@
           </div>
         </div>
 
+        <!-- Focus Data Page -->
+        <div id="page-focus-data" class="page p-4 md:p-6 lg:p-8">
+          <div class="max-w-2xl mx-auto">
+            <div class="mb-5 md:mb-6">
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">数据导入导出</h2>
+              <p class="text-xs text-gray-400 mt-0.5">专注记录 · 离线文本传输，不联网、不上传</p>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-bold" style="color: var(--text-primary);">导出专注数据</h3>
+                  <p class="text-xs mt-0.5" id="focus-data-local-count" style="color: var(--text-tertiary);">本机已有 0 个任务、0 条专注记录</p>
+                </div>
+                <button onclick="exportModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">生成</button>
+              </div>
+              <textarea id="focus-data-export" readonly rows="7" spellcheck="false" placeholder="点击“生成”后，导出字符串会显示在这里" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
+              <div class="flex items-center justify-between gap-3 mt-3">
+                <span class="text-[11px] break-all" style="color: var(--text-tertiary);">头部：SJB-DATA|v1|focus</span>
+                <button onclick="copyModuleExport('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly shrink-0" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">复制</button>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="min-w-0 mb-3">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">导入专注数据</h3>
+                <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">粘贴其他设备导出的专注记录字符串</p>
+              </div>
+              <textarea id="focus-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v1|focus 开头的完整字符串" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
+              <div class="flex items-end justify-between gap-3 mt-3">
+                <p class="text-[11px] leading-relaxed" style="color: var(--text-tertiary);">同一条记录冲突时保留本机数据，只追加新记录；导入失败不会改动本机数据。</p>
+                <button id="focus-data-import-btn" onclick="importModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">导入</button>
+              </div>
+              <p id="focus-data-result" class="text-xs mt-3 hidden break-all"></p>
+            </div>
+          </div>
+        </div>
+
         <!-- Memos Page -->
         <div id="page-memos" class="page p-4 md:p-6 lg:p-8">
           <div class="flex items-center justify-between mb-5 md:mb-7">
@@ -758,6 +796,44 @@
           </div>
           <div id="memos-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有备忘录，点击上方按钮创建</div>
+          </div>
+        </div>
+
+        <!-- Memo Data Page -->
+        <div id="page-memo-data" class="page p-4 md:p-6 lg:p-8">
+          <div class="max-w-2xl mx-auto">
+            <div class="mb-5 md:mb-6">
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">数据导入导出</h2>
+              <p class="text-xs text-gray-400 mt-0.5">备忘录 · 离线文本传输，不联网、不上传</p>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between gap-3 mb-3">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-bold" style="color: var(--text-primary);">导出备忘录</h3>
+                  <p class="text-xs mt-0.5" id="memo-data-local-count" style="color: var(--text-tertiary);">本机已有 0 条备忘录</p>
+                </div>
+                <button onclick="exportModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#10b981;">生成</button>
+              </div>
+              <textarea id="memo-data-export" readonly rows="7" spellcheck="false" placeholder="点击“生成”后，导出字符串会显示在这里" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
+              <div class="flex items-center justify-between gap-3 mt-3">
+                <span class="text-[11px] break-all" style="color: var(--text-tertiary);">头部：SJB-DATA|v1|memo</span>
+                <button onclick="copyModuleExport('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly shrink-0" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">复制</button>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="min-w-0 mb-3">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">导入备忘录</h3>
+                <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">粘贴其他设备导出的备忘录字符串</p>
+              </div>
+              <textarea id="memo-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v1|memo 开头的完整字符串" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
+              <div class="flex items-end justify-between gap-3 mt-3">
+                <p class="text-[11px] leading-relaxed" style="color: var(--text-tertiary);">同一条记录冲突时保留本机数据，只追加新记录；导入失败不会改动本机数据。</p>
+                <button id="memo-data-import-btn" onclick="importModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#10b981;">导入</button>
+              </div>
+              <p id="memo-data-result" class="text-xs mt-3 hidden break-all"></p>
+            </div>
           </div>
         </div>
 
@@ -1025,6 +1101,7 @@
   <script src="js/config.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/focus.js"></script>
+  <script src="js/data-transfer.js"></script>
   <script src="js/app.js"></script>
   <script>
     (function() {

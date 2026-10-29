@@ -35,7 +35,8 @@ const WIDGETS = [
     tabs: [
       { id: 'pomodoro', name: '计时', shortName: '计时', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
       { id: 'stats', name: '数据统计', shortName: '统计', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>' },
-      { id: 'focus-calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' }
+      { id: 'focus-calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
+      { id: 'focus-data', name: '数据', shortName: '数据', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3-3.582-3-8-3-8 1.343-8 3zm0 5c0 1.657 3.582 3 8 3s8-1.343 8-3"/>' }
     ]
   },
   {
@@ -50,7 +51,8 @@ const WIDGETS = [
     id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，查看日历', color: '#10b981',
     tabs: [
       { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
-      { id: 'calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' }
+      { id: 'calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
+      { id: 'memo-data', name: '数据', shortName: '数据', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3-3.582-3-8-3-8 1.343-8 3zm0 5c0 1.657 3.582 3 8 3s8-1.343 8-3"/>' }
     ]
   },
   {
@@ -329,6 +331,7 @@ function switchTab(tab) {
   } else if (currentWidget === 'memo') {
     if (tab === 'memos') renderMemos();
     if (tab === 'calendar') renderCalendar();
+    if (tab === 'memo-data' && typeof initDataPage === 'function') initDataPage('memo');
   } else if (currentWidget === 'mindmap') {
     document.getElementById('page-workflows').classList.add('active');
     if (tab === 'workflows') currentMindmapType = 'workflow';
@@ -341,6 +344,8 @@ function switchTab(tab) {
       if (typeof renderStats === 'function') renderStats();
     } else if (tab === 'focus-calendar') {
       if (typeof renderFocusCalendar === 'function') renderFocusCalendar();
+    } else if (tab === 'focus-data') {
+      if (typeof initDataPage === 'function') initDataPage('focus');
     } else {
       if (typeof renderFocusTasks === 'function') renderFocusTasks();
       if (typeof updateFocusTimerDisplay === 'function') updateFocusTimerDisplay();

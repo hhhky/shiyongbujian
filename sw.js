@@ -1,4 +1,4 @@
-const CACHE = 'review-v4';
+const CACHE = 'review-v5';
 
 // Cache all local files on install
 self.addEventListener('install', e => {
@@ -15,6 +15,7 @@ self.addEventListener('install', e => {
         './js/config.js',
         './js/db.js',
         './js/focus.js',
+        './js/data-transfer.js',
         './js/tailwind.js',
         './js/pdf.min.js',
         './js/pdf.worker.min.js',
