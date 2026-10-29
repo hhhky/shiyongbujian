@@ -1,4 +1,4 @@
-const CACHE = 'review-v5';
+const CACHE = 'review-v6';
 
 // Cache all local files on install
 self.addEventListener('install', e => {
@@ -10,6 +10,8 @@ self.addEventListener('install', e => {
         './manifest.json',
         './icon-192.png',
         './icon-512.png',
+        './icon-180.png',
+        './icon-maskable-512.png',
         './js/app.js',
         './js/chat.js',
         './js/config.js',
