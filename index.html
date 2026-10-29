@@ -589,12 +589,12 @@
               </div>
               <p id="focus-mode-hint" class="text-xs mb-1" style="color: var(--text-tertiary);">正计时：记录实际学习时长</p>
 
-              <div class="relative mx-auto" style="width: min(260px, 72vw); aspect-ratio: 1;">
-                <svg viewBox="0 0 240 240" class="w-full h-full" style="transform: rotate(-90deg);">
+              <div id="focus-dial" class="relative mx-auto" style="width: min(260px, 72vw); aspect-ratio: 1;">
+                <svg id="focus-ring-svg" viewBox="0 0 240 240" class="w-full h-full" style="transform: rotate(-90deg);">
                   <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(128,128,128,0.14)" stroke-width="12"/>
                   <circle id="focus-ring" cx="120" cy="120" r="104" fill="none" stroke="#f97316" stroke-width="12" stroke-linecap="round" stroke-dasharray="653.45" stroke-dashoffset="653.45" style="transition: stroke-dashoffset .3s linear, stroke .3s;"/>
                 </svg>
-                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <div id="focus-dial-inner" class="absolute inset-0 flex flex-col items-center justify-center">
                   <div id="focus-time" class="font-bold tabular-nums" style="font-size: clamp(2.2rem, 10vw, 3rem); color: var(--text-primary); letter-spacing: 1px;">00:00</div>
                   <div id="focus-state-label" class="text-xs mt-1" style="color: var(--text-tertiary);">未开始</div>
                   <div id="focus-task-label" class="text-sm mt-1.5 font-semibold" style="color: var(--text-tertiary);">未选择任务</div>
@@ -641,6 +641,20 @@
                 <span class="text-xs" style="color: var(--text-tertiary);">分钟</span>
               </div>
               <canvas id="chart-trend" height="190"></canvas>
+              <p class="text-xs mt-2" style="color: var(--text-tertiary);">只显示今天的专注时长</p>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">专注时长分布</h3>
+                <span class="text-xs shrink-0" style="color: var(--text-tertiary);">跟随上方范围</span>
+              </div>
+              <div class="grid md:grid-cols-2 gap-4 items-center">
+                <div>
+                  <canvas id="chart-donut" height="190"></canvas>
+                </div>
+                <div id="stats-task-rank"></div>
+              </div>
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
@@ -697,23 +711,6 @@
               <div class="flex items-center justify-between mt-2 text-xs" style="color: var(--text-tertiary);">
                 <span>纵轴：分钟 · 横轴：日期</span>
                 <span id="focus-monthly-total"></span>
-              </div>
-            </div>
-
-            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
-              <div class="grid md:grid-cols-2 gap-4 items-center">
-                <div>
-                  <div class="flex items-center justify-between gap-2 mb-1">
-                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">专注时长分布</h3>
-                    <div class="flex items-center gap-1">
-                      <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
-                      <input type="month" id="focus-donut-month" onchange="setFocusStatsMonth(this.value)" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);max-width:135px;">
-                      <button onclick="changeFocusStatsMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
-                    </div>
-                  </div>
-                  <canvas id="chart-donut" height="190"></canvas>
-                </div>
-                <div id="stats-task-rank"></div>
               </div>
             </div>
 

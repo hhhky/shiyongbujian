@@ -291,6 +291,32 @@ function updateFocusModeUI() {
   down.style.borderColor = !isUp ? 'rgba(249,115,22,0.45)' : 'transparent';
   var lbl = document.getElementById('focus-mode-hint');
   if (lbl) lbl.textContent = isUp ? '正计时：记录实际学习时长' : '番茄钟：' + focusSettings.pomodoroMin + ' 分钟后自动记录';
+
+  // 正计时不需要进度圈：隐藏圆环，让计时文字直接居中显示
+  var ringSvg = document.getElementById('focus-ring-svg');
+  var dial = document.getElementById('focus-dial');
+  var dialInner = document.getElementById('focus-dial-inner');
+  if (ringSvg) ringSvg.style.display = isUp ? 'none' : '';
+  if (dial) {
+    if (isUp) {
+      dial.style.width = 'auto';
+      dial.style.aspectRatio = 'auto';
+      dial.style.minHeight = '150px';
+    } else {
+      dial.style.width = 'min(260px, 72vw)';
+      dial.style.aspectRatio = '1';
+      dial.style.minHeight = '';
+    }
+  }
+  if (dialInner) {
+    if (isUp) {
+      dialInner.style.position = 'static';
+      dialInner.style.padding = '18px 0';
+    } else {
+      dialInner.style.position = '';
+      dialInner.style.padding = '';
+    }
+  }
 }
 
 async function toggleFocusTimer() {
@@ -427,13 +453,13 @@ function updateFocusTimerDisplay() {
   timeEl.textContent = formatClock(shown);
 
   var ring = document.getElementById('focus-ring');
-  if (ring) {
+  if (ring && focusTimer.mode === 'down') {
     var C = 2 * Math.PI * 104;
     var progress;
-    if (focusTimer.mode === 'down' && focusTimer.targetSec > 0) {
+    if (focusTimer.targetSec > 0) {
       progress = Math.min(1, elapsed / focusTimer.targetSec);
     } else {
-      progress = (elapsed % 3600) / 3600;
+      progress = 0;
     }
     ring.style.strokeDasharray = C;
     ring.style.strokeDashoffset = C * (1 - progress);
@@ -464,7 +490,7 @@ function updateFocusTimerDisplay() {
     stopBtn.style.opacity = active ? '1' : '0.4';
   }
   var ringColor = focusTaskById(focusTimer.taskId || focusSelectedTaskId);
-  if (ring) ring.style.stroke = ringColor ? ringColor.color : FOCUS_ACCENT;
+  if (ring && focusTimer.mode === 'down') ring.style.stroke = ringColor ? ringColor.color : FOCUS_ACCENT;
 }
 
 // ── 计时状态持久化 ────────────────────────────
@@ -621,31 +647,6 @@ function focusStreak() {
   return streak;
 }
 
-function focusRangeDays(range) {
-  var today = startOfDay(Date.now());
-  var days = [];
-  var i;
-  if (range === 'all') {
-    var earliest = null;
-    focusSessions.forEach(function(s) {
-      var ts = focusSessionTs(s);
-      if (ts && (earliest === null || ts < earliest)) earliest = ts;
-    });
-    var start = earliest ? startOfDay(earliest) : today - 29 * 86400000;
-    var n = Math.round((today - start) / 86400000) + 1;
-    n = Math.min(n, 400);
-    for (i = n - 1; i >= 0; i--) days.push(today - i * 86400000);
-  } else if (range === 'month') {
-    var first = new Date(new Date(today).getFullYear(), new Date(today).getMonth(), 1).getTime();
-    var cnt = Math.round((today - first) / 86400000) + 1;
-    for (i = 0; i < cnt; i++) days.push(first + i * 86400000);
-  } else {
-    var n2 = parseInt(range, 10) || 7;
-    for (i = n2 - 1; i >= 0; i--) days.push(today - i * 86400000);
-  }
-  return days;
-}
-
 function formatClock(sec) {
   sec = Math.max(0, Math.floor(sec));
   var h = Math.floor(sec / 3600);
@@ -754,19 +755,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-var FOCUS_WEEKDAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-
 // ── 每日趋势图 ────────────────────────────────
 function drawTrendChart() {
   var cv = focusCanvas('chart-trend', 190);
   if (!cv) return;
   var ctx = cv.ctx, W = cv.w, H = cv.h;
-  var days = focusRangeDays(focusStatsRange);
-  var map = focusDayMap();
-  var vals = days.map(function(ts) { return Math.round((map[dayKey(ts)] || 0) / 60); });
-  var maxV = Math.max.apply(null, vals.concat([1]));
-  var top = Math.max(30, Math.ceil(maxV / 15) * 15);
-  var pad = { l: 34, r: 8, t: 10, b: 24 };
+  var today = startOfDay(Date.now());
+  var mins = Math.round((focusDayMap()[dayKey(today)] || 0) / 60);
+  var top = Math.max(30, Math.ceil(Math.max(mins, 1) / 15) * 15);
+  var pad = { l: 34, r: 8, t: 26, b: 26 };
   var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
   var text = focusCssVar('--text-tertiary', '#8e8e93');
   var grid = 'rgba(128,128,128,0.16)';
@@ -786,51 +783,40 @@ function drawTrendChart() {
     ctx.fillText(String(Math.round(top * g / 3)), pad.l - 6, gy);
   }
 
-  var hasData = vals.some(function(v) { return v > 0; });
-  if (!hasData) {
+  var cx = pad.l + pw / 2;
+  var bw = Math.min(88, Math.max(40, pw * 0.24));
+
+  if (mins > 0) {
+    var bh = Math.max(4, ph * mins / top);
+    var y2 = pad.t + ph - bh;
+    var grad = ctx.createLinearGradient(0, y2, 0, pad.t + ph);
+    grad.addColorStop(0, '#fdba74');
+    grad.addColorStop(1, '#f97316');
+    ctx.fillStyle = grad;
+    roundRectPath(ctx, cx - bw / 2, y2, bw, bh, Math.min(8, bw / 2));
+    ctx.fill();
+
+    ctx.fillStyle = FOCUS_ACCENT;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(mins + ' 分钟', cx, y2 - 6);
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+  } else {
+    ctx.fillStyle = 'rgba(128,128,128,0.14)';
+    roundRectPath(ctx, cx - bw / 2, pad.t + ph - 3, bw, 3, 1.5);
+    ctx.fill();
     ctx.fillStyle = text;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('暂无专注记录，去计时页开始第一次专注吧', pad.l + pw / 2, pad.t + ph / 2);
-    return;
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('今天还没有专注记录', cx, pad.t + ph - 14);
   }
 
-  var n = vals.length;
-  var slot = pw / n;
-  var bw = Math.max(2, Math.min(26, slot * 0.64));
-  var todayKey = dayKey(Date.now());
-
-  for (var i = 0; i < n; i++) {
-    var v = vals[i];
-    var x = pad.l + slot * i + (slot - bw) / 2;
-    if (v > 0) {
-      var bh = Math.max(2, ph * v / top);
-      var y2 = pad.t + ph - bh;
-      var isToday = dayKey(days[i]) === todayKey;
-      var grad = ctx.createLinearGradient(0, y2, 0, pad.t + ph);
-      grad.addColorStop(0, isToday ? '#fdba74' : 'rgba(249,115,22,0.85)');
-      grad.addColorStop(1, isToday ? '#f97316' : 'rgba(249,115,22,0.3)');
-      ctx.fillStyle = grad;
-      roundRectPath(ctx, x, y2, bw, bh, Math.min(4, bw / 2));
-      ctx.fill();
-    } else {
-      ctx.fillStyle = 'rgba(128,128,128,0.14)';
-      roundRectPath(ctx, x, pad.t + ph - 2, bw, 2, 1);
-      ctx.fill();
-    }
-  }
-
+  var d = new Date(today);
   ctx.fillStyle = text;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  var every = n <= 7 ? 1 : Math.ceil(n / 6);
-  for (var k = 0; k < n; k += every) {
-    var d = new Date(days[k]);
-    var label;
-    if (n <= 7) label = FOCUS_WEEKDAYS[(d.getDay() + 6) % 7];
-    else label = (d.getMonth() + 1) + '/' + d.getDate();
-    ctx.fillText(label, pad.l + slot * k + slot / 2, pad.t + ph + 6);
-  }
+  ctx.fillText('今天 ' + (d.getMonth() + 1) + '/' + d.getDate(), cx, pad.t + ph + 8);
 }
 
 // ── 时段分布图 ────────────────────────────────
@@ -923,8 +909,20 @@ function focusMonthBounds() {
   };
 }
 
+// 顶部「7 天 / 30 天 / 本月 / 全部」按钮对应的记录范围 [start, end)
+function focusStatsRangeBounds() {
+  var end = startOfDay(Date.now()) + 86400000;
+  if (focusStatsRange === 'all') return { start: 0, end: Infinity };
+  if (focusStatsRange === 'month') {
+    var n = new Date();
+    return { start: new Date(n.getFullYear(), n.getMonth(), 1).getTime(), end: end };
+  }
+  var days = parseInt(focusStatsRange, 10) || 7;
+  return { start: end - days * 86400000, end: end };
+}
+
 function syncFocusMonthInputs() {
-  var ids = ['focus-hours-month', 'focus-heatmap-month', 'focus-monthly-month', 'focus-donut-month'];
+  var ids = ['focus-hours-month', 'focus-heatmap-month', 'focus-monthly-month'];
   for (var i = 0; i < ids.length; i++) {
     var input = document.getElementById(ids[i]);
     if (input && input.value !== focusStatsMonth) input.value = focusStatsMonth;
@@ -938,7 +936,6 @@ function setFocusStatsMonth(value) {
   drawHourChart();
   drawHeatmap();
   drawMonthlyChart();
-  drawDonutAndRank();
 }
 
 function changeFocusStatsMonth(delta) {
@@ -1185,7 +1182,7 @@ function drawMonthlyChart() {
 // ── 时长分布 + 排行 ───────────────────────────
 function focusTaskGroups() {
   var groups = {};
-  var bounds = focusMonthBounds();
+  var bounds = focusStatsRangeBounds();
   focusSessions.forEach(function(s) {
     var ts = focusSessionTs(s);
     if (ts < bounds.start || ts >= bounds.end) return;
