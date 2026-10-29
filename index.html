@@ -642,9 +642,16 @@
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
-              <h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">时段分布</h3>
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">时段分布</h3>
+                <div class="flex items-center gap-1">
+                  <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
+                  <input type="month" id="focus-hours-month" onchange="setFocusStatsMonth(this.value)" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);max-width:135px;">
+                  <button onclick="changeFocusStatsMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
+                </div>
+              </div>
               <canvas id="chart-hours" height="170"></canvas>
-              <p class="text-xs mt-2" style="color: var(--text-tertiary);">按每次专注的开始时间统计，看看你几点最专注</p>
+              <p class="text-xs mt-2" style="color: var(--text-tertiary);">按本月每次专注的开始时间统计，看看你几点最专注</p>
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
@@ -675,7 +682,7 @@
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">月度专注统计</h3>
                 <div class="flex items-center gap-1">
                   <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
-                  <span id="focus-monthly-label" class="text-xs px-1" style="color:var(--text-secondary);"></span>
+                  <input type="month" id="focus-monthly-month" onchange="setFocusStatsMonth(this.value)" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);max-width:135px;">
                   <button onclick="changeFocusStatsMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
                 </div>
               </div>
@@ -694,20 +701,20 @@
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
               <div class="grid md:grid-cols-2 gap-4 items-center">
                 <div>
-                  <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">专注时长分布</h3>
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <h3 class="text-sm font-bold" style="color: var(--text-primary);">专注时长分布</h3>
+                    <div class="flex items-center gap-1">
+                      <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
+                      <input type="month" id="focus-donut-month" onchange="setFocusStatsMonth(this.value)" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);max-width:135px;">
+                      <button onclick="changeFocusStatsMonth(1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="下个月">›</button>
+                    </div>
+                  </div>
                   <canvas id="chart-donut" height="190"></canvas>
                 </div>
                 <div id="stats-task-rank"></div>
               </div>
             </div>
 
-            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
-              <div class="flex items-center justify-between mb-2">
-                <h3 class="text-sm font-bold" style="color: var(--text-primary);">最近记录</h3>
-                <button onclick="showFocusManualModal()" class="text-xs px-3 py-1.5 rounded-full font-semibold text-white btn-jelly" style="background:#f97316;">＋ 补录</button>
-              </div>
-              <div id="stats-recent"></div>
-            </div>
           </div>
         </div>
 
@@ -719,7 +726,7 @@
                 <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">专注日历</h2>
                 <p class="text-xs text-gray-400 mt-0.5">选择日期，查看当天每个时段完成了哪个专注任务</p>
               </div>
-              <button onclick="focusCalendarToday()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background:rgba(249,115,22,0.14);color:#f97316;">今天</button>
+              <button onclick="focusCalendarToday()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly shrink-0" style="background:rgba(249,115,22,0.14);color:#f97316;white-space:nowrap;">今天</button>
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
@@ -764,9 +771,12 @@
                 <button onclick="exportModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">生成</button>
               </div>
               <textarea id="focus-data-export" readonly rows="7" spellcheck="false" placeholder="点击“生成”后，导出字符串会显示在这里" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
-              <div class="flex items-center justify-between gap-3 mt-3">
-                <span class="text-[11px] break-all" style="color: var(--text-tertiary);">头部：SJB-DATA|v1|focus</span>
-                <button onclick="copyModuleExport('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly shrink-0" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">复制</button>
+              <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
+                <span class="text-[11px] break-all" style="color: var(--text-tertiary);">头部：SJB-DATA|v2|focus</span>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button onclick="exportModuleFile('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">存为文件</button>
+                  <button onclick="copyModuleExport('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">复制</button>
+                </div>
               </div>
             </div>
 
@@ -775,10 +785,14 @@
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">导入专注数据</h3>
                 <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">粘贴其他设备导出的专注记录字符串</p>
               </div>
-              <textarea id="focus-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v1|focus 开头的完整字符串" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
-              <div class="flex items-end justify-between gap-3 mt-3">
+              <textarea id="focus-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v2|focus 开头的完整字符串，或从文件载入" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
+              <div class="flex flex-wrap items-end justify-between gap-2 mt-3">
                 <p class="text-[11px] leading-relaxed" style="color: var(--text-tertiary);">同一条记录冲突时保留本机数据，只追加新记录；导入失败不会改动本机数据。</p>
-                <button id="focus-data-import-btn" onclick="importModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">导入</button>
+                <div class="flex items-center gap-2 shrink-0">
+                  <input type="file" id="focus-data-file" accept=".txt,text/plain" class="hidden" onchange="loadModuleFile('focus', this)">
+                  <button onclick="pickModuleFile('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">选择文件</button>
+                  <button id="focus-data-import-btn" onclick="importModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly" style="background:#f97316;">导入</button>
+                </div>
               </div>
               <p id="focus-data-result" class="text-xs mt-3 hidden break-all"></p>
             </div>
@@ -816,9 +830,12 @@
                 <button onclick="exportModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#10b981;">生成</button>
               </div>
               <textarea id="memo-data-export" readonly rows="7" spellcheck="false" placeholder="点击“生成”后，导出字符串会显示在这里" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
-              <div class="flex items-center justify-between gap-3 mt-3">
-                <span class="text-[11px] break-all" style="color: var(--text-tertiary);">头部：SJB-DATA|v1|memo</span>
-                <button onclick="copyModuleExport('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly shrink-0" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">复制</button>
+              <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
+                <span class="text-[11px] break-all" style="color: var(--text-tertiary);">头部：SJB-DATA|v2|memo</span>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button onclick="exportModuleFile('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">存为文件</button>
+                  <button onclick="copyModuleExport('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">复制</button>
+                </div>
               </div>
             </div>
 
@@ -827,10 +844,14 @@
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">导入备忘录</h3>
                 <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">粘贴其他设备导出的备忘录字符串</p>
               </div>
-              <textarea id="memo-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v1|memo 开头的完整字符串" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
-              <div class="flex items-end justify-between gap-3 mt-3">
+              <textarea id="memo-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v2|memo 开头的完整字符串，或从文件载入" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
+              <div class="flex flex-wrap items-end justify-between gap-2 mt-3">
                 <p class="text-[11px] leading-relaxed" style="color: var(--text-tertiary);">同一条记录冲突时保留本机数据，只追加新记录；导入失败不会改动本机数据。</p>
-                <button id="memo-data-import-btn" onclick="importModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#10b981;">导入</button>
+                <div class="flex items-center gap-2 shrink-0">
+                  <input type="file" id="memo-data-file" accept=".txt,text/plain" class="hidden" onchange="loadModuleFile('memo', this)">
+                  <button onclick="pickModuleFile('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">选择文件</button>
+                  <button id="memo-data-import-btn" onclick="importModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly" style="background:#10b981;">导入</button>
+                </div>
               </div>
               <p id="memo-data-result" class="text-xs mt-3 hidden break-all"></p>
             </div>

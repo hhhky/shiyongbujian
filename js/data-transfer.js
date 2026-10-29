@@ -1,13 +1,15 @@
 // ─────────────────────────────────────────────
 // 离线数据导入导出（备忘录 / 专注记录）
 //   纯文本字符串传输，全程不联网、不请求任何接口。
-//   字符串结构：SJB-DATA|v1|memo|<JSON>
+//   字符串结构：SJB-DATA|v2|memo|<JSON>
 //   头部依次为：格式名 | 版本标记 | 模块标识
+//   v2 用紧凑数组承载记录，字符串更短；仍兼容导入 v1 数据。
 //   导入只追加新记录，冲突时保留本机原有数据。
 // ─────────────────────────────────────────────
 
 var DATA_FORMAT_NAME = 'SJB-DATA';
-var DATA_FORMAT_VERSION = 1;
+var DATA_FORMAT_VERSION = 2;
+var DATA_SUPPORTED_VERSIONS = [1, 2];
 var DATA_MODULE_LABELS = { memo: '备忘录', focus: '专注记录' };
 var DATA_IMPORTING = {};
 
@@ -55,15 +57,15 @@ function checkDataHeader(header, expectedModule) {
   var m = /^v(\d+)$/.exec(header.versionToken);
   if (!m) throw new Error('数据版本标记无效，已终止导入');
   var ver = parseInt(m[1], 10);
-  if (ver !== DATA_FORMAT_VERSION) {
-    throw new Error('版本不匹配：数据格式为 v' + ver + '，当前 App 仅支持 v' + DATA_FORMAT_VERSION + '，请升级 App 后再导入');
+  if (DATA_SUPPORTED_VERSIONS.indexOf(ver) < 0) {
+    throw new Error('版本不匹配：数据格式为 v' + ver + '，当前 App 支持 ' + DATA_SUPPORTED_VERSIONS.map(function (v) { return 'v' + v; }).join(' / ') + '，请升级 App 后再导入');
   }
   return ver;
 }
 
 function parseDataString(raw, expectedModule) {
   var header = parseDataHeader(raw);
-  checkDataHeader(header, expectedModule);
+  var ver = checkDataHeader(header, expectedModule);
 
   var payload;
   try {
@@ -72,59 +74,125 @@ function parseDataString(raw, expectedModule) {
     throw new Error('数据正文已损坏，解析失败，未导入任何记录');
   }
   if (!payload || typeof payload !== 'object') throw new Error('数据正文不完整，未导入任何记录');
-  if (payload.module !== expectedModule || payload.version !== DATA_FORMAT_VERSION) {
+  if (payload.module !== expectedModule || payload.version !== ver) {
     throw new Error('数据正文与头部标识不一致，已终止导入');
   }
-  return payload;
+  return { payload: payload, version: ver };
 }
 
 // ── 导出 ─────────────────────────────────────
+// v2 紧凑结构：备忘录 r: [标题, 内容, 截止, 自动删除, 创建时间]
+// 专注 t: 任务 [名称, 颜色, 创建时间]；s: 记录 [任务下标, 开始, 结束, 秒数, 模式, 完成]
+async function buildModuleExport(module) {
+  if (module === 'memo') {
+    var memos = await getMemos();
+    return {
+      payload: {
+        r: memos.map(function (m) {
+          return [m.title || '', m.content || '', m.deadline || '', m.autoDelete ? 1 : 0, m.createdAt || 0];
+        })
+      },
+      countText: memos.length + ' 条备忘录'
+    };
+  }
+
+  var res = await Promise.all([getFocusTasks(), getFocusSessions()]);
+  var tasks = res[0].map(function (t) {
+    return { name: t.name || '', color: t.color || '', createdAt: t.createdAt || 0 };
+  });
+  var indexByName = {};
+  tasks.forEach(function (t, i) {
+    if (indexByName[t.name] === undefined) indexByName[t.name] = i;
+  });
+  res[1].forEach(function (s) {
+    var name = s.taskName || '';
+    if (indexByName[name] === undefined) {
+      indexByName[name] = tasks.length;
+      tasks.push({ name: name, color: '', createdAt: s.startAt || 0 });
+    }
+  });
+
+  return {
+    payload: {
+      t: tasks.map(function (t) { return [t.name, t.color, t.createdAt]; }),
+      s: res[1].map(function (s) {
+        var idx = indexByName[s.taskName || ''];
+        return [idx === undefined ? 0 : idx, s.startAt || 0, s.endAt || 0, s.durationSec || 0, s.mode || 'up', s.completed === false ? 0 : 1];
+      })
+    },
+    countText: res[0].length + ' 个任务、' + res[1].length + ' 条专注记录'
+  };
+}
+
 async function exportModuleData(module) {
   var ta = document.getElementById(module + '-data-export');
   try {
-    var payload, countText;
-    if (module === 'memo') {
-      var memos = await getMemos();
-      payload = {
-        records: memos.map(function (m) {
-          return {
-            title: m.title || '',
-            content: m.content || '',
-            deadline: m.deadline || null,
-            autoDelete: !!m.autoDelete,
-            createdAt: m.createdAt || 0
-          };
-        })
-      };
-      countText = memos.length + ' 条备忘录';
-    } else {
-      var res = await Promise.all([getFocusTasks(), getFocusSessions()]);
-      payload = {
-        tasks: res[0].map(function (t) {
-          return { name: t.name || '', color: t.color || '', createdAt: t.createdAt || 0 };
-        }),
-        sessions: res[1].map(function (s) {
-          return {
-            taskName: s.taskName || '',
-            startAt: s.startAt || 0,
-            endAt: s.endAt || 0,
-            durationSec: s.durationSec || 0,
-            mode: s.mode || 'up',
-            completed: s.completed !== false
-          };
-        })
-      };
-      countText = res[0].length + ' 个任务、' + res[1].length + ' 条专注记录';
-    }
-
-    var text = buildDataString(module, payload);
+    var built = await buildModuleExport(module);
+    var text = buildDataString(module, built.payload);
     if (ta) ta.value = text;
-    setDataResult(module, 'ok', '已生成字符串（' + countText + '，共 ' + text.length + ' 个字符）');
+    setDataResult(module, 'ok', '已生成字符串（' + built.countText + '，共 ' + text.length + ' 个字符）');
     toast('已生成导出字符串');
   } catch (e) {
     setDataResult(module, 'error', '导出失败：' + (e && e.message ? e.message : '未知错误'));
     toast('导出失败');
   }
+}
+
+function dataPad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+// 导出为 txt 文件（应用内无文件系统权限时，复制粘贴仍是主通道）
+async function exportModuleFile(module) {
+  try {
+    var ta = document.getElementById(module + '-data-export');
+    var text = ta ? ta.value : '';
+    if (!text || text.indexOf(DATA_FORMAT_NAME + '|') !== 0) {
+      var built = await buildModuleExport(module);
+      text = buildDataString(module, built.payload);
+      if (ta) ta.value = text;
+    }
+
+    var d = new Date();
+    var stamp = d.getFullYear() + dataPad2(d.getMonth() + 1) + dataPad2(d.getDate());
+    var fileName = 'shiyongbujian-' + module + '-' + stamp + '.txt';
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+
+    setDataResult(module, 'ok', '已生成文件「' + fileName + '」（' + text.length + ' 个字符）');
+    toast('已导出为文件');
+  } catch (e) {
+    setDataResult(module, 'warn', '保存文件失败，请改用“复制”按钮');
+    toast('保存文件失败');
+  }
+}
+
+// 从 txt 文件读取导入字符串
+function loadModuleFile(module, input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    var ta = document.getElementById(module + '-data-import');
+    if (ta) ta.value = String(reader.result || '');
+    setDataResult(module, 'warn', '已载入「' + file.name + '」，点击“导入”开始合并');
+    toast('文件已载入');
+  };
+  reader.onerror = function () {
+    setDataResult(module, 'error', '读取文件失败，请重试或改用复制粘贴');
+  };
+  reader.readAsText(file, 'utf-8');
+  input.value = '';
+}
+
+function pickModuleFile(module) {
+  var input = document.getElementById(module + '-data-file');
+  if (input) input.click();
 }
 
 async function copyModuleExport(module) {
@@ -173,10 +241,13 @@ async function importModuleData(module) {
   if (btn) { btn.textContent = '导入中…'; btn.disabled = true; }
 
   try {
-    var payload = parseDataString(ta ? ta.value : '', module);
-    var stats = module === 'memo'
-      ? await mergeMemoRecords(payload.records)
-      : await mergeFocusPayload(payload);
+    var parsed = parseDataString(ta ? ta.value : '', module);
+    var stats;
+    if (module === 'memo') {
+      stats = await mergeMemoRecords(normalizeMemoRecords(parsed.payload, parsed.version));
+    } else {
+      stats = await mergeFocusPayload(normalizeFocusPayload(parsed.payload, parsed.version));
+    }
 
     if (module === 'memo') {
       var msg = '导入完成：新增 ' + stats.added + ' 条';
@@ -237,6 +308,54 @@ function setDataResult(module, type, msg) {
   el.textContent = msg;
   el.classList.remove('hidden');
   el.style.color = type === 'error' ? '#ef4444' : (type === 'warn' ? '#f59e0b' : '#10b981');
+}
+
+// ── 版本归一化：v1 对象结构 / v2 紧凑数组 → 统一对象 ──
+function normalizeMemoRecords(payload, version) {
+  if (version === 1) {
+    if (!Array.isArray(payload.records)) throw new Error('数据缺少 records 字段，未导入任何记录');
+    return payload.records;
+  }
+  if (!Array.isArray(payload.r)) throw new Error('数据缺少记录字段，未导入任何记录');
+  return payload.r.map(function (a) {
+    if (!Array.isArray(a)) return null;
+    return { title: a[0], content: a[1], deadline: a[2] || null, autoDelete: !!a[3], createdAt: a[4] };
+  });
+}
+
+function normalizeFocusPayload(payload, version) {
+  if (version === 1) {
+    if (!Array.isArray(payload.tasks) && !Array.isArray(payload.sessions)) {
+      throw new Error('数据缺少 tasks / sessions 字段，未导入任何记录');
+    }
+    return {
+      tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
+      sessions: Array.isArray(payload.sessions) ? payload.sessions : []
+    };
+  }
+
+  if (!Array.isArray(payload.t) && !Array.isArray(payload.s)) {
+    throw new Error('数据缺少任务或记录字段，未导入任何记录');
+  }
+  var taskArrays = Array.isArray(payload.t) ? payload.t : [];
+  var tasks = taskArrays.map(function (a) {
+    if (!Array.isArray(a)) return null;
+    return { name: a[0], color: a[1], createdAt: a[2] };
+  });
+  var sessions = (Array.isArray(payload.s) ? payload.s : []).map(function (a) {
+    if (!Array.isArray(a)) return null;
+    var idx = Number(a[0]);
+    var t = tasks[idx];
+    return {
+      taskName: t && typeof t.name === 'string' ? t.name : '',
+      startAt: a[1],
+      endAt: a[2],
+      durationSec: a[3],
+      mode: a[4],
+      completed: a[5] !== 0
+    };
+  });
+  return { tasks: tasks, sessions: sessions };
 }
 
 // ── 备忘录合并 ────────────────────────────────

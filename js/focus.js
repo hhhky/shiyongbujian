@@ -681,7 +681,6 @@ function renderStats() {
   drawHeatmap();
   drawMonthlyChart();
   drawDonutAndRank();
-  renderRecentSessions();
 }
 
 function updateStatsRangeUI() {
@@ -840,12 +839,10 @@ function drawHourChart() {
   if (!cv) return;
   var ctx = cv.ctx, W = cv.w, H = cv.h;
   var hours = new Array(24).fill(0);
-  var days = focusRangeDays(focusStatsRange);
-  var start = days[0] || 0;
-  var end = (days[days.length - 1] || Date.now()) + 86400000;
+  var bounds = focusMonthBounds();
   focusSessions.forEach(function(s) {
     var ts = focusSessionTs(s);
-    if (ts < start || ts >= end) return;
+    if (ts < bounds.start || ts >= bounds.end) return;
     var hour = new Date(s.startAt || ts).getHours();
     hours[hour] += Math.round((s.durationSec || 0) / 60);
   });
@@ -917,20 +914,31 @@ function focusMonthParts() {
   return { year: parseInt(p[0], 10), month: parseInt(p[1], 10) - 1 };
 }
 
-function syncFocusMonthInputs() {
+// 当前查看月份的时间范围 [start, end)
+function focusMonthBounds() {
   var mp = focusMonthParts();
-  var input = document.getElementById('focus-heatmap-month');
-  if (input && input.value !== focusStatsMonth) input.value = focusStatsMonth;
-  var lbl = document.getElementById('focus-monthly-label');
-  if (lbl) lbl.textContent = mp.year + '年' + (mp.month + 1) + '月';
+  return {
+    start: new Date(mp.year, mp.month, 1).getTime(),
+    end: new Date(mp.year, mp.month + 1, 1).getTime()
+  };
+}
+
+function syncFocusMonthInputs() {
+  var ids = ['focus-hours-month', 'focus-heatmap-month', 'focus-monthly-month', 'focus-donut-month'];
+  for (var i = 0; i < ids.length; i++) {
+    var input = document.getElementById(ids[i]);
+    if (input && input.value !== focusStatsMonth) input.value = focusStatsMonth;
+  }
 }
 
 function setFocusStatsMonth(value) {
   if (!/^\d{4}-\d{2}$/.test(value || '')) return;
   focusStatsMonth = value;
   syncFocusMonthInputs();
+  drawHourChart();
   drawHeatmap();
   drawMonthlyChart();
+  drawDonutAndRank();
 }
 
 function changeFocusStatsMonth(delta) {
@@ -1177,12 +1185,10 @@ function drawMonthlyChart() {
 // ── 时长分布 + 排行 ───────────────────────────
 function focusTaskGroups() {
   var groups = {};
-  var days = focusRangeDays(focusStatsRange);
-  var start = days[0] || 0;
-  var end = (days[days.length - 1] || Date.now()) + 86400000;
+  var bounds = focusMonthBounds();
   focusSessions.forEach(function(s) {
     var ts = focusSessionTs(s);
-    if (ts < start || ts >= end) return;
+    if (ts < bounds.start || ts >= bounds.end) return;
     var name = s.taskName || '未命名';
     if (!groups[name]) groups[name] = { name: name, sec: 0, taskId: s.taskId };
     groups[name].sec += (s.durationSec || 0);
@@ -1365,6 +1371,14 @@ function focusCalMonthKey() {
   return focusCalYear + '-' + pad2(focusCalMonth + 1);
 }
 
+// 日历格子右侧的时长文字，控制长度避免撑出格子
+function focusCalTimeLabel(mins) {
+  if (!mins) return '';
+  if (mins < 300) return mins + '分';
+  var h = mins / 60;
+  return (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10) + 'h';
+}
+
 function renderFocusCalendar() {
   var grid = document.getElementById('focus-cal-grid');
   if (!grid || !focusDataReady) return;
@@ -1388,16 +1402,15 @@ function renderFocusCalendar() {
     var lvl = focusHeatLevel(mins);
     var selected = key === focusCalSelected;
     var isToday = key === todayStr;
-    var style = 'min-height:46px;border-radius:10px;padding:4px 0;line-height:1.05;background:' + lvl.bg + ';';
+    var style = 'min-height:46px;border-radius:10px;padding:4px 2px;line-height:1;background:' + lvl.bg + ';display:flex;align-items:center;justify-content:space-between;gap:1px;overflow:hidden;';
     if (selected) style += 'box-shadow:inset 0 0 0 2px ' + (lvl.strong ? 'rgba(255,255,255,0.95)' : FOCUS_ACCENT) + ';';
     else if (isToday) style += 'box-shadow:inset 0 0 0 1px rgba(249,115,22,0.55);';
     var numColor = lvl.strong ? '#ffffff' : (isToday ? FOCUS_ACCENT : 'var(--text-primary)');
     var subColor = lvl.strong ? 'rgba(255,255,255,0.85)' : 'var(--text-tertiary)';
-    html += '<div onclick="selectFocusCalendarDay(\'' + key + '\')" style="cursor:pointer;' + style + '">'
-      + '<div style="font-size:12px;font-weight:600;color:' + numColor + ';">' + d + '</div>'
-      + (mins > 0
-        ? '<div style="font-size:9px;margin-top:2px;color:' + subColor + ';">' + mins + '分</div>'
-        : '<div style="font-size:9px;margin-top:2px;color:transparent;">·</div>')
+    var timeLabel = focusCalTimeLabel(mins);
+    html += '<div onclick="selectFocusCalendarDay(\'' + key + '\')" title="' + (mins > 0 ? d + ' 日 · ' + mins + ' 分钟' : d + ' 日') + '" style="cursor:pointer;' + style + '">'
+      + '<span style="font-size:12px;font-weight:600;color:' + numColor + ';flex:0 0 auto;">' + d + '</span>'
+      + '<span style="flex:1 1 0;min-width:0;overflow:hidden;white-space:nowrap;text-align:right;font-size:8.5px;font-weight:600;color:' + (mins > 0 ? subColor : 'transparent') + ';">' + (mins > 0 ? timeLabel : '·') + '</span>'
       + '</div>';
   }
 
@@ -1480,35 +1493,6 @@ function focusCalendarToday() {
   focusCalMonth = now.getMonth();
   focusCalSelected = dayKey(now.getTime());
   renderFocusCalendar();
-}
-
-// ── 最近记录 ──────────────────────────────────
-function renderRecentSessions() {
-  var el = document.getElementById('stats-recent');
-  if (!el) return;
-  if (!focusSessions.length) {
-    el.innerHTML = '<p class="text-xs text-center py-6" style="color: var(--text-tertiary);">还没有专注记录</p>';
-    return;
-  }
-  var list = focusSessions.slice().sort(function(a, b) {
-    return focusSessionTs(b) - focusSessionTs(a);
-  }).slice(0, 20);
-
-  el.innerHTML = list.map(function(s) {
-    var t = focusTaskById(s.taskId);
-    var color = t ? t.color : '#9ca3af';
-    var d = new Date(focusSessionTs(s));
-    var when = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
-    return '<div class="flex items-center gap-3 py-2" style="border-bottom:0.5px solid rgba(128,128,128,0.12);">'
-      + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>'
-      + '<div class="flex-1 min-w-0">'
-        + '<p class="text-xs truncate" style="color: var(--text-primary);">' + esc(s.taskName || '未命名') + '</p>'
-        + '<p class="text-xs" style="color: var(--text-tertiary);">' + when + ' · ' + focusModeLabel(s.mode) + '</p>'
-      + '</div>'
-      + '<span class="text-xs font-medium" style="color: var(--text-secondary);">' + formatFocusDuration(s.durationSec || 0) + '</span>'
-      + '<button onclick="deleteFocusSessionById(' + s.id + ')" class="icon-btn-del" title="删除记录"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
-    + '</div>';
-  }).join('');
 }
 
 async function deleteFocusSessionById(id) {
