@@ -304,7 +304,7 @@ function updateFocusModeUI() {
       dial.style.aspectRatio = 'auto';
       dial.style.minHeight = '150px';
     } else {
-      dial.style.width = 'min(260px, 72vw)';
+      dial.style.width = 'min(290px, 78vw)';
       dial.style.aspectRatio = '1';
       dial.style.minHeight = '';
     }

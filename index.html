@@ -63,13 +63,13 @@
       --toast-border: 0.5px solid rgba(255,255,255,0.2);
       --scrollbar-thumb: rgba(0,0,0,0.12);
       --scrollbar-thumb-hover: rgba(0,0,0,0.22);
-      --card-bg: rgba(255,255,255,0.18);
+      --card-bg: rgba(255,255,255,0.66);
       --card-border: 0.5px solid rgba(255,255,255,0.35);
       --card-backdrop: blur(48px) saturate(2.2);
-      --card-box-shadow: var(--card-box-shadow);
+      --card-box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
       --card-text: #1d1d1f;
       --card-subtext: #6e6e73;
-      --card-hover-shadow: 0 8px 28px rgba(0,0,0,0.08);
+      --card-hover-shadow: 0 6px 16px rgba(0,0,0,0.07), 0 16px 40px rgba(0,0,0,0.1);
       --text-primary: #1d1d1f;
       --text-secondary: #6e6e73;
       --text-tertiary: #8e8e93;
@@ -108,10 +108,10 @@
       --card-bg: rgba(255,255,255,0.96);
       --card-border: 0.5px solid rgba(0,0,0,0.06);
       --card-backdrop: none;
-      --card-box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+      --card-box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 6px 20px rgba(0,0,0,0.04);
       --card-text: #1d1d1f;
       --card-subtext: #6e6e73;
-      --card-hover-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      --card-hover-shadow: 0 4px 12px rgba(0,0,0,0.07), 0 14px 32px rgba(0,0,0,0.07);
       --text-primary: #1d1d1f;
       --text-secondary: #6e6e73;
       --text-tertiary: #8e8e93;
@@ -204,6 +204,13 @@
     .widget-card-outer:hover {
       transform: translateY(-2px);
       box-shadow: var(--card-hover-shadow) !important;
+    }
+    /* 首页部件卡片描述最多两行，保证双列网格高度一致 */
+    .widget-card-desc {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     /* Mind Map */
     .mindmap-canvas { position: relative; min-height: 700px; overflow: auto; cursor: grab; }
@@ -456,7 +463,7 @@
             <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">我的部件</h2>
             <p class="text-xs text-gray-400 mt-0.5">点击部件进入使用</p>
           </div>
-          <div id="widgets-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div id="widgets-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
           </div>
         </div>
 
@@ -594,20 +601,20 @@
               </div>
               <p id="focus-mode-hint" class="text-xs mb-1" style="color: var(--text-tertiary);">正计时：记录实际学习时长</p>
 
-              <div id="focus-dial" class="relative mx-auto" style="width: min(260px, 72vw); aspect-ratio: 1;">
+              <div id="focus-dial" class="relative mx-auto" style="width: min(290px, 78vw); aspect-ratio: 1;">
                 <svg id="focus-ring-svg" viewBox="0 0 240 240" class="w-full h-full" style="transform: rotate(-90deg);">
                   <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(128,128,128,0.14)" stroke-width="12"/>
                   <circle id="focus-ring" cx="120" cy="120" r="104" fill="none" stroke="#f97316" stroke-width="12" stroke-linecap="round" stroke-dasharray="653.45" stroke-dashoffset="653.45" style="transition: stroke-dashoffset .3s linear, stroke .3s;"/>
                 </svg>
                 <div id="focus-dial-inner" class="absolute inset-0 flex flex-col items-center justify-center">
-                  <div id="focus-time" class="font-bold tabular-nums" style="font-size: clamp(2.2rem, 10vw, 3rem); color: var(--text-primary); letter-spacing: 1px;">00:00</div>
+                  <div id="focus-time" class="font-bold tabular-nums" style="font-size: clamp(2.6rem, 12.5vw, 3.4rem); color: var(--text-primary); letter-spacing: -0.02em;">00:00</div>
                   <div id="focus-state-label" class="text-xs mt-1" style="color: var(--text-tertiary);">未开始</div>
                   <div id="focus-task-label" class="text-sm mt-1.5 font-semibold" style="color: var(--text-tertiary);">未选择任务</div>
                 </div>
               </div>
 
               <div class="flex items-center justify-center gap-3 mt-4">
-                <button id="focus-start-btn" onclick="toggleFocusTimer()" class="px-8 py-3 rounded-[20px] text-white text-sm font-semibold shadow-lg btn-jelly transition-all" style="background: #f97316; box-shadow: 0 6px 18px rgba(249,115,22,0.35);">开始</button>
+                <button id="focus-start-btn" onclick="toggleFocusTimer()" class="px-8 py-3 rounded-[20px] text-white text-sm font-semibold shadow-lg btn-jelly transition-all" style="background: #f97316; box-shadow: 0 2px 8px rgba(249,115,22,0.18);">开始</button>
                 <button id="focus-stop-btn" onclick="stopFocusTimer(true)" disabled class="px-5 py-3 rounded-[20px] text-sm font-semibold" style="background: rgba(128,128,128,0.12); color: var(--text-secondary); opacity: .4;">结束并记录</button>
               </div>
             </div>

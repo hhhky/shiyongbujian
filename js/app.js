@@ -84,10 +84,10 @@ function renderWidgets() {
   if (!grid) return;
   var filesCount = 0;
   grid.innerHTML = WIDGETS.map(function(w) {
-    return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[28px] p-6 cursor-pointer card-hover">
-      <div class="text-4xl mb-3">${w.icon}</div>
-      <h3 class="font-bold text-base mb-1" style="color: var(--card-text);">${esc(w.name)}</h3>
-      <p class="text-xs" style="color: var(--card-subtext);">${w.desc}</p>
+    return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
+      <div class="text-3xl mb-2 leading-none">${w.icon}</div>
+      <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">${esc(w.name)}</h3>
+      <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">${w.desc}</p>
     </div>`;
   }).join('');
 }

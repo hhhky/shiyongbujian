@@ -1,4 +1,4 @@
-const CACHE = 'review-v10';
+const CACHE = 'review-v11';
 
 // Cache all local files on install
 self.addEventListener('install', e => {
