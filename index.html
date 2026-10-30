@@ -314,6 +314,11 @@
       color: var(--sidebar-active-text);
     }
 
+    /* 宽屏已有侧边栏返回入口，顶栏返回按钮不再重复显示 */
+    @media (min-width: 768px) {
+      #header-back-btn { display: none !important; }
+    }
+
     .nav-tab {
       transition: all 0.2s ease;
     }
@@ -655,8 +660,7 @@
             </div>
 
             <!-- 下面三张图共用一个月份选择器 -->
-            <div class="flex items-center justify-between gap-2 mb-3 px-1">
-              <span class="text-xs" style="color: var(--text-tertiary);">下面三张图按月份查看</span>
+            <div class="flex items-center justify-end gap-2 mb-3 px-1">
               <div class="flex items-center gap-1">
                 <button onclick="changeFocusStatsMonth(-1)" class="w-7 h-7 flex items-center justify-center rounded-full btn-jelly" style="background:rgba(128,128,128,0.1);color:var(--text-secondary);" title="上个月">‹</button>
                 <input type="month" id="focus-stats-month" onchange="setFocusStatsMonth(this.value)" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);max-width:135px;">

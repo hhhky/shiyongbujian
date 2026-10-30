@@ -363,9 +363,10 @@ async function stopFocusTimer(save) {
   var t = focusTimer;
   var task = focusTaskById(t.taskId);
   var shouldSave = save && sec >= 5 && task;
+  var endAt = Date.now();
 
   if (shouldSave) {
-    var endAt = Date.now();
+    if (!await confirmDialog('结束并记录？\n本次 ' + formatFocusDuration(sec) + '，' + task.name)) return;
     await addFocusSession({
       taskId: task.id,
       taskName: task.name,
