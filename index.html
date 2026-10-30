@@ -212,6 +212,69 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+
+    /* 远程公告弹窗 */
+    .announce-mask {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.32);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .announce-mask.show { opacity: 1; }
+    .announce-card {
+      width: min(360px, 100%);
+      border-radius: 24px;
+      padding: 22px;
+      background: rgba(255, 255, 255, 0.97);
+      color: #1d1d1f;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+      transform: scale(0.94);
+      transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .announce-mask.show .announce-card { transform: scale(1); }
+    [data-theme="dark"] .announce-card { background: #2c2c2e; color: #f5f5f7; }
+    .announce-title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .announce-body {
+      font-size: 13px;
+      line-height: 1.65;
+      color: #6e6e73;
+      white-space: pre-wrap;
+    }
+    [data-theme="dark"] .announce-body { color: #98989d; }
+    .announce-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .announce-primary, .announce-secondary {
+      flex: 1;
+      padding: 11px 0;
+      border: none;
+      border-radius: 16px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    .announce-primary { background: #f97316; color: #fff; }
+    .announce-secondary { background: rgba(128, 128, 128, 0.14); color: inherit; }
+    [data-theme="dark"] .announce-secondary { background: rgba(255, 255, 255, 0.12); }
+    .announce-primary:active, .announce-secondary:active { opacity: 0.8; }
     /* Mind Map */
     .mindmap-canvas { position: relative; min-height: 700px; overflow: auto; cursor: grab; }
     .mindmap-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
@@ -1120,6 +1183,7 @@
   <script src="js/focus.js"></script>
   <script src="js/data-transfer.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/announce.js"></script>
   <script>
     (function() {
       // Load saved theme

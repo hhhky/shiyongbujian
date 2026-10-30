@@ -1,4 +1,4 @@
-const CACHE = 'review-v12';
+const CACHE = 'review-v13';
 
 // Cache all local files on install
 self.addEventListener('install', e => {
@@ -19,6 +19,7 @@ self.addEventListener('install', e => {
         './js/db.js',
         './js/focus.js',
         './js/data-transfer.js',
+        './js/announce.js',
         './js/tailwind.js',
         './js/pdf.min.js',
         './js/pdf.worker.min.js',
@@ -42,6 +43,8 @@ self.addEventListener('activate', e => {
 // Network-first, fallback to cache
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // 跨域请求（远程公告等）不经过缓存，保证每次都拿到最新内容
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then(response => {

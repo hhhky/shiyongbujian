@@ -1,0 +1,10 @@
+{
+  "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示。",
+  "id": 0,
+  "title": "",
+  "body": "",
+  "button": "",
+  "url": "",
+  "minVersion": "",
+  "force": false
+}
