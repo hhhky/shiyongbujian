@@ -197,6 +197,8 @@ function applyTheme(theme) {
   localStorage.setItem('app-theme', theme);
   var colors = { glass: '#e5e5ea', white: '#ffffff', dark: '#1c1c1e' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
+  // 系统栏（状态栏/导航栏）图标黑白与底色跟随主题
+  if (typeof window.syncSystemBars === 'function') window.syncSystemBars(theme);
   updateThemeSelection();
   // 统计页图表依赖主题色，切主题后重绘
   if (currentWidget === 'focus' && typeof renderStats === 'function') setTimeout(renderStats, 60);

@@ -785,12 +785,12 @@
                 <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">粘贴其他设备导出的专注记录字符串</p>
               </div>
               <textarea id="focus-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v2|focus 开头的完整字符串，或从文件载入" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
-              <div class="flex flex-wrap items-end justify-between gap-2 mt-3">
+              <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
                 <p class="text-[11px] leading-relaxed" style="color: var(--text-tertiary);">同一条记录冲突时保留本机数据，只追加新记录；导入失败不会改动本机数据。</p>
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2 shrink-0 ml-auto">
                   <input type="file" id="focus-data-file" accept=".txt,text/plain" class="hidden" onchange="loadModuleFile('focus', this)">
                   <button onclick="pickModuleFile('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">选择文件</button>
-                  <button id="focus-data-import-btn" onclick="importModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly" style="background:#f97316;">导入</button>
+                  <button id="focus-data-import-btn" onclick="importModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">导入</button>
                 </div>
               </div>
               <p id="focus-data-result" class="text-xs mt-3 hidden break-all"></p>
@@ -844,12 +844,12 @@
                 <p class="text-xs mt-0.5" style="color: var(--text-tertiary);">粘贴其他设备导出的备忘录字符串</p>
               </div>
               <textarea id="memo-data-import" rows="6" spellcheck="false" placeholder="粘贴以 SJB-DATA|v2|memo 开头的完整字符串，或从文件载入" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
-              <div class="flex flex-wrap items-end justify-between gap-2 mt-3">
+              <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
                 <p class="text-[11px] leading-relaxed" style="color: var(--text-tertiary);">同一条记录冲突时保留本机数据，只追加新记录；导入失败不会改动本机数据。</p>
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-2 shrink-0 ml-auto">
                   <input type="file" id="memo-data-file" accept=".txt,text/plain" class="hidden" onchange="loadModuleFile('memo', this)">
                   <button onclick="pickModuleFile('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">选择文件</button>
-                  <button id="memo-data-import-btn" onclick="importModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly" style="background:#10b981;">导入</button>
+                  <button id="memo-data-import-btn" onclick="importModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly" style="background:rgba(128,128,128,0.12);color:var(--text-primary);">导入</button>
                 </div>
               </div>
               <p id="memo-data-result" class="text-xs mt-3 hidden break-all"></p>
@@ -1129,6 +1129,7 @@
       const saved = localStorage.getItem('app-theme') || 'glass';
       document.documentElement.setAttribute('data-theme', saved);
       updateThemeMeta(saved);
+      if (typeof window.syncSystemBars === 'function') window.syncSystemBars(saved);
     })();
 
     function updateThemeMeta(theme) {
