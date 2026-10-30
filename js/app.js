@@ -31,7 +31,7 @@ let pinchZoom0 = 1;
 // ── Widget Registry ────────────────────────
 const WIDGETS = [
   {
-    id: 'focus', name: '专注', icon: '🍅', desc: '任务计时 · 学习时长统计与打卡', color: '#f97316',
+    id: 'focus', name: '专注', icon: '🍅', desc: '任务计时、学习时长统计与打卡', color: '#f97316',
     tabs: [
       { id: 'pomodoro', name: '计时', shortName: '计时', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
       { id: 'stats', name: '数据统计', shortName: '统计', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>' },
@@ -63,7 +63,7 @@ const WIDGETS = [
     ]
   },
   {
-    id: 'deepseek', name: 'DeepSeek 思考助手', icon: '🤖', desc: 'AI 对话 · 支持深度推理和 Markdown', color: '#6366f1',
+    id: 'deepseek', name: 'DeepSeek 思考助手', icon: '🤖', desc: 'AI 对话，支持深度推理和 Markdown', color: '#6366f1',
     tabs: [
       { id: 'chat', name: 'AI 对话', shortName: '对话', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>' }
     ]
@@ -459,7 +459,7 @@ async function renderFiles() {
       <span class="text-2xl shrink-0">${icon}</span>
       <div class="flex-1 min-w-0">
         <span id="fname-${f.id}" class="font-medium text-gray-800 text-sm truncate block">${esc(f.name)}</span>
-        <p class="text-xs text-gray-400">${sizeStr} · ${new Date(f.createdAt).toLocaleDateString('zh-CN')}</p>
+        <p class="text-xs text-gray-400">${sizeStr}，${new Date(f.createdAt).toLocaleDateString('zh-CN')}</p>
       </div>
       <button onclick="event.stopPropagation();startRename(${f.id})" class="icon-btn-edit shrink-0" title="重命名"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
       <button onclick="event.stopPropagation();removeFile(${f.id})" class="icon-btn-del shrink-0" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
@@ -1062,10 +1062,10 @@ function getDaysInfo(memo) {
   var msRemaining = deletionTime - now;
   if (msRemaining <= 0) return { label: '即将删除...', color: '#ef4444', urgent: true };
   var days = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
-  if (now > deadline) return { label: '已过期 · ' + days + '天后自动删除', color: '#f97316', urgent: true };
+  if (now > deadline) return { label: '已过期，' + days + '天后自动删除', color: '#f97316', urgent: true };
   var daysToDeadline = Math.ceil((deadline - now) / (24 * 60 * 60 * 1000));
-  if (daysToDeadline <= 1) return { label: '即将到期 · ' + days + '天后删除', color: '#e11d48', urgent: true };
-  if (daysToDeadline <= 3) return { label: daysToDeadline + '天后到期 · ' + days + '天后删除', color: '#f97316', urgent: false };
+  if (daysToDeadline <= 1) return { label: '即将到期，' + days + '天后删除', color: '#e11d48', urgent: true };
+  if (daysToDeadline <= 3) return { label: daysToDeadline + '天后到期，' + days + '天后删除', color: '#f97316', urgent: false };
   return { label: daysToDeadline + '天后到期', color: '#6b7280', urgent: false };
 }
 
@@ -1091,7 +1091,7 @@ async function renderMemos() {
       + '</div>'
       + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
       + '<div class="flex items-center justify-between text-xs">'
-        + '<span class="text-gray-400">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? ' · 自动删除' : '') + '</span>'
+        + '<span class="text-gray-400">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? '，自动删除' : '') + '</span>'
         + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
       + '</div>'
     + '</div>';
@@ -1355,7 +1355,7 @@ async function renderWorkflows() {
       var progress = total > 0 ? Math.round(doneCount / total * 100) : 0;
       infoHtml = '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2">'
         + '<span>' + total + ' 个节点</span>'
-        + '<span>·</span>'
+        + '<span>，</span>'
         + '<span>' + doneCount + ' 已完成</span>'
         + '</div>'
         + '<div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">'

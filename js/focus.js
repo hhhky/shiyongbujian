@@ -6,8 +6,9 @@
 
 var FOCUS_ACCENT = '#f97316';
 var FOCUS_TASK_COLORS = [
-  '#f97316', '#ef4444', '#ec4899', '#8b5cf6', '#6366f1', '#3b82f6',
-  '#06b6d4', '#10b981', '#84cc16', '#eab308', '#f59e0b', '#64748b'
+  '#ef4444', '#f43f5e', '#ec4899', '#d946ef', '#a855f7', '#8b5cf6',
+  '#6366f1', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#10b981',
+  '#22c55e', '#84cc16', '#eab308', '#f59e0b', '#f97316', '#64748b'
 ];
 
 var focusTasks = [];
@@ -374,7 +375,7 @@ async function stopFocusTimer(save) {
       mode: t.mode,
       completed: t.mode === 'down' && sec >= (t.targetSec || 0) - 2
     });
-    toast('已记录 ' + formatFocusDuration(sec) + ' · ' + task.name);
+    toast('已记录 ' + formatFocusDuration(sec) + '，' + task.name);
   } else if (save && sec > 0 && sec < 5) {
     toast('时长太短，未记录');
   }
@@ -440,7 +441,7 @@ async function completeFocusTimer() {
   renderFocusTasks();
   renderStats();
   refreshFocusBadge();
-  toast('番茄完成 · ' + (task ? task.name : '') + '（' + sec / 60 + ' 分钟）');
+  toast('番茄完成，' + (task ? task.name : '') + '（' + sec / 60 + ' 分钟）');
 }
 
 function updateFocusTimerDisplay() {
@@ -468,7 +469,7 @@ function updateFocusTimerDisplay() {
   var stateEl = document.getElementById('focus-state-label');
   if (stateEl) {
     var label;
-    if (focusTimer.running) label = focusTimer.mode === 'down' ? '专注中 · 倒计时' : '专注中 · 正计时';
+    if (focusTimer.running) label = focusTimer.mode === 'down' ? '专注中，倒计时' : '专注中，正计时';
     else if (focusTimer.accumulated > 0) label = '已暂停';
     else label = '未开始';
     stateEl.textContent = label;
@@ -540,7 +541,7 @@ function restoreFocusTimer() {
       if (focusTimer.mode === 'down' && focusTimer.targetSec > 0 && elapsed >= focusTimer.targetSec) {
         completeFocusTimer();
       } else {
-        setTimeout(function() { toast('已恢复上次计时 · 已专注 ' + formatFocusDuration(Math.round(focusElapsed()))); }, 600);
+        setTimeout(function() { toast('已恢复上次计时，已专注 ' + formatFocusDuration(Math.round(focusElapsed()))); }, 600);
       }
     }
   } catch (e) { /* ignore */ }
@@ -675,13 +676,15 @@ function setFocusStatsRange(range) {
 function renderStats() {
   if (!focusDataReady) return;
   if (!document.getElementById('page-stats')) return;
+  focusMonthParts();
+  syncFocusMonthInputs();
   updateStatsRangeUI();
   renderStatsOverview();
-  drawTrendChart();
+  drawDonutAndRank();
+  drawTodayHourChart();
   drawHourChart();
   drawHeatmap();
   drawMonthlyChart();
-  drawDonutAndRank();
 }
 
 function updateStatsRangeUI() {
@@ -755,87 +758,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// ── 每日趋势图 ────────────────────────────────
-function drawTrendChart() {
-  var cv = focusCanvas('chart-trend', 190);
+// ── 24 小时柱状图（时段分布与每日专注时长共用） ──
+function drawHourBars(canvasId, height, hours, emptyText) {
+  var cv = focusCanvas(canvasId, height);
   if (!cv) return;
   var ctx = cv.ctx, W = cv.w, H = cv.h;
-  var today = startOfDay(Date.now());
-  var mins = Math.round((focusDayMap()[dayKey(today)] || 0) / 60);
-  var top = Math.max(30, Math.ceil(Math.max(mins, 1) / 15) * 15);
-  var pad = { l: 34, r: 8, t: 26, b: 26 };
-  var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
-  var text = focusCssVar('--text-tertiary', '#8e8e93');
-  var grid = 'rgba(128,128,128,0.16)';
-  ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
-
-  for (var g = 0; g <= 3; g++) {
-    var gy = pad.t + ph - ph * g / 3;
-    ctx.strokeStyle = grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(pad.l, gy + 0.5);
-    ctx.lineTo(W - pad.r, gy + 0.5);
-    ctx.stroke();
-    ctx.fillStyle = text;
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(String(Math.round(top * g / 3)), pad.l - 6, gy);
-  }
-
-  var cx = pad.l + pw / 2;
-  var bw = Math.min(88, Math.max(40, pw * 0.24));
-
-  if (mins > 0) {
-    var bh = Math.max(4, ph * mins / top);
-    var y2 = pad.t + ph - bh;
-    var grad = ctx.createLinearGradient(0, y2, 0, pad.t + ph);
-    grad.addColorStop(0, '#fdba74');
-    grad.addColorStop(1, '#f97316');
-    ctx.fillStyle = grad;
-    roundRectPath(ctx, cx - bw / 2, y2, bw, bh, Math.min(8, bw / 2));
-    ctx.fill();
-
-    ctx.fillStyle = FOCUS_ACCENT;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(mins + ' 分钟', cx, y2 - 6);
-    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
-  } else {
-    ctx.fillStyle = 'rgba(128,128,128,0.14)';
-    roundRectPath(ctx, cx - bw / 2, pad.t + ph - 3, bw, 3, 1.5);
-    ctx.fill();
-    ctx.fillStyle = text;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('今天还没有专注记录', cx, pad.t + ph - 14);
-  }
-
-  var d = new Date(today);
-  ctx.fillStyle = text;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillText('今天 ' + (d.getMonth() + 1) + '/' + d.getDate(), cx, pad.t + ph + 8);
-}
-
-// ── 时段分布图 ────────────────────────────────
-function drawHourChart() {
-  var cv = focusCanvas('chart-hours', 170);
-  if (!cv) return;
-  var ctx = cv.ctx, W = cv.w, H = cv.h;
-  var hours = new Array(24).fill(0);
-  var bounds = focusMonthBounds();
-  focusSessions.forEach(function(s) {
-    var ts = focusSessionTs(s);
-    if (ts < bounds.start || ts >= bounds.end) return;
-    var hour = new Date(s.startAt || ts).getHours();
-    hours[hour] += Math.round((s.durationSec || 0) / 60);
-  });
-
   var maxV = Math.max.apply(null, hours.concat([1]));
   var top = Math.max(30, Math.ceil(maxV / 15) * 15);
-  var pad = { l: 30, r: 8, t: 10, b: 22 };
+  var pad = { l: 30, r: 8, t: 12, b: 22 };
   var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
   var text = focusCssVar('--text-tertiary', '#8e8e93');
 
@@ -858,21 +788,20 @@ function drawHourChart() {
     ctx.fillStyle = text;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('暂无数据', pad.l + pw / 2, pad.t + ph / 2);
+    ctx.fillText(emptyText || '暂无数据', pad.l + pw / 2, pad.t + ph / 2);
     return;
   }
 
   var slot = pw / 24;
   var bw = Math.max(2, slot * 0.62);
   var peak = Math.max.apply(null, hours);
-  for (var i = 0; i < 24; i++) {
-    var v = hours[i];
-    var x = pad.l + slot * i + (slot - bw) / 2;
+  for (var k = 0; k < 24; k++) {
+    var v = hours[k];
+    var x = pad.l + slot * k + (slot - bw) / 2;
     if (v > 0) {
       var bh = Math.max(2, ph * v / top);
       var y2 = pad.t + ph - bh;
-      var isPeak = v === peak;
-      ctx.fillStyle = isPeak ? '#f97316' : 'rgba(249,115,22,0.55)';
+      ctx.fillStyle = v === peak ? FOCUS_ACCENT : 'rgba(249,115,22,0.55)';
       roundRectPath(ctx, x, y2, bw, bh, Math.min(3, bw / 2));
       ctx.fill();
     } else {
@@ -888,6 +817,42 @@ function drawHourChart() {
   for (var hh = 0; hh < 24; hh += 4) {
     ctx.fillText(hh + '时', pad.l + slot * hh + slot / 2, pad.t + ph + 6);
   }
+}
+
+// ── 每日专注时长：今天各个时刻学了多久 ──────────
+function drawTodayHourChart() {
+  var start = startOfDay(Date.now());
+  var end = start + 86400000;
+  var raw = new Array(24).fill(0);
+  var totalSec = 0;
+
+  focusSessions.forEach(function(s) {
+    var ts = focusSessionTs(s);
+    if (ts < start || ts >= end) return;
+    var sec = s.durationSec || 0;
+    totalSec += sec;
+    raw[new Date(s.startAt || ts).getHours()] += sec;
+  });
+
+  var totalEl = document.getElementById('focus-today-total');
+  if (totalEl) totalEl.textContent = '今天 ' + formatFocusDuration(totalSec);
+
+  drawHourBars('chart-today-hours', 190, raw.map(function(sec) {
+    return Math.round(sec / 60);
+  }), '今天还没有专注记录');
+}
+
+// ── 时段分布图 ────────────────────────────────
+function drawHourChart() {
+  var hours = new Array(24).fill(0);
+  var bounds = focusMonthBounds();
+  focusSessions.forEach(function(s) {
+    var ts = focusSessionTs(s);
+    if (ts < bounds.start || ts >= bounds.end) return;
+    var hour = new Date(s.startAt || ts).getHours();
+    hours[hour] += Math.round((s.durationSec || 0) / 60);
+  });
+  drawHourBars('chart-hours', 170, hours, '暂无数据');
 }
 
 // ── 月份选择 ──────────────────────────────────
@@ -922,11 +887,8 @@ function focusStatsRangeBounds() {
 }
 
 function syncFocusMonthInputs() {
-  var ids = ['focus-hours-month', 'focus-heatmap-month', 'focus-monthly-month'];
-  for (var i = 0; i < ids.length; i++) {
-    var input = document.getElementById(ids[i]);
-    if (input && input.value !== focusStatsMonth) input.value = focusStatsMonth;
-  }
+  var input = document.getElementById('focus-stats-month');
+  if (input && input.value !== focusStatsMonth) input.value = focusStatsMonth;
 }
 
 function setFocusStatsMonth(value) {
@@ -1069,7 +1031,7 @@ function drawMonthlyChart() {
   var total = vals.reduce(function(a, v) { return a + v; }, 0);
   var activeDays = vals.filter(function(v) { return v > 0; }).length;
   var totalEl = document.getElementById('focus-monthly-total');
-  if (totalEl) totalEl.textContent = '共 ' + total + ' 分钟 · ' + activeDays + ' 天';
+  if (totalEl) totalEl.textContent = '共 ' + total + ' 分钟，' + activeDays + ' 天有记录';
 
   var maxV = Math.max.apply(null, vals.concat([1]));
   var top = Math.max(30, Math.ceil(maxV / 15) * 15);
@@ -1264,7 +1226,7 @@ function drawDonutAndRank() {
       + '<div class="flex items-center gap-2 text-xs mb-1">'
         + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>'
         + '<span class="flex-1 truncate" style="color: var(--text-primary);">' + esc(g.name) + '</span>'
-        + '<span style="color: var(--text-tertiary);">' + formatFocusDuration(g.sec) + ' · ' + pct + '%</span>'
+        + '<span style="color: var(--text-tertiary);">' + formatFocusDuration(g.sec) + '，' + pct + '%</span>'
       + '</div>'
       + '<div class="rounded-full overflow-hidden" style="height:5px;background:rgba(128,128,128,0.14);">'
         + '<div style="height:100%;width:' + Math.max(3, Math.round(g.sec / maxSec * 100)) + '%;background:' + color + ';border-radius:999px;"></div>'
@@ -1351,7 +1313,7 @@ async function confirmFocusManual() {
   renderStats();
   renderFocusCalendar();
   refreshFocusBadge();
-  toast('已补录 ' + minutes + ' 分钟' + (task ? ' · ' + task.name : ''));
+  toast('已补录 ' + minutes + ' 分钟' + (task ? '，' + task.name : ''));
 }
 
 // ── 专注日历 ──────────────────────────────────
@@ -1405,9 +1367,9 @@ function renderFocusCalendar() {
     var numColor = lvl.strong ? '#ffffff' : (isToday ? FOCUS_ACCENT : 'var(--text-primary)');
     var subColor = lvl.strong ? 'rgba(255,255,255,0.85)' : 'var(--text-tertiary)';
     var timeLabel = focusCalTimeLabel(mins);
-    html += '<div onclick="selectFocusCalendarDay(\'' + key + '\')" title="' + (mins > 0 ? d + ' 日 · ' + mins + ' 分钟' : d + ' 日') + '" style="cursor:pointer;' + style + '">'
+    html += '<div onclick="selectFocusCalendarDay(\'' + key + '\')" title="' + (mins > 0 ? d + ' 日，' + mins + ' 分钟' : d + ' 日') + '" style="cursor:pointer;' + style + '">'
       + '<span style="font-size:12px;font-weight:600;color:' + numColor + ';flex:0 0 auto;">' + d + '</span>'
-      + '<span style="flex:1 1 0;min-width:0;overflow:hidden;white-space:nowrap;text-align:right;font-size:8.5px;font-weight:600;color:' + (mins > 0 ? subColor : 'transparent') + ';">' + (mins > 0 ? timeLabel : '·') + '</span>'
+      + '<span style="flex:1 1 0;min-width:0;overflow:hidden;white-space:nowrap;text-align:right;font-size:8.5px;font-weight:600;color:' + (mins > 0 ? subColor : 'transparent') + ';">' + (mins > 0 ? timeLabel : '') + '</span>'
       + '</div>';
   }
 
@@ -1426,7 +1388,7 @@ function renderFocusCalendarDay() {
   var weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][d.getDay()];
   var isToday = focusCalSelected === dayKey(Date.now());
   if (titleEl) {
-    titleEl.textContent = (+parts[1]) + '月' + (+parts[2]) + '日 · ' + weekday + (isToday ? '（今天）' : '');
+    titleEl.textContent = (+parts[1]) + '月' + (+parts[2]) + '日，' + weekday + (isToday ? '（今天）' : '');
   }
 
   var sessions = focusSessions.filter(function(s) {
@@ -1436,7 +1398,7 @@ function renderFocusCalendarDay() {
   var totalSec = sessions.reduce(function(a, s) { return a + (s.durationSec || 0); }, 0);
   if (sumEl) {
     sumEl.textContent = sessions.length
-      ? formatFocusDuration(totalSec) + ' · ' + sessions.length + ' 次专注'
+      ? formatFocusDuration(totalSec) + '，' + sessions.length + ' 次专注'
       : '这一天还没有专注记录';
   }
 
@@ -1455,7 +1417,7 @@ function renderFocusCalendarDay() {
       + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>'
       + '<div class="flex-1 min-w-0">'
         + '<p class="text-xs truncate font-medium" style="color: var(--text-primary);">' + esc(s.taskName || '未命名') + '</p>'
-        + '<p class="text-xs mt-0.5" style="color: var(--text-tertiary);">' + range + ' · ' + focusModeLabel(s.mode) + '</p>'
+        + '<p class="text-xs mt-0.5" style="color: var(--text-tertiary);">' + range + '，' + focusModeLabel(s.mode) + '</p>'
       + '</div>'
       + '<span class="text-xs font-medium shrink-0" style="color: var(--text-secondary);">' + formatFocusDuration(s.durationSec || 0) + '</span>'
       + '<button onclick="deleteFocusSessionById(' + s.id + ')" class="icon-btn-del" title="删除记录"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'

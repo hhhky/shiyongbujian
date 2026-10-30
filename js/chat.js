@@ -15,7 +15,7 @@ function renderWelcome() {
     + '<div class="chat-welcome">'
     + '<div class="chat-welcome-icon">🧠</div>'
     + '<h2>DeepSeek 思考助手</h2>'
-    + '<p class="chat-welcome-sub">基于 R1 模型 · 支持深度推理</p>'
+    + '<p class="chat-welcome-sub">基于 R1 模型，支持深度推理</p>'
     + '<div class="chat-suggestions">'
     + '<button onclick="sendSuggestion(\'用简单易懂的语言解释量子纠缠\')" class="chat-suggestion">🔬 解释量子纠缠</button>'
     + '<button onclick="sendSuggestion(\'用Python写一个快速排序算法\')" class="chat-suggestion">💻 写快速排序</button>'
@@ -252,7 +252,7 @@ function toggleModel() {
 function updateModelLabel() {
   var label = document.getElementById('chat-model-label');
   if (!label) return;
-  var names = { 'deepseek-reasoner': 'DeepSeek-R1 · 深度推理', 'deepseek-chat': 'DeepSeek-V3 · 通用对话' };
+  var names = { 'deepseek-reasoner': 'DeepSeek-R1 深度推理', 'deepseek-chat': 'DeepSeek-V3 通用对话' };
   label.textContent = names[CONST_DEEPSEEK_MODEL] || CONST_DEEPSEEK_MODEL;
 }
 
