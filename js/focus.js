@@ -33,12 +33,18 @@ var focusTimer = {
   mode: 'up',          // 'up' 正计时 | 'down' 番茄钟
   running: false,
   startAt: 0,          // 当前这一段开始的墙钟时间
+  segStartMono: 0,     // 当前这一段开始的单调时钟值，跨会话恢复时为 0
   accumulated: 0,      // 之前累计的秒数（暂停/恢复用）
   targetSec: 0,        // 番茄钟总时长
   taskId: null,
   tickId: null,
   completing: false
 };
+
+// 单调时钟不受系统时间调整影响；不可用时返回 0，调用方回退到墙钟
+function focusNowMono() {
+  return (window.performance && typeof performance.now === 'function') ? performance.now() : 0;
+}
 
 // ── 初始化 ───────────────────────────────────
 async function initFocus() {
@@ -51,7 +57,15 @@ async function initFocus() {
       if (currentWidget === 'focus') setTimeout(renderStats, 160);
     });
     document.addEventListener('visibilitychange', function() {
-      if (!document.hidden) { updateFocusTimerDisplay(); }
+      if (document.hidden) return;
+      // 后台冻结期间可能已经到点，回到前台立刻结算，别等到下一次 ticker
+      if (focusTimer.running && focusTimer.mode === 'down' && focusTimer.targetSec > 0 &&
+          focusElapsed() >= focusTimer.targetSec) {
+        completeFocusTimer();
+        return;
+      }
+      updateFocusTimerDisplay();
+      if (focusTimer.running) saveFocusTimerState();
     });
   }
   updateFocusModeUI();
@@ -263,8 +277,20 @@ async function deleteFocusTaskById(id) {
 
 // ── 计时器 ────────────────────────────────────
 function focusElapsed() {
-  var extra = (focusTimer.running && focusTimer.startAt) ? (Date.now() - focusTimer.startAt) / 1000 : 0;
-  return focusTimer.accumulated + extra;
+  if (!focusTimer.running || !focusTimer.startAt) {
+    return Math.max(0, focusTimer.accumulated);
+  }
+  var extra;
+  var mono = focusNowMono();
+  if (mono && focusTimer.segStartMono) {
+    // 同一会话内用单调时钟，用户改系统时间也不会让时长跳变
+    extra = (mono - focusTimer.segStartMono) / 1000;
+  } else {
+    // 冷启动恢复只能用墙钟；系统时间被往回拨时兜底为 0，不产生负时长
+    extra = (Date.now() - focusTimer.startAt) / 1000;
+  }
+  if (!isFinite(extra) || extra < 0) extra = 0;
+  return Math.max(0, focusTimer.accumulated + extra);
 }
 
 function setFocusMode(mode) {
@@ -335,6 +361,7 @@ async function startFocusTimer() {
   focusTimer.taskId = task.id;
   focusTimer.running = true;
   focusTimer.startAt = Date.now();
+  focusTimer.segStartMono = focusNowMono();
   startFocusTicker();
   saveFocusTimerState();
   updateFocusTimerDisplay();
@@ -346,8 +373,14 @@ async function startFocusTimer() {
 
 function pauseFocusTimer() {
   if (!focusTimer.running) return;
-  focusTimer.accumulated += (Date.now() - focusTimer.startAt) / 1000;
+  var mono = focusNowMono();
+  var add = (mono && focusTimer.segStartMono)
+    ? (mono - focusTimer.segStartMono) / 1000
+    : (Date.now() - focusTimer.startAt) / 1000;
+  if (!isFinite(add) || add < 0) add = 0;
+  focusTimer.accumulated += add;
   focusTimer.startAt = 0;
+  focusTimer.segStartMono = 0;
   focusTimer.running = false;
   stopFocusTicker();
   saveFocusTimerState();
@@ -392,6 +425,7 @@ function resetFocusTimer() {
   stopFocusTicker();
   focusTimer.running = false;
   focusTimer.startAt = 0;
+  focusTimer.segStartMono = 0;
   focusTimer.accumulated = 0;
   focusTimer.targetSec = focusTimer.mode === 'down' ? focusSettings.pomodoroMin * 60 : 0;
   clearFocusTimerState();
@@ -423,7 +457,10 @@ async function completeFocusTimer() {
   focusTimer.completing = true;
   var task = focusTaskById(focusTimer.taskId);
   var sec = Math.round(focusTimer.targetSec);
-  var endAt = Date.now();
+  // 后台被冻结时定时器不会准点触发，回来时往往已经超出目标时长；
+  // 把结束时刻倒推到真正到点的那一刻，避免整条记录后移污染时段统计
+  var overshoot = Math.max(0, focusElapsed() - focusTimer.targetSec);
+  var endAt = Date.now() - Math.round(overshoot * 1000);
   if (task) {
     await addFocusSession({
       taskId: task.id,
@@ -534,18 +571,34 @@ function restoreFocusTimer() {
       focusTimer.taskId = s.taskId;
       if (focusTaskById(s.taskId)) focusSelectedTaskId = s.taskId;
     }
+    focusTimer.segStartMono = 0;
     if (s.running && s.startAt) {
       focusTimer.running = true;
       focusTimer.startAt = s.startAt;
-      startFocusTicker();
       var elapsed = focusElapsed();
       if (focusTimer.mode === 'down' && focusTimer.targetSec > 0 && elapsed >= focusTimer.targetSec) {
+        // 番茄钟在后台已经到点，按到点时刻结算，endAt 由 completeFocusTimer 倒推
         completeFocusTimer();
+      } else if (focusTimer.mode === 'up' && elapsed > 12 * 3600) {
+        // 正计时超过 12 小时基本是忘了点结束，交给用户判断
+        startFocusTicker();
+        setTimeout(function() { confirmAbandonLongTimer(elapsed); }, 600);
       } else {
+        startFocusTicker();
         setTimeout(function() { toast('已恢复上次计时，已专注 ' + formatFocusDuration(Math.round(focusElapsed()))); }, 600);
       }
     }
   } catch (e) { /* ignore */ }
+}
+
+// 上次正计时一直没结束，超过 12 小时时让用户决定这段时长算不算数
+async function confirmAbandonLongTimer(elapsedSec) {
+  var keep = await confirmDialog(
+    '上次计时没有结束，已经过去 ' + formatFocusDuration(Math.round(elapsedSec)) + '。\n这段时长还算数吗？'
+  );
+  if (keep) return;
+  resetFocusTimer();
+  toast('已放弃这段计时');
 }
 
 function refreshFocusBadge() {
