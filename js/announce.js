@@ -13,11 +13,19 @@ var announceCurrent = null;
 var announceCloseFn = null;
 var announceUpdating = false;
 
-// 公告带 version 且高于当前 App 版本、且原生桥可用时，按「有新版本」处理
+function announceCurrentVersion() {
+  return (typeof APP_VERSION !== 'undefined') ? APP_VERSION : '0';
+}
+
+// 公告带的 version 是否比当前 App 版本新（与运行环境无关）
+function announceHasNewVersion(a) {
+  return !!(a && a.version) && announceVersionLess(announceCurrentVersion(), a.version);
+}
+
+// 能否在 App 内直接下载安装：有新版本 + 有 url + 原生桥可用
 function announceIsUpdate(a) {
-  if (!a || !a.version || !a.url) return false;
-  if (typeof window === 'undefined' || !window.AndroidUpdate) return false;
-  return announceVersionLess((typeof APP_VERSION !== 'undefined') ? APP_VERSION : '0', a.version);
+  return !!(a && a.url) && announceHasNewVersion(a)
+    && typeof window !== 'undefined' && !!window.AndroidUpdate;
 }
 
 // 版本号比较：current 低于 target 时返回 true
@@ -136,9 +144,11 @@ function showAnnouncement(a) {
 
   // 这条公告带 version 且高于当前 App 版本 → 当作更新提示
   var canUpdate = announceIsUpdate(a);
+  // 带 version 的公告只在确实有新版本时才给下载入口，已是最新版的用户就只看说明
+  var showLink = !!a.url && (!a.version || announceHasNewVersion(a));
 
   var updateBtn = null;
-  if (a.url) {
+  if (showLink) {
     if (canUpdate) {
       // 原生可用：点一下由 App 自己下载并拉起系统安装界面
       updateBtn = document.createElement('button');
@@ -174,8 +184,8 @@ function showAnnouncement(a) {
 
   var close = document.createElement('button');
   close.type = 'button';
-  close.className = a.url ? 'announce-secondary' : 'announce-primary';
-  close.textContent = a.url ? (canUpdate ? '稍后' : '知道了') : (a.button || '知道了');
+  close.className = showLink ? 'announce-secondary' : 'announce-primary';
+  close.textContent = canUpdate ? '稍后' : (a.button || '知道了');
   close.addEventListener('click', finish);
   actions.appendChild(close);
 
