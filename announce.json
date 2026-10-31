@@ -1,16 +1,16 @@
 {
   "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、urls 写下载地址数组（按顺序尝试，第一个最快）时，App 内会显示「立即更新」并自动下载拉起安装。",
-  "id": 6,
-  "title": "v1.1.20 已发布",
-  "body": "下载速度的问题修好了：新版本改用国内加速线路下载，实测快很多；如果某条线路太慢会自动换下一条。\n另外「关于」页新增了「检查更新」按钮，可以随时手动查新版本。",
+  "id": 7,
+  "title": "v1.1.21 已发布",
+  "body": "这个版本加入了网页层热更新：以后只是页面和功能的改动，会直接推送、你下次打开 App 就自动生效，不用再下载安装包。\n因为这次改到了原生部分，还需要更新一次；装好这个版本后就不用再频繁装了。",
   "button": "",
-  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.1.20/shiyongbujian-v1.1.20.apk",
+  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.1.21/shiyongbujian-v1.1.21.apk",
   "urls": [
-    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.1.20/shiyongbujian-v1.1.20.apk",
+    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.1.21/shiyongbujian-v1.1.21.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.1.20/shiyongbujian-v1.1.20.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.1.21/shiyongbujian-v1.1.21.apk"
   ],
-  "version": "1.1.20",
+  "version": "1.1.21",
   "minVersion": "",
   "force": false
 }
