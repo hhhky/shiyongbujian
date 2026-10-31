@@ -9,6 +9,7 @@ android/.gradle/
 android/build/
 android/captures/
 *.apk
+!apk/latest.apk
 *.aab
 *.keystore
 *.jks
