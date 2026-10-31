@@ -90,6 +90,21 @@ function showAnnouncement(a) {
     card.appendChild(body);
   }
 
+  // 「不再显示」需要用户主动勾选，只关掉弹窗不算已读，下次进入仍会提示
+  // force 公告不允许静默，因此不提供该选项
+  var muteBox = null;
+  if (!a.force) {
+    var mute = document.createElement('label');
+    mute.className = 'announce-mute';
+    muteBox = document.createElement('input');
+    muteBox.type = 'checkbox';
+    var muteText = document.createElement('span');
+    muteText.textContent = '不再显示';
+    mute.appendChild(muteBox);
+    mute.appendChild(muteText);
+    card.appendChild(mute);
+  }
+
   var actions = document.createElement('div');
   actions.className = 'announce-actions';
 
@@ -97,7 +112,8 @@ function showAnnouncement(a) {
   function finish() {
     if (closed) return;
     closed = true;
-    announceMarkSeen(a.id);
+    // 普通公告只有勾选「不再显示」才记住；force 公告不能勾选，点按钮即视为已读
+    if (a.force || (muteBox && muteBox.checked)) announceMarkSeen(a.id);
     mask.classList.remove('show');
     setTimeout(function() { mask.remove(); }, 220);
   }

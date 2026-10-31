@@ -259,6 +259,25 @@
       white-space: pre-wrap;
     }
     [data-theme="dark"] .announce-body { color: #98989d; }
+    .announce-mute {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #6e6e73;
+      cursor: pointer;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    [data-theme="dark"] .announce-mute { color: #98989d; }
+    .announce-mute input {
+      width: 17px;
+      height: 17px;
+      margin: 0;
+      accent-color: #f97316;
+      cursor: pointer;
+    }
     .announce-actions {
       display: flex;
       gap: 10px;
