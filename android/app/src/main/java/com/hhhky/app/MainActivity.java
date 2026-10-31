@@ -1,8 +1,11 @@
 package com.hhhky.app;
 
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -10,10 +13,17 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 /**
  * 系统栏（状态栏 / 导航栏）沉浸式适配。
@@ -100,6 +110,16 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() == null || getBridge().getWebView() == null) return;
         WebView webView = getBridge().getWebView();
         webView.addJavascriptInterface(new SystemBarsBridge(), "AndroidSystemBars");
+        webView.addJavascriptInterface(new UpdateBridge(), "AndroidUpdate");
+    }
+
+    /** 在页面里执行一段 JS（主线程），用于把下载进度/结果回传 */
+    private void callJs(final String script) {
+        runOnUiThread(() -> {
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().getWebView().evaluateJavascript(script, null);
+            }
+        });
     }
 
     /** 供 Web 端调用：同步系统栏图标黑白 + 系统栏区域底色 */
@@ -132,6 +152,130 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void setBarTheme(final boolean lightBackground, final String backgroundColor) {
             applyBarTheme(lightBackground, backgroundColor);
+        }
+    }
+
+    /**
+     * App 内更新：下载新版本 APK，再拉起系统安装界面。
+     *
+     * Android 不允许第三方应用静默安装，所以这里只负责「省掉手动找包、下载、点击」，
+     * 最后一步的「安装」按钮仍由系统安装程序提供，用户确认一次即可。
+     * 进度与结果通过 window.onUpdateProgress / onUpdateError / onUpdateInstalling 回传页面。
+     */
+    private class UpdateBridge {
+
+        /** 是否正在下载，防止连点重复下载 */
+        private boolean downloading = false;
+
+        @JavascriptInterface
+        public void downloadAndInstall(final String url, final String fileName) {
+            if (url == null || url.isEmpty() || downloading) return;
+
+            // Android 8+ 需要「安装未知应用」授权，没有就先把用户送到授权页
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !getPackageManager().canRequestPackageInstalls()) {
+                runOnUiThread(() -> {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                Uri.parse("package:" + getPackageName()));
+                        startActivity(intent);
+                        callJs("window.onUpdateError && window.onUpdateError('needPermission')");
+                    } catch (Exception e) {
+                        callJs("window.onUpdateError && window.onUpdateError('无法打开安装权限设置')");
+                    }
+                });
+                return;
+            }
+
+            downloading = true;
+            new Thread(() -> {
+                try {
+                    File apk = downloadApk(url, fileName);
+                    callJs("window.onUpdateProgress && window.onUpdateProgress(100)");
+                    installApk(apk);
+                } catch (Exception e) {
+                    downloading = false;
+                    String msg = e.getMessage() == null ? "下载失败" : e.getMessage().replace("'", " ");
+                    callJs("window.onUpdateError && window.onUpdateError('" + msg + "')");
+                }
+            }).start();
+        }
+
+        private File downloadApk(String url, String fileName) throws Exception {
+            File dir = new File(getCacheDir(), "updates");
+            if (!dir.exists() && !dir.mkdirs()) throw new Exception("无法创建下载目录");
+            String name = (fileName == null || fileName.isEmpty()) ? "update.apk"
+                    : fileName.replaceAll("[^A-Za-z0-9._-]", "_");
+            File target = new File(dir, name);
+            File part = new File(dir, name + ".part");
+
+            HttpURLConnection conn = null;
+            String current = url;
+            try {
+                // GitHub Releases 会 302 到对象存储，手动跟随跳转，避免被自动重定向策略坑到
+                for (int hop = 0; hop < 5; hop++) {
+                    conn = (HttpURLConnection) new URL(current).openConnection();
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(30000);
+                    conn.setInstanceFollowRedirects(false);
+                    conn.setRequestProperty("User-Agent", "shiyongbujian-app");
+                    int code = conn.getResponseCode();
+                    if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
+                        String next = conn.getHeaderField("Location");
+                        conn.disconnect();
+                        conn = null;
+                        if (next == null) throw new Exception("下载地址跳转失败");
+                        current = next;
+                        continue;
+                    }
+                    if (code != 200) throw new Exception("下载失败（HTTP " + code + "）");
+                    break;
+                }
+                if (conn == null) throw new Exception("下载地址跳转失败");
+
+                long total = conn.getContentLength(); // 服务端给了长度才显示真实进度
+                long done = 0;
+                int lastPct = -1;
+                byte[] buf = new byte[8192];
+                try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        out.write(buf, 0, n);
+                        done += n;
+                        if (total > 0) {
+                            int pct = (int) (done * 100 / total);
+                            if (pct != lastPct && pct % 2 == 0) {
+                                lastPct = pct;
+                                callJs("window.onUpdateProgress && window.onUpdateProgress(" + pct + ")");
+                            }
+                        }
+                    }
+                }
+
+                if (part.length() <= 0) throw new Exception("下载内容为空");
+                if (target.exists() && !target.delete()) throw new Exception("无法覆盖旧安装包");
+                if (!part.renameTo(target)) throw new Exception("安装包保存失败");
+                return target;
+            } finally {
+                if (conn != null) conn.disconnect();
+                downloading = false;
+            }
+        }
+
+        private void installApk(File apk) {
+            runOnUiThread(() -> {
+                try {
+                    // 走 Capacitor 自带的 FileProvider，把私有目录里的 APK 权限授予安装程序
+                    Uri uri = FileProvider.getUriForFile(MainActivity.this,
+                            getPackageName() + ".fileprovider", apk);
+                    Intent intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setDataAndType(uri, "application/vnd.android.package-archive");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    callJs("window.onUpdateInstalling && window.onUpdateInstalling()");
+                } catch (Exception e) {
+                    callJs("window.onUpdateError && window.onUpdateError('无法启动安装程序')");
+                }
+            });
         }
     }
 }

@@ -8,6 +8,18 @@ var ANNOUNCE_URL = 'https://hhhky.github.io/shiyongbujian/announce.json';
 var ANNOUNCE_SEEN_KEY = 'sjb-announce-seen';
 var ANNOUNCE_MAX_SEEN = 50;
 
+// App 内更新用：本次弹窗对象、关闭函数、是否正在下载
+var announceCurrent = null;
+var announceCloseFn = null;
+var announceUpdating = false;
+
+// 公告带 version 且高于当前 App 版本、且原生桥可用时，按「有新版本」处理
+function announceIsUpdate(a) {
+  if (!a || !a.version || !a.url) return false;
+  if (typeof window === 'undefined' || !window.AndroidUpdate) return false;
+  return announceVersionLess((typeof APP_VERSION !== 'undefined') ? APP_VERSION : '0', a.version);
+}
+
 // 版本号比较：current 低于 target 时返回 true
 function announceVersionLess(current, target) {
   var a = String(current || '').split('.');
@@ -118,21 +130,52 @@ function showAnnouncement(a) {
     setTimeout(function() { mask.remove(); }, 220);
   }
 
+  // 安装成功后由原生回调触发关闭，需要能拿到本次的 finish
+  announceCurrent = a;
+  announceCloseFn = finish;
+
+  // 这条公告带 version 且高于当前 App 版本 → 当作更新提示
+  var canUpdate = announceIsUpdate(a);
+
+  var updateBtn = null;
   if (a.url) {
-    var link = document.createElement('a');
-    link.className = 'announce-primary';
-    link.href = a.url;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = a.button || '查看';
-    link.addEventListener('click', finish);
-    actions.appendChild(link);
+    if (canUpdate) {
+      // 原生可用：点一下由 App 自己下载并拉起系统安装界面
+      updateBtn = document.createElement('button');
+      updateBtn.type = 'button';
+      updateBtn.className = 'announce-primary';
+      updateBtn.textContent = a.button || '立即更新';
+      updateBtn.addEventListener('click', function() {
+        if (announceUpdating) return;
+        announceUpdating = true;
+        updateBtn.disabled = true;
+        updateBtn.textContent = '准备下载…';
+        try {
+          window.AndroidUpdate.downloadAndInstall(a.url, 'shiyongbujian-' + a.version + '.apk');
+        } catch (e) {
+          announceUpdating = false;
+          updateBtn.disabled = false;
+          updateBtn.textContent = '下载失败，点此重试';
+        }
+      });
+      actions.appendChild(updateBtn);
+    } else {
+      // 浏览器 / PWA：退化成普通链接，由用户自行下载
+      var link = document.createElement('a');
+      link.className = 'announce-primary';
+      link.href = a.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = a.button || '查看';
+      link.addEventListener('click', finish);
+      actions.appendChild(link);
+    }
   }
 
   var close = document.createElement('button');
   close.type = 'button';
   close.className = a.url ? 'announce-secondary' : 'announce-primary';
-  close.textContent = a.url ? '知道了' : (a.button || '知道了');
+  close.textContent = a.url ? (canUpdate ? '稍后' : '知道了') : (a.button || '知道了');
   close.addEventListener('click', finish);
   actions.appendChild(close);
 
@@ -154,6 +197,42 @@ function showAnnouncement(a) {
     });
   }
 }
+
+// ── 原生下载回调（由 MainActivity 的 AndroidUpdate 桥调用）─────────────
+
+function announceUpdateButton() {
+  var btn = document.querySelector('#announce-mask .announce-primary');
+  return (btn && btn.tagName === 'BUTTON') ? btn : null;
+}
+
+window.onUpdateProgress = function(pct) {
+  var btn = announceUpdateButton();
+  if (!btn) return;
+  btn.textContent = pct >= 100 ? '正在打开安装程序…' : ('下载中 ' + pct + '%');
+};
+
+window.onUpdateError = function(msg) {
+  var btn = announceUpdateButton();
+  announceUpdating = false;
+  if (!btn) return;
+  btn.disabled = false;
+  if (msg === 'needPermission') {
+    // 原生已把用户送到「安装未知应用」授权页
+    btn.textContent = '请允许安装应用后重试';
+    setTimeout(function() {
+      if (document.body.contains(btn) && !announceUpdating) btn.textContent = '立即更新';
+    }, 3000);
+  } else {
+    btn.textContent = '下载失败，点此重试';
+  }
+};
+
+window.onUpdateInstalling = function() {
+  // 系统安装界面已拉起，这条公告不用再提醒
+  if (announceCurrent && announceCurrent.id != null) announceMarkSeen(announceCurrent.id);
+  announceUpdating = false;
+  if (announceCloseFn) announceCloseFn();
+};
 
 document.addEventListener('DOMContentLoaded', function() {
   // 等首屏渲染完再拉，避免和启动抢带宽
