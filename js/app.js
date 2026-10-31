@@ -82,6 +82,11 @@ let currentMindmapType = 'workflow';
 function renderWidgets() {
   var grid = document.getElementById('widgets-grid');
   if (!grid) return;
+  // 长按卡片不弹系统菜单（拷贝、分享、搜索等）；只绑一次，卡片内容重绘不受影响
+  if (!grid.dataset.noContextMenu) {
+    grid.dataset.noContextMenu = '1';
+    grid.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  }
   var filesCount = 0;
   grid.innerHTML = WIDGETS.map(function(w) {
     return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
@@ -161,6 +166,55 @@ function goHome() {
 
   closePreview();
   renderWidgets();
+}
+
+// ── 系统返回键（Android / 鸿蒙）─────────────
+// 由原生 MainActivity 通过 evaluateJavascript 同步调用：
+// 返回 true 表示已在 App 内处理（留在当前页面），false 表示已在首页、交给系统退出。
+function androidBackCloseOverlay() {
+  var overlays = [
+    ['preview-overlay', 'closePreview'],
+    ['category-modal', 'hideCategoryModal'],
+    ['memo-modal', 'hideMemoModal'],
+    ['workflow-modal', 'hideWorkflowModal'],
+    ['focus-task-modal', 'hideFocusTaskModal'],
+    ['focus-settings-modal', 'hideFocusSettings'],
+    ['focus-manual-modal', 'hideFocusManualModal']
+  ];
+  for (var i = 0; i < overlays.length; i++) {
+    var el = document.getElementById(overlays[i][0]);
+    var close = window[overlays[i][1]];
+    // 关闭函数可能定义在 focus.js，未加载时跳过该项，不影响其它层
+    if (el && !el.classList.contains('hidden') && typeof close === 'function') {
+      close();
+      return true;
+    }
+  }
+  return false;
+}
+
+function handleAndroidBack() {
+  // 1. 公告弹窗：有就关掉，不因返回键直接退出 App
+  var ann = document.getElementById('announce-mask');
+  if (ann) {
+    var annBtn = ann.querySelector('.announce-secondary') || ann.querySelector('.announce-primary');
+    if (annBtn) annBtn.click();
+    return true;
+  }
+  // 2. 打开着的浮层 / 弹窗
+  if (androidBackCloseOverlay()) return true;
+  // 3. 思维导图：具体导图退回导图列表
+  if (currentWidget === 'mindmap' && currentWorkflowId) {
+    backToWorkflowsList();
+    return true;
+  }
+  // 4. 部件内页退回首页
+  if (currentWidget) { goHome(); return true; }
+  // 5. 首页的「关于」页退回「部件」页
+  var aboutPage = document.getElementById('page-about');
+  if (aboutPage && aboutPage.classList.contains('active')) { switchHomeTab('widgets'); return true; }
+  // 6. 已经在首页，交给系统退出
+  return false;
 }
 
 function switchHomeTab(tab) {

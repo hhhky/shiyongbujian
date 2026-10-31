@@ -200,6 +200,11 @@
       border: var(--card-border);
       box-shadow: var(--card-box-shadow);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      /* 长按卡片不唤起系统文本选择 / 复制分享菜单，点击跳转不受影响 */
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
     }
     .widget-card-outer:hover {
       transform: translateY(-2px);

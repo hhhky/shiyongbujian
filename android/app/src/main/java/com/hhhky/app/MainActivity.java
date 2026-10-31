@@ -9,6 +9,7 @@ import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
@@ -27,11 +28,48 @@ import com.getcapacitor.BridgeActivity;
  */
 public class MainActivity extends BridgeActivity {
 
+    /** 返回键处理是否正在等页面回话，用于吞掉连续快按 */
+    private boolean backPending = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyEdgeToEdge();
         bindWebViewBridge();
+        bindBackHandler();
+    }
+
+    /**
+     * 系统返回键交给页面自己的路由栈判断：
+     * 页面有上一级就返回上一级（留在 App 内），只有停在首页时才真正退出。
+     * 返回事件在鸿蒙与 Android 上同样走 OnBackPressedDispatcher，无需分别适配。
+     */
+    private void bindBackHandler() {
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (backPending) return;
+                WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+                if (webView == null) {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                    return;
+                }
+                backPending = true;
+                webView.evaluateJavascript(
+                    "(function(){try{return (typeof handleAndroidBack==='function'&&handleAndroidBack())?'1':'0'}catch(e){return '0'}})()",
+                    value -> {
+                        backPending = false;
+                        // "1" = 页面已返回上一级；"0" = 已在首页，交给系统默认行为退出
+                        boolean handled = value != null && value.contains("1");
+                        if (!handled) {
+                            setEnabled(false);
+                            getOnBackPressedDispatcher().onBackPressed();
+                        }
+                    });
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
     @SuppressWarnings("deprecation")
