@@ -217,7 +217,7 @@ function showAnnouncement(a) {
         announceUpdateIndex = 0;
         announceFileName = 'shiyongbujian-' + a.version + '.apk';
         try {
-          window.AndroidUpdate.downloadAndInstall(urls[0], announceFileName);
+          window.AndroidUpdate.downloadAndInstall(urls[0], announceFileName, urls.length > 1);
         } catch (e) {
           announceUpdating = false;
           updateBtn.disabled = false;
@@ -289,7 +289,8 @@ window.onUpdateError = function(msg) {
     btn.disabled = true;
     btn.textContent = '换线路重试…';
     var next = announceUpdateSources[announceUpdateIndex];
-    setTimeout(function() { window.AndroidUpdate.downloadAndInstall(next, announceFileName); }, 300);
+    var stillStrict = announceUpdateIndex + 1 < announceUpdateSources.length;
+    setTimeout(function() { window.AndroidUpdate.downloadAndInstall(next, announceFileName, stillStrict); }, 300);
     return;
   }
 

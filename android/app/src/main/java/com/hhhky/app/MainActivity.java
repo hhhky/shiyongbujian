@@ -167,8 +167,11 @@ public class MainActivity extends BridgeActivity {
         /** 是否正在下载，防止连点重复下载 */
         private boolean downloading = false;
 
+        /**
+         * @param strict 还有备用线路时传 true：主线路太慢会主动放弃，让页面换线路重试
+         */
         @JavascriptInterface
-        public void downloadAndInstall(final String url, final String fileName) {
+        public void downloadAndInstall(final String url, final String fileName, final boolean strict) {
             if (url == null || url.isEmpty() || downloading) return;
 
             // Android 8+ 需要「安装未知应用」授权，没有就先把用户送到授权页
@@ -189,7 +192,7 @@ public class MainActivity extends BridgeActivity {
             downloading = true;
             new Thread(() -> {
                 try {
-                    File apk = downloadApk(url, fileName);
+                    File apk = downloadApk(url, fileName, strict);
                     callJs("window.onUpdateProgress && window.onUpdateProgress(100)");
                     installApk(apk);
                 } catch (Exception e) {
@@ -200,7 +203,7 @@ public class MainActivity extends BridgeActivity {
             }).start();
         }
 
-        private File downloadApk(String url, String fileName) throws Exception {
+        private File downloadApk(String url, String fileName, boolean strict) throws Exception {
             File dir = new File(getCacheDir(), "updates");
             if (!dir.exists() && !dir.mkdirs()) throw new Exception("无法创建下载目录");
             String name = (fileName == null || fileName.isEmpty()) ? "update.apk"
@@ -236,6 +239,7 @@ public class MainActivity extends BridgeActivity {
 
                 long total = conn.getContentLength(); // 服务端给了长度才显示真实进度
                 long done = 0;
+                long startedAt = System.currentTimeMillis();
                 int lastPct = -1;
                 byte[] buf = new byte[65536];
                 try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
@@ -243,6 +247,15 @@ public class MainActivity extends BridgeActivity {
                     while ((n = in.read(buf)) > 0) {
                         out.write(buf, 0, n);
                         done += n;
+
+                        // 还有备用线路时，主线路太慢就尽快放弃，别让用户干等
+                        if (strict) {
+                            long elapsed = System.currentTimeMillis() - startedAt;
+                            if (elapsed > 10000 && done * 1000 / elapsed < 102400) {
+                                throw new Exception("线路太慢");
+                            }
+                        }
+
                         if (total > 0) {
                             int pct = (int) (done * 100 / total);
                             if (pct != lastPct && pct % 2 == 0) {
