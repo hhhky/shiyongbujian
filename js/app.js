@@ -273,6 +273,8 @@ function updateThemeSelection() {
 function updateAboutVersion() {
   var el = document.getElementById('about-version');
   if (el) el.textContent = 'v' + APP_VERSION;
+  // 网页热更新状态（旧版 APK / 浏览器里没有这个函数，自动跳过）
+  if (typeof updateHotStatus === 'function') updateHotStatus();
 }
 
 function renderSidebarTabs(w) {

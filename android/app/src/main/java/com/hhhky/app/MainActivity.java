@@ -1,6 +1,7 @@
 package com.hhhky.app;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -20,10 +21,13 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * 系统栏（状态栏 / 导航栏）沉浸式适配。
@@ -40,6 +44,22 @@ public class MainActivity extends BridgeActivity {
 
     /** 返回键处理是否正在等页面回话，用于吞掉连续快按 */
     private boolean backPending = false;
+
+    /** 网页热更新：自己的记录（当前使用的热更目录、版本、是否加载成功） */
+    private static final String HOT_PREFS = "shiyongbujian_hot";
+    /** Capacitor 自己的 serverBasePath 记录，Bridge 启动时会读取它 */
+    private static final String CAP_PREFS = "CapWebViewSettings";
+    private static final String CAP_SERVER_PATH = "serverBasePath";
+
+    /**
+     * 网页热更新要在 Bridge 创建之前决定加载哪套网页资源，
+     * 所以覆盖 load()（BridgeActivity 在这里创建 Bridge 并加载页面）。
+     */
+    @Override
+    protected void load() {
+        prepareHotUpdate();
+        super.load();
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -111,6 +131,188 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge().getWebView();
         webView.addJavascriptInterface(new SystemBarsBridge(), "AndroidSystemBars");
         webView.addJavascriptInterface(new UpdateBridge(), "AndroidUpdate");
+        webView.addJavascriptInterface(new HotUpdateBridge(), "AndroidHotUpdate");
+    }
+
+    // ── 网页热更新（只换 Web 资源，不动原生，所以不需要发新安装包）──────────
+
+    /** 热更包的解压根目录（私有目录，卸载应用时一并清理） */
+    private File hotRoot() {
+        File dir = new File(getFilesDir(), "hot");
+        if (!dir.exists()) dir.mkdirs();
+        return dir;
+    }
+
+    private String appVersionName() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /** 让 Capacitor 下次加载页面时从指定目录取资源；空串表示恢复内置资源 */
+    private void writeCapServerPath(String path) {
+        getSharedPreferences(CAP_PREFS, MODE_PRIVATE)
+                .edit()
+                .putString(CAP_SERVER_PATH, path)
+                .apply();
+    }
+
+    /**
+     * 启动前决定加载哪套资源（必须在 super.load() 之前调用）。
+     * 只有同时满足「目录存在 + index.html 在 + 装的是同一版 APK + 上次加载成功」
+     * 才使用热更包，否则清掉并回退到安装包内置资源。
+     */
+    private void prepareHotUpdate() {
+        SharedPreferences prefs = getSharedPreferences(HOT_PREFS, MODE_PRIVATE);
+        String dir = prefs.getString("activeDir", null);
+        if (dir == null || dir.isEmpty()) return;
+
+        File root = new File(dir);
+        boolean usable = root.isDirectory()
+                && new File(root, "index.html").isFile()
+                && appVersionName().equals(prefs.getString("baseApp", null))
+                && prefs.getBoolean("healthy", true);
+        if (!usable) {
+            clearHotUpdate(false);
+            return;
+        }
+
+        writeCapServerPath(dir);
+        // 本次启动先记为「未确认」，由页面加载完成后调用 markHealthy 才是真正可用。
+        // 如果页面起不来（白屏/崩溃），下次启动就会自动回滚到内置资源。
+        prefs.edit().putBoolean("healthy", false).apply();
+    }
+
+    /**
+     * 清掉热更新：删除已下载的资源、清空记录，reload=true 时立刻重新加载内置页面。
+     */
+    private void clearHotUpdate(boolean reload) {
+        getSharedPreferences(HOT_PREFS, MODE_PRIVATE).edit().clear().apply();
+        writeCapServerPath("");
+        deleteRecursive(hotRoot());
+        if (reload) {
+            runOnUiThread(() -> {
+                if (getBridge() != null) getBridge().reload();
+            });
+        }
+    }
+
+    private static void deleteRecursive(File f) {
+        if (f == null || !f.exists()) return;
+        if (f.isDirectory()) {
+            File[] children = f.listFiles();
+            if (children != null) {
+                for (File child : children) deleteRecursive(child);
+            }
+        }
+        //noinspection ResultOfMethodCallIgnored
+        f.delete();
+    }
+
+    /** 解压 zip 到指定目录，并挡住 ../ 这类越界路径 */
+    private void unzip(File zip, File target) throws Exception {
+        String rootPath = target.getCanonicalPath() + File.separator;
+        byte[] buf = new byte[65536];
+        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(zip))) {
+            ZipEntry entry;
+            while ((entry = zin.getNextEntry()) != null) {
+                File out = new File(target, entry.getName());
+                if (!out.getCanonicalPath().startsWith(rootPath)) {
+                    throw new Exception("更新包内容异常");
+                }
+                if (entry.isDirectory()) {
+                    if (!out.exists() && !out.mkdirs()) throw new Exception("解压失败");
+                    continue;
+                }
+                File parent = out.getParentFile();
+                if (parent != null && !parent.exists() && !parent.mkdirs()) throw new Exception("解压失败");
+                try (FileOutputStream fos = new FileOutputStream(out)) {
+                    int n;
+                    while ((n = zin.read(buf)) > 0) fos.write(buf, 0, n);
+                }
+            }
+        }
+    }
+
+    /**
+     * 下载文件到 cacheDir/<subDir>/，供 APK 更新与网页热更新共用。
+     *
+     * @param strict 还有备用线路时传 true：10 秒内平均速度低于 100KB/s 就放弃，交给页面换线路
+     * @param progressFn 页面上的进度回调函数名，例如 window.onUpdateProgress
+     */
+    private File downloadFile(String url, String subDir, String fileName, boolean strict, String progressFn)
+            throws Exception {
+        File dir = new File(getCacheDir(), subDir);
+        if (!dir.exists() && !dir.mkdirs()) throw new Exception("无法创建下载目录");
+        String name = (fileName == null || fileName.isEmpty()) ? "update.apk"
+                : fileName.replaceAll("[^A-Za-z0-9._-]", "_");
+        File target = new File(dir, name);
+        File part = new File(dir, name + ".part");
+
+        HttpURLConnection conn = null;
+        String current = url;
+        try {
+            // GitHub Releases 会 302 到对象存储，手动跟随跳转，避免被自动重定向策略坑到
+            for (int hop = 0; hop < 5; hop++) {
+                conn = (HttpURLConnection) new URL(current).openConnection();
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.setInstanceFollowRedirects(false);
+                conn.setRequestProperty("User-Agent", "shiyongbujian-app");
+                // 文件本身已压缩，要求不额外编码，省掉一次解压开销
+                conn.setRequestProperty("Accept-Encoding", "identity");
+                int code = conn.getResponseCode();
+                if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
+                    String next = conn.getHeaderField("Location");
+                    conn.disconnect();
+                    conn = null;
+                    if (next == null) throw new Exception("下载地址跳转失败");
+                    current = next;
+                    continue;
+                }
+                if (code != 200) throw new Exception("下载失败（HTTP " + code + "）");
+                break;
+            }
+            if (conn == null) throw new Exception("下载地址跳转失败");
+
+            long total = conn.getContentLength(); // 服务端给了长度才显示真实进度
+            long done = 0;
+            long startedAt = System.currentTimeMillis();
+            int lastPct = -1;
+            byte[] buf = new byte[65536];
+            try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                    done += n;
+
+                    // 还有备用线路时，主线路太慢就尽快放弃，别让用户干等
+                    if (strict) {
+                        long elapsed = System.currentTimeMillis() - startedAt;
+                        if (elapsed > 10000 && done * 1000 / elapsed < 102400) {
+                            throw new Exception("线路太慢");
+                        }
+                    }
+
+                    if (total > 0) {
+                        int pct = (int) (done * 100 / total);
+                        if (pct != lastPct && pct % 2 == 0) {
+                            lastPct = pct;
+                            callJs(progressFn + " && " + progressFn + "(" + pct + ")");
+                        }
+                    }
+                }
+            }
+
+            if (part.length() <= 0) throw new Exception("下载内容为空");
+            if (target.exists() && !target.delete()) throw new Exception("无法覆盖旧文件");
+            if (!part.renameTo(target)) throw new Exception("文件保存失败");
+            return target;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
     }
 
     /** 在页面里执行一段 JS（主线程），用于把下载进度/结果回传 */
@@ -192,88 +394,16 @@ public class MainActivity extends BridgeActivity {
             downloading = true;
             new Thread(() -> {
                 try {
-                    File apk = downloadApk(url, fileName, strict);
+                    File apk = downloadFile(url, "updates", fileName, strict, "window.onUpdateProgress");
                     callJs("window.onUpdateProgress && window.onUpdateProgress(100)");
                     installApk(apk);
                 } catch (Exception e) {
-                    downloading = false;
                     String msg = e.getMessage() == null ? "下载失败" : e.getMessage().replace("'", " ");
                     callJs("window.onUpdateError && window.onUpdateError('" + msg + "')");
+                } finally {
+                    downloading = false;
                 }
             }).start();
-        }
-
-        private File downloadApk(String url, String fileName, boolean strict) throws Exception {
-            File dir = new File(getCacheDir(), "updates");
-            if (!dir.exists() && !dir.mkdirs()) throw new Exception("无法创建下载目录");
-            String name = (fileName == null || fileName.isEmpty()) ? "update.apk"
-                    : fileName.replaceAll("[^A-Za-z0-9._-]", "_");
-            File target = new File(dir, name);
-            File part = new File(dir, name + ".part");
-
-            HttpURLConnection conn = null;
-            String current = url;
-            try {
-                // GitHub Releases 会 302 到对象存储，手动跟随跳转，避免被自动重定向策略坑到
-                for (int hop = 0; hop < 5; hop++) {
-                    conn = (HttpURLConnection) new URL(current).openConnection();
-                    conn.setConnectTimeout(15000);
-                    conn.setReadTimeout(30000);
-                    conn.setInstanceFollowRedirects(false);
-                    conn.setRequestProperty("User-Agent", "shiyongbujian-app");
-                    // APK 本身已压缩，要求不额外编码，省掉一次解压开销
-                    conn.setRequestProperty("Accept-Encoding", "identity");
-                    int code = conn.getResponseCode();
-                    if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
-                        String next = conn.getHeaderField("Location");
-                        conn.disconnect();
-                        conn = null;
-                        if (next == null) throw new Exception("下载地址跳转失败");
-                        current = next;
-                        continue;
-                    }
-                    if (code != 200) throw new Exception("下载失败（HTTP " + code + "）");
-                    break;
-                }
-                if (conn == null) throw new Exception("下载地址跳转失败");
-
-                long total = conn.getContentLength(); // 服务端给了长度才显示真实进度
-                long done = 0;
-                long startedAt = System.currentTimeMillis();
-                int lastPct = -1;
-                byte[] buf = new byte[65536];
-                try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
-                    int n;
-                    while ((n = in.read(buf)) > 0) {
-                        out.write(buf, 0, n);
-                        done += n;
-
-                        // 还有备用线路时，主线路太慢就尽快放弃，别让用户干等
-                        if (strict) {
-                            long elapsed = System.currentTimeMillis() - startedAt;
-                            if (elapsed > 10000 && done * 1000 / elapsed < 102400) {
-                                throw new Exception("线路太慢");
-                            }
-                        }
-
-                        if (total > 0) {
-                            int pct = (int) (done * 100 / total);
-                            if (pct != lastPct && pct % 2 == 0) {
-                                lastPct = pct;
-                                callJs("window.onUpdateProgress && window.onUpdateProgress(" + pct + ")");
-                            }
-                        }
-                    }
-                }
-
-                if (part.length() <= 0) throw new Exception("下载内容为空");
-                if (target.exists() && !target.delete()) throw new Exception("无法覆盖旧安装包");
-                if (!part.renameTo(target)) throw new Exception("安装包保存失败");
-                return target;
-            } finally {
-                if (conn != null) conn.disconnect();
-                downloading = false;
-            }
         }
 
         private void installApk(File apk) {
@@ -291,6 +421,98 @@ public class MainActivity extends BridgeActivity {
                     callJs("window.onUpdateError && window.onUpdateError('无法启动安装程序')");
                 }
             });
+        }
+    }
+
+    /**
+     * 网页热更新：下载一份完整的 Web 资源 zip，解压到私有目录，
+     * 下次启动时由 prepareHotUpdate() 把页面切到新目录。
+     *
+     * 只改 Web（HTML/CSS/JS）时用这条通道即可，不需要发新 APK、不升版本号。
+     * 原生能力有变化时仍然必须发新安装包——新包会清掉热更新，回到内置资源。
+     */
+    private class HotUpdateBridge {
+
+        /** 同一时间只允许一个下载任务 */
+        private volatile boolean busy = false;
+
+        /** 返回已应用的热更信息，形如 {"version":"3","dir":"/data/..."} */
+        @JavascriptInterface
+        public String getState() {
+            SharedPreferences prefs = getSharedPreferences(HOT_PREFS, MODE_PRIVATE);
+            String version = prefs.getString("version", "");
+            String dir = prefs.getString("activeDir", "");
+            return "{\"version\":\"" + version.replace("\"", "")
+                    + "\",\"dir\":\"" + dir.replace("\\", "/").replace("\"", "") + "\"}";
+        }
+
+        /** 页面加载完成时调用：确认这份热更资源可用，避免下次启动被误回滚 */
+        @JavascriptInterface
+        public void markHealthy() {
+            getSharedPreferences(HOT_PREFS, MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("healthy", true)
+                    .apply();
+        }
+
+        /**
+         * 下载并解压热更包；成功只写入记录，当前会话仍用旧资源，
+         * 下次打开 App 自动生效（避免突然刷掉用户正在做的操作）。
+         */
+        @JavascriptInterface
+        public void downloadAndApply(final String url, final String version, final String fileName,
+                                     final boolean strict) {
+            if (url == null || url.isEmpty() || version == null || version.isEmpty() || busy) return;
+            busy = true;
+            new Thread(() -> {
+                try {
+                    File zip = downloadFile(url, "hot", fileName, strict, "window.onHotUpdateProgress");
+
+                    SharedPreferences prefs = getSharedPreferences(HOT_PREFS, MODE_PRIVATE);
+                    String active = prefs.getString("activeDir", null);
+
+                    // 目录名带时间戳：绝不覆盖当前正在使用的那一份，避免下载到一半把页面资源删了
+                    String safeVersion = version.replaceAll("[^A-Za-z0-9._-]", "_");
+                    File target = new File(hotRoot(), safeVersion + "_" + System.currentTimeMillis());
+                    if (!target.mkdirs()) throw new Exception("无法创建热更新目录");
+
+                    unzip(zip, target);
+                    if (!new File(target, "index.html").isFile()) throw new Exception("更新包内容不完整");
+
+                    // 清掉更早的包，但保留当前会话正在使用的那一份（下次启动才会切换）
+                    File[] children = hotRoot().listFiles();
+                    if (children != null) {
+                        for (File child : children) {
+                            if (child.equals(target)) continue;
+                            if (active != null && child.getAbsolutePath().equals(active)) continue;
+                            deleteRecursive(child);
+                        }
+                    }
+                    //noinspection ResultOfMethodCallIgnored
+                    zip.delete();
+
+                    prefs.edit()
+                            .putString("activeDir", target.getAbsolutePath())
+                            .putString("version", version)
+                            .putString("baseApp", appVersionName())
+                            .putBoolean("healthy", true)
+                            .apply();
+
+                    String safeJsVersion = version.replace("'", "");
+                    callJs("window.onHotUpdateDone && window.onHotUpdateDone('" + safeJsVersion + "')");
+                } catch (Exception e) {
+                    String msg = e.getMessage() == null ? "热更新失败" : e.getMessage().replace("'", " ");
+                    callJs("window.onHotUpdateError && window.onHotUpdateError('" + msg + "')");
+                } finally {
+                    busy = false;
+                }
+            }).start();
+        }
+
+        /** 放弃热更新，恢复安装包里内置的网页资源 */
+        @JavascriptInterface
+        public void rollback() {
+            clearHotUpdate(true);
         }
     }
 }

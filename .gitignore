@@ -10,6 +10,8 @@ android/build/
 android/captures/
 *.apk
 !apk/latest.apk
+# 网页热更新包只传 Release，不进 git 历史
+hot/*.zip
 *.aab
 *.keystore
 *.jks
