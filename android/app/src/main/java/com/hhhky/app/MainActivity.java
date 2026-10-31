@@ -194,7 +194,9 @@ public class MainActivity extends BridgeActivity {
         deleteRecursive(hotRoot());
         if (reload) {
             runOnUiThread(() -> {
-                if (getBridge() != null) getBridge().reload();
+                // 只改 SharedPreferences 不会影响当前 Bridge 的内存状态，
+                // 必须显式让本地服务器切回安装包自带的 public 资源并重新加载
+                if (getBridge() != null) getBridge().setServerAssetPath(com.getcapacitor.Bridge.DEFAULT_WEB_ASSET_DIR);
             });
         }
     }
