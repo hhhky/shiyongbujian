@@ -517,7 +517,7 @@
     <header class="text-white px-5 py-4 flex items-center justify-between shrink-0 relative z-30 overflow-hidden" style="background: var(--header-bg); background-size: var(--header-bg-size); animation: var(--header-anim); padding-top: calc(0.75rem + var(--sat)); border-bottom: var(--header-border); box-shadow: var(--header-shadow); min-height: calc(56px + var(--sat)); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop);">
       <div class="absolute inset-0 opacity-20" style="background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.4) 0%, transparent 60%); display: var(--header-glow-display);"></div>
       <div class="flex items-center gap-3 relative z-10">
-        <button onclick="goHome()" id="header-back-btn" class="hidden hover:opacity-80 btn-jelly transition-all p-0.5 -ml-1" style="color: var(--header-text); opacity: 0.6;">
+        <button onclick="goBack()" id="header-back-btn" class="hidden hover:opacity-80 btn-jelly transition-all p-0.5 -ml-1" style="color: var(--header-text); opacity: 0.6;">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
         <h1 class="text-lg font-bold tracking-wide" id="header-title" style="color: var(--header-text);">实用部件</h1>
@@ -531,9 +531,9 @@
       <!-- Sidebar (hidden on mobile) -->
       <aside class="hidden md:flex md:flex-col w-48 lg:w-56 shrink-0" style="background: var(--sidebar-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border-right: var(--sidebar-border); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.4);">
         <nav class="flex flex-col p-3 gap-1 flex-1" id="sidebar-nav">
-          <button onclick="goHome()" id="sidebar-back-btn" class="hidden flex items-center gap-2 px-3 py-2 rounded-[20px] text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
+          <button onclick="goBack()" id="sidebar-back-btn" class="hidden flex items-center gap-2 px-3 py-2 rounded-[20px] text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            <span class="hidden lg:inline">实用部件</span>
+            <span class="hidden lg:inline" id="sidebar-back-label">实用部件</span>
           </button>
           <div id="sidebar-tabs-container" class="flex flex-col gap-1"></div>
         </nav>
@@ -557,51 +557,95 @@
 
         <!-- About Page -->
         <div id="page-about" class="page p-4 md:p-8 lg:p-10" style="padding-bottom: calc(1rem + 80px + var(--sab));">
-          <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold mb-5">关于</h2>
-
-          <!-- Theme section -->
-          <div class="mb-6">
-            <p class="text-sm font-semibold text-gray-600 mb-3">主题样式</p>
-            <div class="grid grid-cols-2 gap-3 max-w-sm">
-              <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #e5e5ea;" data-theme="glass" id="theme-opt-glass">
-                <div class="w-full h-10 rounded-xl mb-2" style="background: var(--card-bg); backdrop-filter: blur(24px); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.55);"></div>
-                <p class="text-sm font-semibold text-gray-700">玻璃</p>
-                <p class="text-xs text-gray-400">iOS 风格</p>
-              </button>
-              <button onclick="applyTheme('white')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #ffffff;" data-theme="white" id="theme-opt-white">
-                <div class="w-full h-10 rounded-xl mb-2" style="background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"></div>
-                <p class="text-sm font-semibold text-gray-700">白色</p>
-                <p class="text-xs text-gray-400">清爽纯白</p>
-              </button>
-              <button onclick="applyTheme('dark')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #1c1c1e;" data-theme="dark" id="theme-opt-dark">
-                <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
-                <p class="text-sm font-semibold text-white">暗黑</p>
-                <p class="text-xs text-gray-400">护眼深色</p>
-              </button>
+          <div class="mb-5 md:mb-7">
+            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">关于</h2>
+            <p class="text-xs text-gray-400 mt-0.5">点击条目查看详情</p>
+          </div>
+          <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+            <div onclick="gotoAboutItem('theme')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
+              <div class="text-3xl mb-2 leading-none">🎨</div>
+              <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">主题样式</h3>
+              <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);" id="about-theme-entry">玻璃 · iOS 风格</p>
+            </div>
+            <div onclick="gotoAboutItem('version')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
+              <div class="text-3xl mb-2 leading-none">🔄</div>
+              <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">版本更新</h3>
+              <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);" id="about-version-entry">v1.0.0</p>
+            </div>
+            <div onclick="gotoAboutItem('intro')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
+              <div class="text-3xl mb-2 leading-none">📖</div>
+              <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">介绍</h3>
+              <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">一站式效率工具</p>
+            </div>
+            <div onclick="gotoAboutItem('opensource')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
+              <div class="text-3xl mb-2 leading-none">🔗</div>
+              <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">开源</h3>
+              <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">GitHub 源码仓库</p>
             </div>
           </div>
+        </div>
 
-          <!-- Version -->
-          <div class="mb-6">
-            <p class="text-sm font-semibold text-gray-600 mb-2">版本</p>
-            <div class="flex items-center gap-3">
-              <p class="text-sm text-gray-500" id="about-version">v1.0.0</p>
-              <button type="button" onclick="checkUpdateManually()" id="about-check-update"
-                      class="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
-                      style="background: rgba(128,128,128,0.14); color: var(--text-primary);">检查更新</button>
-            </div>
+        <!-- About: Theme -->
+        <div id="page-about-theme" class="page p-4 md:p-6 lg:p-8">
+          <div class="mb-5 md:mb-7">
+            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">主题样式</h2>
+            <p class="text-xs text-gray-400 mt-0.5">选择界面的外观风格</p>
           </div>
-
-          <!-- Description -->
-          <div class="mb-6">
-            <p class="text-sm font-semibold text-gray-600 mb-2">介绍</p>
-            <p class="text-sm text-gray-500 leading-relaxed">实用部件 — 一站式效率工具，包含资料管理、备忘录、思维导图、AI 对话四大模块。支持 PWA 安装和 Android APK 直接使用。</p>
+          <div class="grid grid-cols-2 gap-3 max-w-sm">
+            <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #e5e5ea;" data-theme="glass" id="theme-opt-glass">
+              <div class="w-full h-10 rounded-xl mb-2" style="background: var(--card-bg); backdrop-filter: blur(24px); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.55);"></div>
+              <p class="text-sm font-semibold text-gray-700">玻璃</p>
+              <p class="text-xs text-gray-400">iOS 风格</p>
+            </button>
+            <button onclick="applyTheme('white')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #ffffff;" data-theme="white" id="theme-opt-white">
+              <div class="w-full h-10 rounded-xl mb-2" style="background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"></div>
+              <p class="text-sm font-semibold text-gray-700">白色</p>
+              <p class="text-xs text-gray-400">清爽纯白</p>
+            </button>
+            <button onclick="applyTheme('dark')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #1c1c1e;" data-theme="dark" id="theme-opt-dark">
+              <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
+              <p class="text-sm font-semibold text-white">暗黑</p>
+              <p class="text-xs text-gray-400">护眼深色</p>
+            </button>
           </div>
+        </div>
 
-          <!-- GitHub -->
-          <div>
-            <p class="text-sm font-semibold text-gray-600 mb-2">开源</p>
-            <a href="https://github.com/hhhky/shiyongbujian" target="_blank" class="text-sm text-gray-500 hover:text-gray-700 underline">github.com/hhhky/shiyongbujian</a>
+        <!-- About: Version -->
+        <div id="page-about-version" class="page p-4 md:p-6 lg:p-8">
+          <div class="mb-5 md:mb-7">
+            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">版本更新</h2>
+            <p class="text-xs text-gray-400 mt-0.5">查看当前版本并检查是否有新版安装包</p>
+          </div>
+          <div class="rounded-[24px] p-5 max-w-sm" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
+            <p class="text-xs font-semibold mb-1" style="color: var(--card-subtext);">当前版本</p>
+            <p class="text-xl font-bold mb-4" style="color: var(--card-text);" id="about-version">v1.0.0</p>
+            <button type="button" onclick="checkUpdateManually()" id="about-check-update"
+                    class="w-full py-2.5 rounded-[16px] text-sm font-semibold transition-all btn-jelly"
+                    style="background: rgba(128,128,128,0.14); color: var(--text-primary);">检查更新</button>
+            <p class="text-xs mt-3 leading-relaxed" style="color: var(--card-subtext);">有新版本时会提示下载并安装，安装包会保留原有数据。</p>
+          </div>
+        </div>
+
+        <!-- About: Intro -->
+        <div id="page-about-intro" class="page p-4 md:p-6 lg:p-8">
+          <div class="mb-5 md:mb-7">
+            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">介绍</h2>
+            <p class="text-xs text-gray-400 mt-0.5">这个 App 是做什么的</p>
+          </div>
+          <div class="rounded-[24px] p-5 max-w-xl" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
+            <p class="text-sm leading-relaxed" style="color: var(--card-text);">实用部件 — 一站式效率工具，包含资料管理、备忘录、思维导图、AI 对话四大模块。支持 PWA 安装和 Android APK 直接使用。</p>
+          </div>
+        </div>
+
+        <!-- About: Open source -->
+        <div id="page-about-opensource" class="page p-4 md:p-6 lg:p-8">
+          <div class="mb-5 md:mb-7">
+            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">开源</h2>
+            <p class="text-xs text-gray-400 mt-0.5">项目源码托管在 GitHub</p>
+          </div>
+          <div class="rounded-[24px] p-5 max-w-xl" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
+            <p class="text-sm mb-3 leading-relaxed" style="color: var(--card-subtext);">欢迎查看源码、提交 Issue 或参与改进。</p>
+            <a href="https://github.com/hhhky/shiyongbujian" target="_blank" class="text-sm font-semibold underline" style="color: var(--text-primary);">github.com/hhhky/shiyongbujian</a>
           </div>
         </div>
 

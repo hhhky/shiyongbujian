@@ -78,6 +78,7 @@ let calendarYear = null;
 let calendarMonth = null;
 let selectedDateStr = null;
 let currentMindmapType = 'workflow';
+let currentAboutItem = null; // 关于页当前打开的二级条目（theme/version/intro/opensource）
 
 function renderWidgets() {
   var grid = document.getElementById('widgets-grid');
@@ -99,6 +100,7 @@ function renderWidgets() {
 
 function enterWidget(id) {
   currentWidget = id;
+  currentAboutItem = null;
   var w = WIDGETS.find(function(x){ return x.id === id; });
   if (!w) return;
 
@@ -140,6 +142,7 @@ function enterWidget(id) {
 function goHome() {
   currentWidget = null;
   currentWorkflowId = null;
+  currentAboutItem = null;
 
   // Hide widget pages, show home
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
@@ -149,6 +152,7 @@ function goHome() {
   // Header
   document.getElementById('header-back-btn').classList.add('hidden');
   document.getElementById('header-title').textContent = '实用部件';
+  document.getElementById('header-badge').style.display = '';
   updateHomeBadge();
 
   // Bottom nav
@@ -160,6 +164,7 @@ function goHome() {
 
   // Sidebar
   document.getElementById('sidebar-back-btn').classList.add('hidden');
+  document.getElementById('sidebar-back-label').textContent = '实用部件';
   document.getElementById('sidebar-footer').classList.add('hidden');
   document.getElementById('sidebar-tabs-container').innerHTML = '';
   document.getElementById('bottom-nav-tabs-container').innerHTML = '';
@@ -210,11 +215,93 @@ function handleAndroidBack() {
   }
   // 4. 部件内页退回首页
   if (currentWidget) { goHome(); return true; }
-  // 5. 首页的「关于」页退回「部件」页
+  // 5. 关于二级页退回关于首页
+  if (currentAboutItem) { backToAbout(); return true; }
+  // 6. 首页的「关于」页退回「部件」页
   var aboutPage = document.getElementById('page-about');
   if (aboutPage && aboutPage.classList.contains('active')) { switchHomeTab('widgets'); return true; }
-  // 6. 已经在首页，交给系统退出
+  // 7. 已经在首页，交给系统退出
   return false;
+}
+
+// ── 关于页：条目入口与二级页 ──────────────────
+var ABOUT_ITEMS = [
+  { id: 'theme', name: '主题样式', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>' },
+  { id: 'version', name: '版本更新', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>' },
+  { id: 'intro', name: '介绍', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
+  { id: 'opensource', name: '开源', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>' }
+];
+
+// 顶部 / 侧边栏返回按钮：关于二级页回关于首页，其余回首页
+function goBack() {
+  if (currentAboutItem) { backToAbout(); return; }
+  goHome();
+}
+
+function gotoAboutItem(item) {
+  var found = ABOUT_ITEMS.find(function(x){ return x.id === item; });
+  if (!found) return;
+  currentAboutItem = item;
+
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  var page = document.getElementById('page-about-' + item);
+  if (page) page.classList.add('active');
+
+  // Header
+  document.getElementById('header-back-btn').classList.remove('hidden');
+  document.getElementById('header-title').textContent = found.name;
+  document.getElementById('header-badge').style.display = 'none';
+
+  // Bottom nav / 首页切换栏
+  document.getElementById('bottom-nav').classList.add('hidden');
+  document.querySelector('.main-content').classList.remove('has-nav');
+  document.getElementById('home-switch-bar').style.display = 'none';
+
+  // Sidebar：显示关于条目导航
+  document.getElementById('sidebar-back-btn').classList.remove('hidden');
+  document.getElementById('sidebar-back-label').textContent = '关于';
+  document.getElementById('sidebar-footer').classList.add('hidden');
+  renderAboutSidebar(item);
+  document.getElementById('bottom-nav-tabs-container').innerHTML = '';
+
+  updateAboutVersion();
+  updateThemeSelection();
+}
+
+function backToAbout() {
+  currentAboutItem = null;
+
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.getElementById('page-about').classList.add('active');
+
+  // Header
+  document.getElementById('header-back-btn').classList.add('hidden');
+  document.getElementById('header-title').textContent = '实用部件';
+  document.getElementById('header-badge').style.display = '';
+  updateHomeBadge();
+
+  // 恢复首页切换栏
+  document.getElementById('home-switch-bar').style.display = '';
+
+  // Sidebar
+  document.getElementById('sidebar-back-btn').classList.add('hidden');
+  document.getElementById('sidebar-back-label').textContent = '实用部件';
+  document.getElementById('sidebar-footer').classList.add('hidden');
+  document.getElementById('sidebar-tabs-container').innerHTML = '';
+  document.getElementById('bottom-nav-tabs-container').innerHTML = '';
+
+  switchHomeTab('about');
+}
+
+function renderAboutSidebar(active) {
+  var container = document.getElementById('sidebar-tabs-container');
+  if (!container) return;
+  container.innerHTML = ABOUT_ITEMS.map(function(t){
+    return '<button onclick="gotoAboutItem(\'' + t.id + '\')" class="sidebar-tab flex items-center gap-3 px-3 py-2.5 rounded-[20px] text-sm ' + (t.id === active ? 'active font-semibold' : 'font-medium text-gray-500') + '" data-tab="' + t.id + '">'
+      + '<svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + t.svg + '</svg>'
+      + '<span class="hidden lg:inline">' + esc(t.name) + '</span>'
+    + '</button>';
+  }).join('');
 }
 
 function switchHomeTab(tab) {
@@ -268,11 +355,20 @@ function updateThemeSelection() {
       opt.style.boxShadow = active ? '0 0 0 1px var(--text-primary)' : 'none';
     }
   });
+  // 关于首页条目上显示当前主题
+  var entry = document.getElementById('about-theme-entry');
+  if (entry) {
+    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '暗黑 · 护眼深色' };
+    entry.textContent = names[current] || names.glass;
+  }
 }
 
 function updateAboutVersion() {
   var el = document.getElementById('about-version');
   if (el) el.textContent = 'v' + APP_VERSION;
+  // 关于首页条目上的版本号
+  var entry = document.getElementById('about-version-entry');
+  if (entry) entry.textContent = 'v' + APP_VERSION;
 }
 
 function renderSidebarTabs(w) {
@@ -306,6 +402,8 @@ function updateHomeBadge() {
 async function init() {
   renderWidgets();
   updateHomeBadge();
+  updateAboutVersion();
+  updateThemeSelection();
   await cleanupExpiredMemos();
   var el;
   el = document.getElementById('header-back-btn'); if (el) el.classList.add('hidden');
