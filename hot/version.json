@@ -1,5 +1,0 @@
-{
-  "_help": "网页热更新清单。只改 HTML/CSS/JS 时：1) 用 python pack-hot.py <版本号> 打包；2) gh release upload web-hot hot/web-<版本号>.zip --clobber；3) 把这里的 version 改成同号、urls 填下载地址；4) 提交时带 [skip ci]。不要发 APK、不要升版本号。",
-  "version": "1",
-  "urls": []
-}

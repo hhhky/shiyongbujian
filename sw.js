@@ -20,7 +20,6 @@ self.addEventListener('install', e => {
         './js/focus.js',
         './js/data-transfer.js',
         './js/announce.js',
-        './js/hotupdate.js',
         './js/tailwind.js',
         './js/pdf.min.js',
         './js/pdf.worker.min.js',
