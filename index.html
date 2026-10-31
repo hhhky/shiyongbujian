@@ -584,7 +584,12 @@
           <!-- Version -->
           <div class="mb-6">
             <p class="text-sm font-semibold text-gray-600 mb-2">版本</p>
-            <p class="text-sm text-gray-500" id="about-version">v1.0.0</p>
+            <div class="flex items-center gap-3">
+              <p class="text-sm text-gray-500" id="about-version">v1.0.0</p>
+              <button type="button" onclick="checkUpdateManually()" id="about-check-update"
+                      class="text-xs font-semibold px-3 py-1.5 rounded-full transition-all"
+                      style="background: rgba(128,128,128,0.14); color: var(--text-primary);">检查更新</button>
+            </div>
           </div>
 
           <!-- Description -->

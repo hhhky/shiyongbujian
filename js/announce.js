@@ -12,6 +12,10 @@ var ANNOUNCE_MAX_SEEN = 50;
 var announceCurrent = null;
 var announceCloseFn = null;
 var announceUpdating = false;
+// 当前公告的下载地址列表与重试下标（主源失败自动换备用线路）
+var announceUpdateSources = [];
+var announceUpdateIndex = 0;
+var announceFileName = '';
 
 function announceCurrentVersion() {
   return (typeof APP_VERSION !== 'undefined') ? APP_VERSION : '0';
@@ -22,9 +26,17 @@ function announceHasNewVersion(a) {
   return !!(a && a.version) && announceVersionLess(announceCurrentVersion(), a.version);
 }
 
-// 能否在 App 内直接下载安装：有新版本 + 有 url + 原生桥可用
+// 下载地址：优先用 urls 数组（多线路），兼容单个 url
+function announceDownloadUrls(a) {
+  if (a && Array.isArray(a.urls)) {
+    return a.urls.filter(function(u) { return typeof u === 'string' && u; });
+  }
+  return (a && a.url) ? [a.url] : [];
+}
+
+// 能否在 App 内直接下载安装：有新版本 + 有下载地址 + 原生桥可用
 function announceIsUpdate(a) {
-  return !!(a && a.url) && announceHasNewVersion(a)
+  return announceHasNewVersion(a) && announceDownloadUrls(a).length > 0
     && typeof window !== 'undefined' && !!window.AndroidUpdate;
 }
 
@@ -88,6 +100,46 @@ async function checkAnnouncement() {
   if (picked) showAnnouncement(picked);
 }
 
+/**
+ * 「关于」页手动检查更新：不看已读记录，直接找比当前版本新的公告。
+ * 有新版本就弹出更新弹窗（可下载安装），没有就提示已是最新。
+ */
+async function checkUpdateManually() {
+  var btn = document.getElementById('about-check-update');
+  var label = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '检查中…'; }
+
+  var res = null;
+  try {
+    res = await fetch(ANNOUNCE_URL + '?t=' + Date.now(), { cache: 'no-store' });
+  } catch (e) { /* 下面统一提示 */ }
+
+  if (btn) { btn.disabled = false; btn.textContent = label; }
+
+  if (!res || !res.ok) { toast('检查失败，请检查网络后重试'); return; }
+
+  var data;
+  try { data = await res.json(); } catch (e) { toast('检查失败，请稍后再试'); return; }
+
+  var items = Array.isArray(data) ? data : [data];
+  var best = null;
+  for (var i = 0; i < items.length; i++) {
+    var a = items[i];
+    if (!a || !announceHasNewVersion(a) || !announceDownloadUrls(a).length) continue;
+    if (!best || announceVersionLess(best.version, a.version)) best = a;
+  }
+
+  if (!best) {
+    toast('已是最新版本 v' + announceCurrentVersion());
+    return;
+  }
+
+  // 已有弹窗先收掉，避免重复
+  var old = document.getElementById('announce-mask');
+  if (old) old.remove();
+  showAnnouncement(best);
+}
+
 function showAnnouncement(a) {
   if (document.getElementById('announce-mask')) return;
 
@@ -144,8 +196,9 @@ function showAnnouncement(a) {
 
   // 这条公告带 version 且高于当前 App 版本 → 当作更新提示
   var canUpdate = announceIsUpdate(a);
+  var urls = announceDownloadUrls(a);
   // 带 version 的公告只在确实有新版本时才给下载入口，已是最新版的用户就只看说明
-  var showLink = !!a.url && (!a.version || announceHasNewVersion(a));
+  var showLink = urls.length > 0 && (!a.version || announceHasNewVersion(a));
 
   var updateBtn = null;
   if (showLink) {
@@ -160,8 +213,11 @@ function showAnnouncement(a) {
         announceUpdating = true;
         updateBtn.disabled = true;
         updateBtn.textContent = '准备下载…';
+        announceUpdateSources = urls;
+        announceUpdateIndex = 0;
+        announceFileName = 'shiyongbujian-' + a.version + '.apk';
         try {
-          window.AndroidUpdate.downloadAndInstall(a.url, 'shiyongbujian-' + a.version + '.apk');
+          window.AndroidUpdate.downloadAndInstall(urls[0], announceFileName);
         } catch (e) {
           announceUpdating = false;
           updateBtn.disabled = false;
@@ -173,7 +229,7 @@ function showAnnouncement(a) {
       // 浏览器 / PWA：退化成普通链接，由用户自行下载
       var link = document.createElement('a');
       link.className = 'announce-primary';
-      link.href = a.url;
+      link.href = urls[0];
       link.target = '_blank';
       link.rel = 'noopener';
       link.textContent = a.button || '查看';
@@ -225,6 +281,18 @@ window.onUpdateError = function(msg) {
   var btn = announceUpdateButton();
   announceUpdating = false;
   if (!btn) return;
+
+  // 还有备用线路就自动换源重试（比如 GitHub Release 太慢或被限速时换 Pages）
+  if (msg !== 'needPermission' && announceUpdateIndex + 1 < announceUpdateSources.length) {
+    announceUpdateIndex++;
+    announceUpdating = true;
+    btn.disabled = true;
+    btn.textContent = '换线路重试…';
+    var next = announceUpdateSources[announceUpdateIndex];
+    setTimeout(function() { window.AndroidUpdate.downloadAndInstall(next, announceFileName); }, 300);
+    return;
+  }
+
   btn.disabled = false;
   if (msg === 'needPermission') {
     // 原生已把用户送到「安装未知应用」授权页

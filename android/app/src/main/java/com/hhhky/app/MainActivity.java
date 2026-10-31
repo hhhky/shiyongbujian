@@ -218,6 +218,8 @@ public class MainActivity extends BridgeActivity {
                     conn.setReadTimeout(30000);
                     conn.setInstanceFollowRedirects(false);
                     conn.setRequestProperty("User-Agent", "shiyongbujian-app");
+                    // APK 本身已压缩，要求不额外编码，省掉一次解压开销
+                    conn.setRequestProperty("Accept-Encoding", "identity");
                     int code = conn.getResponseCode();
                     if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
                         String next = conn.getHeaderField("Location");
@@ -235,7 +237,7 @@ public class MainActivity extends BridgeActivity {
                 long total = conn.getContentLength(); // 服务端给了长度才显示真实进度
                 long done = 0;
                 int lastPct = -1;
-                byte[] buf = new byte[8192];
+                byte[] buf = new byte[65536];
                 try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(part)) {
                     int n;
                     while ((n = in.read(buf)) > 0) {
