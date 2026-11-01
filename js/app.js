@@ -607,11 +607,11 @@ async function renderFiles() {
   container.innerHTML = filtered.sort((a,b) => b.createdAt - a.createdAt).map(f => {
     var icon = getFileIcon(f.type, f.name);
     var sizeStr = f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1)+'MB' : (f.size/1024).toFixed(0)+'KB';
-    return `<div class="bg-white/80 backdrop-blur rounded-[20px] p-4 flex items-center gap-3 card-hover cursor-pointer shadow-sm" onclick="previewFile(${f.id})">
+    return `<div class="theme-card rounded-[20px] p-4 flex items-center gap-3 card-hover cursor-pointer" onclick="previewFile(${f.id})">
       <span class="text-2xl shrink-0">${icon}</span>
       <div class="flex-1 min-w-0">
-        <span id="fname-${f.id}" class="font-medium text-gray-800 text-sm truncate block">${esc(f.name)}</span>
-        <p class="text-xs text-gray-400">${sizeStr}，${new Date(f.createdAt).toLocaleDateString('zh-CN')}</p>
+        <span id="fname-${f.id}" class="font-medium text-sm truncate block" style="color: var(--card-text);">${esc(f.name)}</span>
+        <p class="text-xs" style="color: var(--card-subtext);">${sizeStr}，${new Date(f.createdAt).toLocaleDateString('zh-CN')}</p>
       </div>
       <button onclick="event.stopPropagation();startRename(${f.id})" class="icon-btn-edit shrink-0" title="重命名"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
       <button onclick="event.stopPropagation();removeFile(${f.id})" class="icon-btn-del shrink-0" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
@@ -659,7 +659,7 @@ function startRename(id) {
   var el = document.getElementById('fname-' + id);
   if (!el || el.querySelector('input')) return;
   var oldName = el.textContent;
-  el.innerHTML = '<input id="rename-input-' + id + '" value="' + esc(oldName) + '" class="w-full text-sm font-medium text-gray-800 bg-gray-100 rounded-[10px] px-2 py-0.5 outline-none border border-primary-500">';
+  el.innerHTML = '<input id="rename-input-' + id + '" value="' + esc(oldName) + '" class="w-full text-sm font-medium rounded-[10px] px-2 py-0.5 outline-none border border-primary-500" style="background: rgba(128,128,128,0.18); color: var(--card-text);">';
   var inp = document.getElementById('rename-input-' + id);
   inp.focus();
   inp.select();
@@ -834,9 +834,9 @@ async function renderUploadCategories() {
     container.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm col-span-full">请先到"分类"页面创建分类</div>';
     return;
   }
-  container.innerHTML = cats.map(c => `<div onclick="selectUploadCategory(${c.id})" class="upload-cat-option bg-white/80 backdrop-blur rounded-[20px] p-3 flex items-center gap-3 card-hover cursor-pointer transition-all shadow-sm" data-cat="${c.id}">
+  container.innerHTML = cats.map(c => `<div onclick="selectUploadCategory(${c.id})" class="upload-cat-option theme-card rounded-[20px] p-3 flex items-center gap-3 card-hover cursor-pointer transition-all" data-cat="${c.id}">
     <span class="cat-color" style="background:${c.color}"></span>
-    <span class="text-sm font-medium text-gray-700">${esc(c.name)}</span>
+    <span class="text-sm font-medium" style="color: var(--card-text);">${esc(c.name)}</span>
   </div>`).join('');
 }
 
@@ -1020,7 +1020,7 @@ async function renderWord(data, name) {
         "r[style-name='Emphasis'] => em"
       ]
     }).then(function(result) {
-      container.innerHTML = '<div class="bg-white rounded-[20px] p-4 md:p-6 max-w-3xl mx-auto word-preview" style="zoom:' + zoomLevel + '">' + result.value + '</div>';
+      container.innerHTML = '<div class="doc-paper rounded-[20px] p-4 md:p-6 max-w-3xl mx-auto word-preview" style="zoom:' + zoomLevel + '">' + result.value + '</div>';
       if (result.messages && result.messages.length > 0) {
         console.warn('Mammoth warnings:', result.messages);
       }
@@ -1042,7 +1042,7 @@ async function renderExcel(data, name) {
     var sheetName = wb.SheetNames[0];
     var sheet = wb.Sheets[sheetName];
     var html = XLSX.utils.sheet_to_html(sheet, { id: 'excel-table', editable: false });
-    container.innerHTML = '<div class="bg-white rounded-[20px] p-2 md:p-4 max-w-full mx-auto excel-preview" style="zoom:' + zoomLevel + '">' + html + '</div>';
+    container.innerHTML = '<div class="doc-paper rounded-[20px] p-2 md:p-4 max-w-full mx-auto excel-preview" style="zoom:' + zoomLevel + '">' + html + '</div>';
     // Style the generated table
     var tbl = container.querySelector('#excel-table');
     if (tbl) {
@@ -1233,17 +1233,17 @@ async function renderMemos() {
     var info = getDaysInfo(m);
     var preview = (m.content || '').substring(0, 80);
     if ((m.content || '').length > 80) preview += '...';
-    return '<div class="bg-white/80 backdrop-blur rounded-[20px] p-4 card-hover shadow-sm memo-card">'
+    return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card">'
       + '<div class="flex items-start justify-between mb-2">'
-        + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(m.title) + '</h4>'
+        + '<h4 class="font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(m.title) + '</h4>'
         + '<div class="flex gap-0.5 shrink-0 ml-2">'
           + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
           + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="icon-btn-del" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
         + '</div>'
       + '</div>'
-      + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
+      + (preview ? '<p class="text-xs mb-2" style="color: var(--card-subtext);">' + esc(preview) + '</p>' : '')
       + '<div class="flex items-center justify-between text-xs">'
-        + '<span class="text-gray-400">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? '，自动删除' : '') + '</span>'
+        + '<span style="color: var(--card-subtext);">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? '，自动删除' : '') + '</span>'
         + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
       + '</div>'
     + '</div>';
@@ -1335,22 +1335,22 @@ async function renderCalendar() {
   var memoContainer = document.getElementById('calendar-memos');
   if (selectedDateStr && memosByDate[selectedDateStr]) {
     var dayMemos = memosByDate[selectedDateStr];
-    memoContainer.innerHTML = '<div class="flex items-center gap-2 mb-3"><h3 class="font-semibold text-sm text-gray-700">' + selectedDateStr + ' (' + dayMemos.length + ' 条备忘)</h3></div>'
+    memoContainer.innerHTML = '<div class="flex items-center gap-2 mb-3"><h3 class="font-semibold text-sm" style="color: var(--text-primary);">' + selectedDateStr + ' (' + dayMemos.length + ' 条备忘)</h3></div>'
       + dayMemos.sort(function(a,b){ return b.createdAt - a.createdAt; }).map(function(m) {
         var info = getDaysInfo(m);
         var preview = (m.content || '').substring(0, 80);
         if ((m.content || '').length > 80) preview += '...';
-        return '<div class="bg-white/80 backdrop-blur rounded-[20px] p-4 card-hover shadow-sm memo-card mb-2">'
+        return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card mb-2">'
           + '<div class="flex items-start justify-between mb-2">'
-            + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(m.title) + '</h4>'
+            + '<h4 class="font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(m.title) + '</h4>'
             + '<div class="flex gap-0.5 shrink-0 ml-2">'
               + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
               + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="icon-btn-del" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
             + '</div>'
           + '</div>'
-          + (preview ? '<p class="text-xs text-gray-500 mb-2">' + esc(preview) + '</p>' : '')
+          + (preview ? '<p class="text-xs mb-2" style="color: var(--card-subtext);">' + esc(preview) + '</p>' : '')
           + '<div class="flex items-center justify-between text-xs">'
-            + '<span class="text-gray-400">' + (m.autoDelete ? '自动删除' : '手动删除') + '</span>'
+            + '<span style="color: var(--card-subtext);">' + (m.autoDelete ? '自动删除' : '手动删除') + '</span>'
             + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
           + '</div>'
         + '</div>';
@@ -1497,25 +1497,25 @@ async function renderWorkflows() {
     var nodes = await getWorkflowNodes(w.id);
     var total = nodes.length;
     var div = document.createElement('div');
-    div.className = 'bg-white/80 backdrop-blur rounded-[20px] p-4 card-hover cursor-pointer shadow-sm';
+    div.className = 'theme-card rounded-[20px] p-4 card-hover cursor-pointer';
     div.onclick = function(wf) { return function() { enterWorkflow(wf.id); }; }(w);
     var infoHtml = '';
     if (isKnowledge) {
-      infoHtml = '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2"><span>' + total + ' 个节点</span></div>';
+      infoHtml = '<div class="flex items-center gap-2 text-xs mb-2" style="color: var(--card-subtext);"><span>' + total + ' 个节点</span></div>';
     } else {
       var doneCount = nodes.filter(function(n) { return n.done; }).length;
       var progress = total > 0 ? Math.round(doneCount / total * 100) : 0;
-      infoHtml = '<div class="flex items-center gap-2 text-xs text-gray-400 mb-2">'
+      infoHtml = '<div class="flex items-center gap-2 text-xs mb-2" style="color: var(--card-subtext);">'
         + '<span>' + total + ' 个节点</span>'
         + '<span>，</span>'
         + '<span>' + doneCount + ' 已完成</span>'
         + '</div>'
-        + '<div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">'
+        + '<div class="w-full rounded-full h-1.5 overflow-hidden" style="background: rgba(128,128,128,0.18);">'
           + '<div class="h-full rounded-full transition-all duration-500" style="width:' + progress + '%; background: linear-gradient(90deg, #10b981, #34d399);"></div>'
         + '</div>';
     }
     div.innerHTML = '<div class="flex items-start justify-between mb-2">'
-      + '<h4 class="font-semibold text-gray-800 text-sm flex-1 min-w-0">' + esc(w.name) + '</h4>'
+      + '<h4 class="font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(w.name) + '</h4>'
       + '<button onclick="event.stopPropagation();deleteWorkflowById(' + w.id + ')" class="icon-btn-del shrink-0 ml-2" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
       + '</div>'
       + infoHtml;
@@ -1838,16 +1838,16 @@ async function renderMindMap(workflowId) {
     var sizeClass = ' size-' + (n.size || (isKnowledge ? 'large' : 'medium'));
     var bottomHtml = '';
     if (isKnowledge) {
-      bottomHtml = '<div class="flex justify-end mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
+      bottomHtml = '<div class="flex justify-end mt-2 pt-2" style="border-top:1px solid rgba(128,128,128,0.22)">'
         + '<div class="flex gap-0.5">'
           + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
           + '<button onclick="event.stopPropagation();deleteNodeById(' + n.id + ')" class="icon-btn-del" title="删除"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
         + '</div>'
       + '</div>';
     } else {
-      bottomHtml = '<div class="flex items-center justify-between mt-2 pt-2" style="border-top:1px solid #f3f4f6">'
-        + '<button onclick="event.stopPropagation();toggleNodeDone(' + n.id + ')" class="text-xs px-2 py-0.5 rounded-full font-medium transition-all '
-          + (n.done ? 'bg-mint-100 text-mint-600' : 'bg-gray-100 text-gray-500') + '" style="font-size:0.7rem">'
+      bottomHtml = '<div class="flex items-center justify-between mt-2 pt-2" style="border-top:1px solid rgba(128,128,128,0.22)">'
+        + '<button onclick="event.stopPropagation();toggleNodeDone(' + n.id + ')" class="text-xs px-2 py-0.5 rounded-full font-medium transition-all" style="font-size:0.7rem;'
+          + (n.done ? 'background:rgba(16,185,129,0.18);color:#34d399' : 'background:rgba(128,128,128,0.18);color:var(--card-subtext)') + '">'
           + (n.done ? '取消' : '完成') + '</button>'
         + '<div class="flex gap-0.5">'
           + '<button onclick="event.stopPropagation();showEditNode(' + n.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
@@ -1861,7 +1861,7 @@ async function renderMindMap(workflowId) {
       + '<button class="mindmap-dir-btn left" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'left\')" aria-label="在左侧添加子节点">' + arrowLeft + '</button>'
       + '<button class="mindmap-dir-btn right" onclick="event.stopPropagation();quickAddNode(' + n.id + ',\'right\')" aria-label="在右侧添加子节点">' + arrowRight + '</button>'
       + '<div class="mindmap-node-title">' + esc(n.title) + '</div>'
-      + (descSnippet ? '<div class="text-xs text-gray-400">' + esc(descSnippet) + '</div>' : '')
+      + (descSnippet ? '<div class="text-xs" style="color: var(--card-subtext);">' + esc(descSnippet) + '</div>' : '')
       + bottomHtml
     + '</div>';
   }).join('');
@@ -2329,16 +2329,16 @@ function quickAddNode(parentId, direction) {
   popup.style.top = Math.max(0, top) + 'px';
   popup.style.left = Math.max(0, left) + 'px';
 
-  popup.innerHTML = '<div style="font-size:0.7rem; color:#9ca3af; margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
+  popup.innerHTML = '<div style="font-size:0.7rem; color:var(--text-tertiary); margin-bottom:4px">向' + (dirLabels[direction] || direction) + '添加子节点</div>'
     + '<input id="quick-add-input" placeholder="节点标题" onkeydown="if(event.key===\'Enter\')confirmQuickAdd()">'
     + '<div style="display:flex; gap:6px; margin:6px 0;" id="quick-shape-select">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn active" data-shape="rounded" style="flex:1; padding:3px; border-radius:12px; border:2px solid rgba(0,0,0,0.3); background:rgba(0,0,0,0.06); text-align:center; font-size:0.65rem; color:#374151; cursor:pointer;">圆角</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn" data-shape="pill" style="flex:1; padding:3px; border-radius:30px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.65rem; color:#6b7280; cursor:pointer;">胶囊</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'rounded\';renderQuickShapeBtns()" class="quick-shape-btn quick-opt active" data-shape="rounded" style="border-radius:12px; font-size:0.65rem;">圆角</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-shape-select\').dataset.shape=\'pill\';renderQuickShapeBtns()" class="quick-shape-btn quick-opt" data-shape="pill" style="border-radius:30px; font-size:0.65rem;">胶囊</button>'
     + '</div>'
     + '<div style="display:flex; gap:6px; margin:0 0 6px 0;" id="quick-size-select" data-size="' + (currentMindmapType === 'knowledge' ? 'large' : 'medium') + '">'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn" data-size="small" style="flex:1; padding:3px; border-radius:10px; border:2px solid #e5e7eb; background:#fff; text-align:center; font-size:0.6rem; color:#6b7280; cursor:pointer;">小</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? '' : ' active') + '" data-size="medium" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? '#e5e7eb' : 'rgba(0,0,0,0.3)') + '; background:' + (currentMindmapType === 'knowledge' ? '#fff' : 'rgba(0,0,0,0.06)') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#6b7280' : '#374151') + '; cursor:pointer;">中</button>'
-      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn' + (currentMindmapType === 'knowledge' ? ' active' : '') + '" data-size="large" style="flex:1; padding:3px; border-radius:6px; border:2px solid ' + (currentMindmapType === 'knowledge' ? 'rgba(0,0,0,0.3)' : '#e5e7eb') + '; background:' + (currentMindmapType === 'knowledge' ? 'rgba(0,0,0,0.06)' : '#fff') + '; text-align:center; font-size:0.6rem; color:' + (currentMindmapType === 'knowledge' ? '#374151' : '#6b7280') + '; cursor:pointer;">大</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'small\';renderQuickSizeBtns()" class="quick-size-btn quick-opt" data-size="small" style="border-radius:10px; font-size:0.6rem;">小</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'medium\';renderQuickSizeBtns()" class="quick-size-btn quick-opt' + (currentMindmapType === 'knowledge' ? '' : ' active') + '" data-size="medium" style="border-radius:6px; font-size:0.6rem;">中</button>'
+      + '<button onclick="event.stopPropagation();document.getElementById(\'quick-size-select\').dataset.size=\'large\';renderQuickSizeBtns()" class="quick-size-btn quick-opt' + (currentMindmapType === 'knowledge' ? ' active' : '') + '" data-size="large" style="border-radius:6px; font-size:0.6rem;">大</button>'
     + '</div>'
     + '<div class="mindmap-quick-add-btns">'
       + '<button class="mindmap-quick-add-confirm" onclick="confirmQuickAdd()">添加</button>'
@@ -2363,15 +2363,7 @@ function renderQuickShapeBtns() {
   var selected = container.dataset.shape || 'rounded';
   var btns = container.querySelectorAll('.quick-shape-btn');
   btns.forEach(function(b) {
-    if (b.dataset.shape === selected) {
-      b.style.border = '2px solid rgba(0,0,0,0.3)';
-      b.style.background = 'rgba(0,0,0,0.06)';
-      b.style.color = '#374151';
-    } else {
-      b.style.border = '2px solid #e5e7eb';
-      b.style.background = '#fff';
-      b.style.color = '#6b7280';
-    }
+    b.classList.toggle('active', b.dataset.shape === selected);
   });
 }
 
@@ -2381,15 +2373,7 @@ function renderQuickSizeBtns() {
   var selected = container.dataset.size || 'medium';
   var btns = container.querySelectorAll('.quick-size-btn');
   btns.forEach(function(b) {
-    if (b.dataset.size === selected) {
-      b.style.border = '2px solid rgba(0,0,0,0.3)';
-      b.style.background = 'rgba(0,0,0,0.06)';
-      b.style.color = '#374151';
-    } else {
-      b.style.border = '2px solid #e5e7eb';
-      b.style.background = '#fff';
-      b.style.color = '#6b7280';
-    }
+    b.classList.toggle('active', b.dataset.size === selected);
   });
 }
 

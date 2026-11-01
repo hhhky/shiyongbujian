@@ -73,6 +73,7 @@
       --text-primary: #1d1d1f;
       --text-secondary: #6e6e73;
       --text-tertiary: #8e8e93;
+      --panel-bg: rgba(255,255,255,0.94);
       --header-glow-display: none;
       --header-anim: none;
       --header-bg-size: auto;
@@ -115,6 +116,7 @@
       --text-primary: #1d1d1f;
       --text-secondary: #6e6e73;
       --text-tertiary: #8e8e93;
+      --panel-bg: #ffffff;
       --header-glow-display: none;
       --header-anim: none;
       --header-bg-size: auto;
@@ -155,8 +157,9 @@
       --card-subtext: #98989d;
       --card-hover-shadow: 0 8px 28px rgba(0,0,0,0.3);
       --text-primary: #f5f5f7;
-      --text-secondary: #98989d;
-      --text-tertiary: #636366;
+      --text-secondary: #a8a8ad;
+      --text-tertiary: #98989d;
+      --panel-bg: #2c2c2e;
       --header-glow-display: none;
       --header-anim: none;
       --header-bg-size: auto;
@@ -433,10 +436,12 @@
       box-shadow: var(--card-hover-shadow);
     }
 
-    .word-preview h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; color: var(--text-primary); }
-    .word-preview h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: var(--text-primary); }
-    .word-preview h4 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: var(--text-primary); }
-    .word-preview p { margin: 0.25rem 0; font-size: 0.875rem; color: var(--text-primary); line-height: 1.6; }
+    /* 文档预览固定用白纸黑字，避免深色主题下白底白字 */
+    .doc-paper { background: #ffffff; color: #1d1d1f; }
+    .word-preview h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; color: #1d1d1f; }
+    .word-preview h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: #1d1d1f; }
+    .word-preview h4 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; color: #1d1d1f; }
+    .word-preview p { margin: 0.25rem 0; font-size: 0.875rem; color: #1d1d1f; line-height: 1.6; }
     .word-preview ul,.word-preview ol { margin: 0.25rem 0; padding-left: 1.5rem; font-size: 0.875rem; }
     .word-preview li { margin: 0.125rem 0; }
     .word-preview table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
@@ -469,11 +474,11 @@
     .chat-msg { display: flex; margin-bottom: 16px; animation: fadeIn 0.3s ease; }
     .chat-msg-user { justify-content: flex-end; }
     .chat-msg-ai { align-items: flex-start; gap: 8px; }
-    .chat-ai-avatar { width: 30px; height: 30px; border-radius: 12px; background: rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; flex-shrink: 0; }
+    .chat-ai-avatar { width: 30px; height: 30px; border-radius: 12px; background: var(--card-bg); border: var(--card-border); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; flex-shrink: 0; }
     .chat-ai-body { flex: 1; min-width: 0; }
     .chat-bubble { max-width: 85%; padding: 10px 16px; border-radius: 18px; font-size: 0.875rem; line-height: 1.6; word-break: break-word; }
     .chat-bubble-user { background: rgba(0,0,0,0.75); color: #fff; border-bottom-right-radius: 6px; }
-    .chat-bubble-ai { background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.35); color: #1d1d1f; border-bottom-left-radius: 6px; box-shadow: var(--card-box-shadow); }
+    .chat-bubble-ai { background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); color: var(--card-text); border-bottom-left-radius: 6px; box-shadow: var(--card-box-shadow); }
     .chat-bubble-ai p { margin: 0.25rem 0; }
     .chat-bubble-ai p:first-child { margin-top: 0; }
     .chat-bubble-ai p:last-child { margin-bottom: 0; }
@@ -487,24 +492,114 @@
     .chat-bubble-ai a { color: var(--text-primary); text-decoration: underline; }
     .chat-bubble-ai strong { font-weight: 600; color: var(--text-primary); }
     .chat-bubble-ai em { font-style: italic; }
-    .chat-bubble-ai hr { border: none; border-top: 1px solid #e5e7eb; margin: 8px 0; }
+    .chat-bubble-ai hr { border: none; border-top: 1px solid rgba(128,128,128,0.25); margin: 8px 0; }
     .chat-bubble-ai .code-block { background: #1e1e2e; color: #cdd6f4; border-radius: 12px; padding: 12px 16px; overflow-x: auto; margin: 8px 0; font-size: 0.8125rem; line-height: 1.5; position: relative; }
     .chat-bubble-ai .code-block .code-lang { position: absolute; top: 6px; right: 12px; font-size: 0.6875rem; color: #6c7086; text-transform: uppercase; }
     .chat-bubble-ai .code-block code { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
-    .chat-bubble-ai .inline-code { background: #f3f4f6; color: #e11d48; padding: 1px 5px; border-radius: 4px; font-size: 0.8125rem; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
-    .reasoning-block { background: #f8f9fa; border: 1px solid #e5e7eb; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
-    .reasoning-block.reasoning-done { border-color: #d1d5db; }
-    .reasoning-header { display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 0.75rem; color: #6b7280; }
-    .reasoning-header:hover { background: rgba(0,0,0,0.02); }
+    .chat-bubble-ai .inline-code { background: rgba(128,128,128,0.18); color: #fb7185; padding: 1px 5px; border-radius: 4px; font-size: 0.8125rem; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+    .reasoning-block { background: rgba(128,128,128,0.1); border: 1px solid rgba(128,128,128,0.2); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+    .reasoning-block.reasoning-done { border-color: rgba(128,128,128,0.28); }
+    .reasoning-header { display: flex; align-items: center; gap: 6px; padding: 8px 12px; cursor: pointer; user-select: none; -webkit-user-select: none; font-size: 0.75rem; color: var(--text-secondary); }
+    .reasoning-header:hover { background: rgba(128,128,128,0.08); }
     .reasoning-icon { font-size: 0.875rem; }
     .reasoning-label { flex: 1; }
     .reasoning-done .reasoning-label { color: #10b981; }
     .reasoning-toggle { font-size: 0.75rem; transition: transform 0.2s ease; }
-    .reasoning-content { padding: 0 12px 10px; font-size: 0.75rem; color: #9ca3af; line-height: 1.5; display: block; }
+    .reasoning-content { padding: 0 12px 10px; font-size: 0.75rem; color: var(--text-tertiary); line-height: 1.5; display: block; }
+    .chat-bubble-user { background: var(--btn-bg); color: #fff; }
+    [data-theme="dark"] .chat-bubble-user { background: rgba(255,255,255,0.16); color: #f5f5f7; }
+    #chat-input { color: var(--text-primary); }
     .reasoning-open .reasoning-content { display: block; }
     .chat-error { color: #ef4444; font-size: 0.8125rem; }
     #chat-messages { scroll-behavior: smooth; }
     #page-chat.active { display: flex; flex-direction: column; }
+
+    /* ====== 深色主题适配 ====== */
+    body { color: var(--text-primary); }
+    /* 让原生控件（日期/时间选择器、下拉框、复选框、滚动条）跟随主题深浅 */
+    :root, [data-theme="glass"], [data-theme="white"] { color-scheme: light; }
+    [data-theme="dark"] { color-scheme: dark; }
+
+    /* 跟随主题的卡片（替代写死的 bg-white/80） */
+    .theme-card {
+      background: var(--card-bg);
+      border: var(--card-border);
+      backdrop-filter: var(--card-backdrop);
+      -webkit-backdrop-filter: var(--card-backdrop);
+      box-shadow: var(--card-box-shadow);
+    }
+
+    /* 禁用态按钮：不再用 bg-gray-300 + 白字（浅色主题下也会白底白字） */
+    #upload-btn:disabled,
+    #upload-btn.bg-gray-300 {
+      background: rgba(128,128,128,0.25) !important;
+      color: var(--text-secondary) !important;
+      opacity: 1;
+    }
+
+    /* 弹层：深色主题下整块变暗，标题/按钮不再白底白字 */
+    [data-theme="dark"] .modal-sheet > div {
+      background: var(--panel-bg);
+      color: var(--text-primary);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    }
+    [data-theme="dark"] .modal-sheet label { color: var(--text-secondary); }
+    [data-theme="dark"] .modal-sheet input,
+    [data-theme="dark"] .modal-sheet textarea,
+    [data-theme="dark"] .modal-sheet select {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.16);
+      color: var(--text-primary);
+    }
+    [data-theme="dark"] .modal-sheet input::placeholder,
+    [data-theme="dark"] .modal-sheet textarea::placeholder { color: #8e8e93; }
+    [data-theme="dark"] .modal-sheet .text-gray-500 { color: #a8a8ad; }
+    [data-theme="dark"] .modal-sheet .text-gray-600,
+    [data-theme="dark"] .modal-sheet .text-gray-700 { color: #c7c7cc; }
+    [data-theme="dark"] .modal-sheet .text-gray-400 { color: #8e8e93; }
+    [data-theme="dark"] .modal-sheet .bg-gray-100 { background: rgba(255,255,255,0.1); }
+    [data-theme="dark"] .modal-sheet .border-gray-200 { border-color: rgba(255,255,255,0.16); }
+    [data-theme="dark"] .modal-sheet .border-gray-400 { border-color: rgba(249,115,22,0.55); }
+
+    /* 列表页：深色主题下筛选胶囊、页签按钮不再刺眼 */
+    [data-theme="dark"] .cat-filter-btn.bg-gray-100 { background: rgba(255,255,255,0.08); color: #c7c7cc; }
+    [data-theme="dark"] .cal-nav-btn:hover { background: rgba(255,255,255,0.08); }
+    [data-theme="dark"] .cal-day.selected { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.4); }
+    [data-theme="dark"] .cal-day:hover { background: rgba(255,255,255,0.06); }
+    [data-theme="dark"] .icon-btn-edit:hover { background: rgba(255,255,255,0.1); }
+    [data-theme="dark"] .memo-card:hover { border-left-color: rgba(255,255,255,0.28); }
+
+    /* 思维导图 */
+    [data-theme="dark"] .mindmap-svg line { stroke: rgba(255,255,255,0.22); }
+    .mindmap-quick-add input {
+      background: rgba(128,128,128,0.12);
+      border: 0.5px solid rgba(128,128,128,0.3);
+      color: var(--text-primary);
+    }
+    .quick-opt {
+      flex: 1; padding: 3px; text-align: center; cursor: pointer;
+      border: 2px solid rgba(128,128,128,0.28);
+      background: rgba(128,128,128,0.08);
+      color: var(--text-secondary);
+    }
+    .quick-opt.active {
+      border-color: rgba(249,115,22,0.55);
+      background: rgba(249,115,22,0.14);
+      color: #f97316;
+    }
+
+    /* 下拉菜单 */
+    .export-menu {
+      background: var(--panel-bg);
+      border: var(--card-border);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+      backdrop-filter: var(--card-backdrop);
+      -webkit-backdrop-filter: var(--card-backdrop);
+    }
+    .export-menu button { color: var(--text-primary); }
+    .export-menu button:hover { background: rgba(128,128,128,0.12); }
+    .export-menu .export-note { color: var(--text-tertiary); }
+    .export-menu .export-sep { border-top: 1px solid rgba(128,128,128,0.2); }
   </style>
   <link rel="manifest" href="manifest.json">
 </head>
@@ -595,12 +690,12 @@
             <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #e5e5ea;" data-theme="glass" id="theme-opt-glass">
               <div class="w-full h-10 rounded-xl mb-2" style="background: var(--card-bg); backdrop-filter: blur(24px); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.55);"></div>
               <p class="text-sm font-semibold text-gray-700">玻璃</p>
-              <p class="text-xs text-gray-400">iOS 风格</p>
+              <p class="text-xs text-gray-500">iOS 风格</p>
             </button>
             <button onclick="applyTheme('white')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #ffffff;" data-theme="white" id="theme-opt-white">
               <div class="w-full h-10 rounded-xl mb-2" style="background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"></div>
               <p class="text-sm font-semibold text-gray-700">白色</p>
-              <p class="text-xs text-gray-400">清爽纯白</p>
+              <p class="text-xs text-gray-500">清爽纯白</p>
             </button>
             <button onclick="applyTheme('dark')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #1c1c1e;" data-theme="dark" id="theme-opt-dark">
               <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
@@ -687,15 +782,15 @@
               <label for="file-input" class="upload-zone rounded-[28px] p-8 md:p-10 text-center border-2 border-dashed mb-5 block cursor-pointer relative overflow-hidden">
                 <input type="file" id="file-input" onchange="onFileSelected(this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                 <div class="text-5xl md:text-6xl mb-4 relative z-10" style="animation: float 3s ease-in-out infinite;">📤</div>
-                <p class="text-gray-600 text-sm md:text-base font-medium relative z-10">点击选择文件</p>
-                <p class="text-gray-400 text-xs mt-1.5 relative z-10">支持 PDF、图片、Word、Excel 格式</p>
+                <p class="text-sm md:text-base font-medium relative z-10" style="color: var(--text-primary);">点击选择文件</p>
+                <p class="text-xs mt-1.5 relative z-10" style="color: var(--text-secondary);">支持 PDF、图片、Word、Excel 格式</p>
               </label>
               <div id="selected-file-info" class="hidden rounded-[20px] p-4 mb-5 shadow-sm" style="background: rgba(255,255,255,0.15); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: 0.5px solid rgba(255,255,255,0.35); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.4);">
                 <div class="flex items-center gap-3">
                   <span class="text-2xl" id="selected-file-icon">📄</span>
                   <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-800 truncate" id="selected-file-name"></p>
-                    <p class="text-xs text-gray-400" id="selected-file-size"></p>
+                    <p class="text-sm font-semibold truncate" id="selected-file-name" style="color: var(--card-text);"></p>
+                    <p class="text-xs" id="selected-file-size" style="color: var(--card-subtext);"></p>
                   </div>
                   <button onclick="clearSelectedFile()" class="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-dopa-coral-400 transition-all text-lg leading-none">&times;</button>
                 </div>
@@ -704,11 +799,11 @@
 
             <!-- Right: Category + Upload -->
             <div class="lg:w-72 xl:w-80 shrink-0">
-              <label class="block text-sm font-semibold text-gray-700 mb-2">选择分类</label>
+              <label class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">选择分类</label>
               <div id="upload-category-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-2 mb-5">
                 <div class="text-center text-gray-400 py-4 text-sm col-span-full">请先创建分类</div>
               </div>
-              <button id="upload-btn" onclick="uploadFile()" disabled class="w-full py-3 rounded-[20px] font-semibold text-white text-sm disabled:opacity-40 transition-all shadow-lg" style="background: rgba(0,0,0,0.75);">
+              <button id="upload-btn" onclick="uploadFile()" disabled class="w-full py-3 rounded-[20px] font-semibold text-white text-sm disabled:opacity-40 transition-all shadow-lg" style="background: var(--btn-bg);">
                 上传资料
               </button>
               <p class="text-xs text-gray-400 text-center mt-3">选择文件和分类后即可上传</p>
@@ -960,7 +1055,7 @@
                   <h3 class="text-sm font-bold" style="color: var(--text-primary);">导出备忘录</h3>
                   <p class="text-xs mt-0.5" id="memo-data-local-count" style="color: var(--text-tertiary);">本机已有 0 条备忘录</p>
                 </div>
-                <button onclick="exportModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#10b981;">生成</button>
+                <button onclick="exportModuleData('memo')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#059669;">生成</button>
               </div>
               <textarea id="memo-data-export" readonly rows="7" spellcheck="false" placeholder="点击“生成”后，导出字符串会显示在这里" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
               <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
@@ -1013,11 +1108,11 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
               </button>
               <h2 id="workflow-detail-title" class="title-gradient text-lg md:text-xl font-bold flex-1" style="color: var(--text-primary);"></h2>
-              <div class="flex items-center gap-1 text-xs" style="background:rgba(255,255,255,0.6); border-radius:14px; padding:2px 6px;">
-                <button onclick="mindmapZoomOut()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 btn-jelly transition-all text-gray-500 font-bold">−</button>
-                <span id="mindmap-zoom-label" class="min-w-[38px] text-center font-medium text-gray-600">100%</span>
-                <button onclick="mindmapZoomIn()" class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-100 btn-jelly transition-all text-gray-500 font-bold">+</button>
-                <button onclick="mindmapZoomReset()" class="text-gray-400 hover:text-gray-600 btn-jelly transition-all px-1" title="重置缩放">
+              <div class="flex items-center gap-1 text-xs" style="background: var(--card-bg); border: var(--card-border); border-radius:14px; padding:2px 6px;">
+                <button onclick="mindmapZoomOut()" class="cal-nav-btn w-6 h-6 flex items-center justify-center rounded-full btn-jelly transition-all font-bold" style="color: var(--text-secondary);">−</button>
+                <span id="mindmap-zoom-label" class="min-w-[38px] text-center font-medium" style="color: var(--text-primary);">100%</span>
+                <button onclick="mindmapZoomIn()" class="cal-nav-btn w-6 h-6 flex items-center justify-center rounded-full btn-jelly transition-all font-bold" style="color: var(--text-secondary);">+</button>
+                <button onclick="mindmapZoomReset()" class="btn-jelly transition-all px-1" style="color: var(--text-tertiary);" title="重置缩放">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                 </button>
               </div>
@@ -1025,14 +1120,14 @@
                 <button onclick="toggleExportDropdown(event)" class="text-gray-400 hover:text-gray-600 btn-jelly transition-all px-1" title="导出为图片">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 </button>
-                <div id="export-dropdown" class="hidden absolute right-0 top-full mt-1 bg-white rounded-[14px] shadow-lg border border-gray-200 py-1 z-50" style="min-width:110px;">
-                  <button onclick="exportMindmapImage('png'); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 whitespace-nowrap">导出 PNG</button>
-                  <button onclick="exportMindmapImage('jpg'); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 whitespace-nowrap">导出 JPEG</button>
-                  <div class="border-t border-gray-100 my-1"></div>
-                  <button onclick="exportMindmapPDF(); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 whitespace-nowrap">导出 PDF</button>
-                  <button onclick="exportMindmapWord(); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 whitespace-nowrap">导出 Word</button>
-                  <div class="border-t border-gray-100 my-1"></div>
-                  <p class="px-3 py-1 text-xs text-gray-400 leading-relaxed" style="max-width:130px">导出 PDF / Word 请在电脑端操作</p>
+                <div id="export-dropdown" class="hidden export-menu absolute right-0 top-full mt-1 rounded-[14px] py-1 z-50" style="min-width:110px;">
+                  <button onclick="exportMindmapImage('png'); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs whitespace-nowrap">导出 PNG</button>
+                  <button onclick="exportMindmapImage('jpg'); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs whitespace-nowrap">导出 JPEG</button>
+                  <div class="export-sep my-1"></div>
+                  <button onclick="exportMindmapPDF(); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs whitespace-nowrap">导出 PDF</button>
+                  <button onclick="exportMindmapWord(); document.getElementById('export-dropdown').classList.add('hidden')" class="block w-full text-left px-3 py-1.5 text-xs whitespace-nowrap">导出 Word</button>
+                  <div class="export-sep my-1"></div>
+                  <p class="export-note px-3 py-1 text-xs leading-relaxed" style="max-width:130px">导出 PDF / Word 请在电脑端操作</p>
                 </div>
               </div>
               <button onclick="deleteCurrentWorkflow()" class="icon-btn-del" title="删除思维导图"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
@@ -1054,14 +1149,14 @@
           </div>
           <!-- Month Nav -->
           <div class="flex items-center justify-center gap-4 mb-4">
-            <button onclick="navigateMonth(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 btn-jelly transition-all text-gray-500">
+            <button onclick="navigateMonth(-1)" class="cal-nav-btn w-8 h-8 flex items-center justify-center rounded-full btn-jelly transition-all" style="color: var(--text-secondary);">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
-            <span id="calendar-month-label" class="text-base font-bold text-gray-700 min-w-[120px] text-center"></span>
-            <button onclick="navigateMonth(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 btn-jelly transition-all text-gray-500">
+            <span id="calendar-month-label" class="text-base font-bold min-w-[120px] text-center" style="color: var(--text-primary);"></span>
+            <button onclick="navigateMonth(1)" class="cal-nav-btn w-8 h-8 flex items-center justify-center rounded-full btn-jelly transition-all" style="color: var(--text-secondary);">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
-            <button onclick="goToToday()" class="text-xs px-3 py-1.5 rounded-full font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors btn-jelly">今天</button>
+            <button onclick="goToToday()" class="text-xs px-3 py-1.5 rounded-full font-medium transition-colors btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">今天</button>
           </div>
           <!-- Day-of-week headers -->
           <div class="grid grid-cols-7 mb-1 text-center text-xs font-semibold text-gray-400">
