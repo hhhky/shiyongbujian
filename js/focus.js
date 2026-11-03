@@ -49,10 +49,10 @@ function focusNowMono() {
 // ── 初始化 ───────────────────────────────────
 async function initFocus() {
   loadFocusSettings();
-  await refreshFocus();
-  if (!focusInited) {
+  var firstInit = !focusInited;
+  if (firstInit) {
     focusInited = true;
-    restoreFocusTimer();
+    syncFocusModeFromStorage();
     window.addEventListener('resize', function() {
       if (currentWidget === 'focus') setTimeout(renderStats, 160);
     });
@@ -68,7 +68,30 @@ async function initFocus() {
       if (focusTimer.running) saveFocusTimerState();
     });
   }
+  // 读数据库是异步的，先把计时面板按当前模式铺好，否则首帧会闪一下番茄钟圆环
   updateFocusModeUI();
+  updateFocusTimerDisplay();
+  await refreshFocus();
+  if (firstInit) {
+    // 恢复上次计时要用任务数据，必须等加载完成，不能提前
+    restoreFocusTimer();
+    updateFocusTimerDisplay();
+    renderFocusTasks();
+  }
+  updateFocusModeUI();
+}
+
+// 只同步读取上次的模式，供数据库加载前的首帧使用，避免先闪一下另一种面板
+function syncFocusModeFromStorage() {
+  try {
+    var raw = localStorage.getItem(FOCUS_TIMER_KEY);
+    if (!raw) return;
+    var s = JSON.parse(raw);
+    if (s && s.mode === 'down') {
+      focusTimer.mode = 'down';
+      focusTimer.targetSec = s.targetSec || focusSettings.pomodoroMin * 60;
+    }
+  } catch (e) { /* ignore */ }
 }
 
 async function refreshFocus() {
