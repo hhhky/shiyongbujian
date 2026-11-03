@@ -336,7 +336,7 @@ function switchHomeTab(tab) {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('app-theme', theme);
-  var colors = { glass: '#e5e5ea', white: '#ffffff', dark: '#1c1c1e' };
+  var colors = { glass: '#e9e6f6', white: '#ffffff', dark: '#1c1c1e' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   // 系统栏（状态栏/导航栏）图标黑白与底色跟随主题
   if (typeof window.syncSystemBars === 'function') window.syncSystemBars(theme);

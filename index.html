@@ -38,47 +38,107 @@
       --sab: env(safe-area-inset-bottom, 0px);
     }
 
-    /* ====== Theme: Glass (default) — Apple iOS Vibrant Frosted Glass ====== */
+    /* ====== Theme: Glass (default) — Liquid Glass ====== */
     :root, [data-theme="glass"] {
-      --bg-body: #e5e5ea;
-      --header-bg: rgba(255,255,255,0.18);
+      /* 彩色背景由 body::before 提供，body 自身透明，玻璃才有东西可折射 */
+      --bg-body: transparent;
+      --header-bg: linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.22) 100%);
       --header-text: #1d1d1f;
-      --header-badge-bg: rgba(0,0,0,0.06);
-      --header-badge-text: #6e6e73;
-      --header-border: 0.5px solid rgba(255,255,255,0.35);
-      --sidebar-bg: rgba(255,255,255,0.12);
-      --sidebar-border: 0.5px solid rgba(255,255,255,0.28);
-      --sidebar-active-bg: rgba(0,0,0,0.06);
+      --header-badge-bg: rgba(255,255,255,0.45);
+      --header-badge-text: #5a5a66;
+      --header-border: 0.5px solid rgba(255,255,255,0.55);
+      --sidebar-bg: linear-gradient(160deg, rgba(255,255,255,0.44) 0%, rgba(255,255,255,0.22) 100%);
+      --sidebar-border: 0.5px solid rgba(255,255,255,0.5);
+      --sidebar-active-bg: rgba(255,255,255,0.55);
       --sidebar-active-text: #1d1d1f;
-      --sidebar-footer-border: 0.5px solid rgba(255,255,255,0.25);
-      --nav-bg: rgba(255,255,255,0.15);
-      --nav-shadow: 0 2px 16px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(255,255,255,0.32);
+      --sidebar-footer-border: 0.5px solid rgba(255,255,255,0.45);
+      --nav-bg: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.26) 100%);
+      --nav-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 32px -8px rgba(46,50,94,0.28), 0 0 0 0.5px rgba(255,255,255,0.5);
       --nav-active-color: #1d1d1f;
       --title-color: #1d1d1f;
       --btn-bg: rgba(0,0,0,0.8);
       --btn-hover-bg: rgba(0,0,0,0.9);
       --btn-hover-shadow: 0 4px 16px rgba(0,0,0,0.14);
-      --toast-bg: rgba(30,30,32,0.88);
-      --toast-shadow: 0 8px 32px rgba(0,0,0,0.14);
-      --toast-border: 0.5px solid rgba(255,255,255,0.2);
+      --toast-bg: rgba(34,34,40,0.82);
+      --toast-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 10px 32px rgba(20,22,48,0.28);
+      --toast-border: 0.5px solid rgba(255,255,255,0.22);
       --scrollbar-thumb: rgba(0,0,0,0.12);
       --scrollbar-thumb-hover: rgba(0,0,0,0.22);
-      --card-bg: rgba(255,255,255,0.66);
-      --card-border: 0.5px solid rgba(255,255,255,0.35);
-      --card-backdrop: blur(48px) saturate(2.2);
-      --card-box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+      --card-bg: linear-gradient(150deg, rgba(255,255,255,0.64) 0%, rgba(255,255,255,0.38) 38%, rgba(255,255,255,0.24) 62%, rgba(255,255,255,0.46) 100%);
+      --card-border: 0.5px solid rgba(255,255,255,0.62);
+      --card-backdrop: blur(26px) saturate(1.9) brightness(1.06);
+      --card-box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px rgba(255,255,255,0.28), inset 0 0 24px rgba(255,255,255,0.14), 0 1px 2px rgba(24,26,60,0.04), 0 10px 30px -8px rgba(46,50,94,0.20);
       --card-text: #1d1d1f;
-      --card-subtext: #6e6e73;
-      --card-hover-shadow: 0 6px 16px rgba(0,0,0,0.07), 0 16px 40px rgba(0,0,0,0.1);
+      --card-subtext: #5f5f6b;
+      --card-hover-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 6px 18px -6px rgba(46,50,94,0.24), 0 20px 44px -12px rgba(46,50,94,0.28);
       --text-primary: #1d1d1f;
-      --text-secondary: #6e6e73;
-      --text-tertiary: #8e8e93;
-      --panel-bg: rgba(255,255,255,0.94);
+      --text-secondary: #5f5f6b;
+      --text-tertiary: #8a8a95;
+      --panel-bg: rgba(252,252,255,0.9);
       --header-glow-display: none;
       --header-anim: none;
       --header-bg-size: auto;
-      --header-shadow: 0 1px 3px rgba(0,0,0,0.04);
-      --glass-highlight: inset 0 0.5px 0 rgba(255,255,255,0.55);
+      --header-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 24px -14px rgba(46,50,94,0.35);
+      --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+
+    /* 玻璃主题的折射底色：柔和彩色光斑，作为整块玻璃的取景 */
+    [data-theme="glass"] { background: #e9e6f6; }
+    [data-theme="glass"] body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        radial-gradient(38% 34% at 16% 10%, rgba(158,190,255,0.95) 0%, rgba(158,190,255,0) 72%),
+        radial-gradient(42% 38% at 86% 6%, rgba(255,178,214,0.9) 0%, rgba(255,178,214,0) 74%),
+        radial-gradient(46% 44% at 78% 82%, rgba(186,160,255,0.88) 0%, rgba(186,160,255,0) 72%),
+        radial-gradient(40% 36% at 10% 88%, rgba(255,220,168,0.85) 0%, rgba(255,220,168,0) 72%),
+        linear-gradient(165deg, #eef1ff 0%, #f7ecff 46%, #edf2ff 100%);
+    }
+    /* 极细噪点：模拟磨砂玻璃的颗粒感 */
+    [data-theme="glass"] body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.5;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+      mix-blend-mode: soft-light;
+    }
+
+    /* 卡片外沿的镜面高光：一圈渐变描边，左上最亮、右下回光 */
+    [data-theme="glass"] .widget-card-outer { position: relative; }
+    [data-theme="glass"] .widget-card-outer::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(140deg,
+        rgba(255,255,255,1) 0%,
+        rgba(214,236,255,0.55) 16%,
+        rgba(255,255,255,0.10) 40%,
+        rgba(255,255,255,0.06) 60%,
+        rgba(255,224,245,0.55) 84%,
+        rgba(255,255,255,0.85) 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    [data-theme="glass"] .widget-card-outer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background:
+        radial-gradient(90% 55% at 22% 0%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0) 42%);
     }
 
     /* ====== Theme: White ====== */
@@ -687,8 +747,8 @@
             <p class="text-xs text-gray-400 mt-0.5">选择界面的外观风格</p>
           </div>
           <div class="grid grid-cols-2 gap-3 max-w-sm">
-            <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #e5e5ea;" data-theme="glass" id="theme-opt-glass">
-              <div class="w-full h-10 rounded-xl mb-2" style="background: var(--card-bg); backdrop-filter: blur(24px); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.55);"></div>
+            <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(150deg,#e8ecff 0%,#fbe4f4 52%,#e9e1ff 100%);" data-theme="glass" id="theme-opt-glass">
+              <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.35)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 0.5px solid rgba(255,255,255,0.85); box-shadow: inset 0 1px 0 #fff, 0 6px 14px -6px rgba(46,50,94,0.35);"></div>
               <p class="text-sm font-semibold text-gray-700">玻璃</p>
               <p class="text-xs text-gray-500">iOS 风格</p>
             </button>
@@ -1363,7 +1423,7 @@
     })();
 
     function updateThemeMeta(theme) {
-      var colors = { glass: '#e5e5ea', white: '#ffffff', dark: '#1c1c1e' };
+      var colors = { glass: '#e9e6f6', white: '#ffffff', dark: '#1c1c1e' };
       document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
     }
 
