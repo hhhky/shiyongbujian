@@ -29,9 +29,19 @@ let pinchDist0 = 0;
 let pinchZoom0 = 1;
 
 // ── Widget Registry ────────────────────────
+// 图标统一用内联 SVG：系统 emoji 在不同手机上字体不同，尺寸与造型都不可控。
+// 24×24 线性图标，颜色继承卡片文字色，随主题自动适配。
+const WIDGET_ICON_ATTRS = 'class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+const WIDGET_ICONS = {
+  tomato: '<svg ' + WIDGET_ICON_ATTRS + '><circle cx="12" cy="14" r="7"/><path d="M12 7.2c-1.6 0-2.8-.8-3.4-2M12 7.2c1.6 0 2.8-.8 3.4-2M12 7.2V4.4"/></svg>',
+  folder: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+  note: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M6 3.5h7L17.5 8v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 20V5A1.5 1.5 0 0 1 6 3.5Z"/><path d="M13 3.5V8h4.5"/><path d="M8 12h6M8 15.5h4"/></svg>',
+  brain: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M9.5 3.5a3 3 0 0 0-3 3 2.6 2.6 0 0 0-1.4 4.6A2.9 2.9 0 0 0 6 15.6a3 3 0 0 0 3.5 2.9V3.5Z"/><path d="M14.5 3.5a3 3 0 0 1 3 3 2.6 2.6 0 0 1 1.4 4.6A2.9 2.9 0 0 1 18 15.6a3 3 0 0 1-3.5 2.9V3.5Z"/><path d="M12 6v11"/></svg>',
+  robot: '<svg ' + WIDGET_ICON_ATTRS + '><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5.5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9.5 16.5h5"/></svg>'
+};
 const WIDGETS = [
   {
-    id: 'focus', name: '专注', icon: '🍅', desc: '任务计时、学习时长统计与打卡', color: '#f97316',
+    id: 'focus', name: '专注', icon: WIDGET_ICONS.tomato, desc: '任务计时、学习时长统计与打卡', color: '#f97316',
     tabs: [
       { id: 'pomodoro', name: '计时', shortName: '计时', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
       { id: 'stats', name: '数据统计', shortName: '统计', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>' },
@@ -40,7 +50,7 @@ const WIDGETS = [
     ]
   },
   {
-    id: 'review', name: '资料管理', icon: '📁', desc: '分类管理、上传和预览各类资料', color: '#8b5cf6',
+    id: 'review', name: '资料管理', icon: WIDGET_ICONS.folder, desc: '分类管理、上传和预览各类资料', color: '#8b5cf6',
     tabs: [
       { id: 'categories', name: '分类管理', shortName: '分类', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>' },
       { id: 'files', name: '资料列表', shortName: '资料', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
@@ -48,7 +58,7 @@ const WIDGETS = [
     ]
   },
   {
-    id: 'memo', name: '备忘录', icon: '📝', desc: '记录待办事项，查看日历', color: '#10b981',
+    id: 'memo', name: '备忘录', icon: WIDGET_ICONS.note, desc: '记录待办事项，查看日历', color: '#10b981',
     tabs: [
       { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
       { id: 'calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
@@ -56,14 +66,14 @@ const WIDGETS = [
     ]
   },
   {
-    id: 'mindmap', name: '思维导图', icon: '🧠', desc: '工作流 + 知识梳理 | 可导出 PNG/JPEG，PDF/Word 需电脑端', color: '#f43f5e',
+    id: 'mindmap', name: '思维导图', icon: WIDGET_ICONS.brain, desc: '工作流 + 知识梳理 | 可导出 PNG/JPEG，PDF/Word 需电脑端', color: '#f43f5e',
     tabs: [
       { id: 'workflows', name: '工作流', shortName: '工作流', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' },
       { id: 'knowledge', name: '知识导图', shortName: '知识', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>' }
     ]
   },
   {
-    id: 'deepseek', name: 'DeepSeek 思考助手', icon: '🤖', desc: 'AI 对话，支持深度推理和 Markdown', color: '#6366f1',
+    id: 'deepseek', name: 'DeepSeek 思考助手', icon: WIDGET_ICONS.robot, desc: 'AI 对话，支持深度推理和 Markdown', color: '#6366f1',
     tabs: [
       { id: 'chat', name: 'AI 对话', shortName: '对话', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>' }
     ]
@@ -91,7 +101,7 @@ function renderWidgets() {
   var filesCount = 0;
   grid.innerHTML = WIDGETS.map(function(w) {
     return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
-      <div class="text-3xl mb-2 leading-none">${w.icon}</div>
+      <div class="widget-icon-wrap mb-2">${w.icon}</div>
       <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">${esc(w.name)}</h3>
       <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">${w.desc}</p>
     </div>`;
@@ -336,7 +346,7 @@ function switchHomeTab(tab) {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('app-theme', theme);
-  var colors = { glass: '#e9e6f6', white: '#ffffff', dark: '#1c1c1e' };
+  var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   // 系统栏（状态栏/导航栏）图标黑白与底色跟随主题
   if (typeof window.syncSystemBars === 'function') window.syncSystemBars(theme);

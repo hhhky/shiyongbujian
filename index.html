@@ -40,20 +40,20 @@
 
     /* ====== Theme: Glass (default) — Liquid Glass ====== */
     :root, [data-theme="glass"] {
-      /* 彩色背景由 body::before 提供，body 自身透明，玻璃才有东西可折射 */
+      /* 底色由 body::before 提供，body 自身透明，玻璃才有东西可折射 */
       --bg-body: transparent;
-      --header-bg: linear-gradient(180deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.22) 100%);
+      --header-bg: linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.14) 100%);
       --header-text: #1d1d1f;
-      --header-badge-bg: rgba(255,255,255,0.45);
+      --header-badge-bg: rgba(255,255,255,0.30);
       --header-badge-text: #5a5a66;
-      --header-border: 0.5px solid rgba(255,255,255,0.55);
-      --sidebar-bg: linear-gradient(160deg, rgba(255,255,255,0.44) 0%, rgba(255,255,255,0.22) 100%);
-      --sidebar-border: 0.5px solid rgba(255,255,255,0.5);
-      --sidebar-active-bg: rgba(255,255,255,0.55);
+      --header-border: 0.5px solid rgba(255,255,255,0.45);
+      --sidebar-bg: linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.14) 100%);
+      --sidebar-border: 0.5px solid rgba(255,255,255,0.42);
+      --sidebar-active-bg: rgba(255,255,255,0.36);
       --sidebar-active-text: #1d1d1f;
-      --sidebar-footer-border: 0.5px solid rgba(255,255,255,0.45);
-      --nav-bg: linear-gradient(180deg, rgba(255,255,255,0.46) 0%, rgba(255,255,255,0.26) 100%);
-      --nav-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 12px 32px -8px rgba(46,50,94,0.28), 0 0 0 0.5px rgba(255,255,255,0.5);
+      --sidebar-footer-border: 0.5px solid rgba(255,255,255,0.38);
+      --nav-bg: linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.16) 100%);
+      --nav-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 12px 32px -10px rgba(46,50,94,0.22), 0 0 0 0.5px rgba(255,255,255,0.4);
       --nav-active-color: #1d1d1f;
       --title-color: #1d1d1f;
       --btn-bg: rgba(0,0,0,0.8);
@@ -64,17 +64,17 @@
       --toast-border: 0.5px solid rgba(255,255,255,0.22);
       --scrollbar-thumb: rgba(0,0,0,0.12);
       --scrollbar-thumb-hover: rgba(0,0,0,0.22);
-      --card-bg: linear-gradient(150deg, rgba(255,255,255,0.64) 0%, rgba(255,255,255,0.38) 38%, rgba(255,255,255,0.24) 62%, rgba(255,255,255,0.46) 100%);
-      --card-border: 0.5px solid rgba(255,255,255,0.62);
-      --card-backdrop: blur(26px) saturate(1.9) brightness(1.06);
-      --card-box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 1px rgba(255,255,255,0.28), inset 0 0 24px rgba(255,255,255,0.14), 0 1px 2px rgba(24,26,60,0.04), 0 10px 30px -8px rgba(46,50,94,0.20);
+      --card-bg: linear-gradient(150deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.16) 38%, rgba(255,255,255,0.10) 62%, rgba(255,255,255,0.22) 100%);
+      --card-border: 0.5px solid rgba(255,255,255,0.50);
+      --card-backdrop: blur(24px) saturate(1.6) brightness(1.03);
+      --card-box-shadow: inset 0 1px 0 rgba(255,255,255,0.78), inset 0 -1px 1px rgba(255,255,255,0.20), inset 0 0 24px rgba(255,255,255,0.08), 0 1px 2px rgba(24,26,60,0.03), 0 10px 30px -10px rgba(46,50,94,0.16);
       --card-text: #1d1d1f;
       --card-subtext: #5f5f6b;
       --card-hover-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 6px 18px -6px rgba(46,50,94,0.24), 0 20px 44px -12px rgba(46,50,94,0.28);
       --text-primary: #1d1d1f;
       --text-secondary: #5f5f6b;
       --text-tertiary: #8a8a95;
-      --panel-bg: rgba(252,252,255,0.9);
+      --panel-bg: rgba(252,252,255,0.82);
       --header-glow-display: none;
       --header-anim: none;
       --header-bg-size: auto;
@@ -82,8 +82,8 @@
       --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.9);
     }
 
-    /* 玻璃主题的折射底色：柔和彩色光斑，作为整块玻璃的取景 */
-    [data-theme="glass"] { background: #e9e6f6; }
+    /* 玻璃主题底色：只保留中性的明暗层次，不铺彩色，玻璃的透来自卡片本身 */
+    [data-theme="glass"] { background: #edeff4; }
     [data-theme="glass"] body::before {
       content: "";
       position: fixed;
@@ -91,11 +91,8 @@
       z-index: -2;
       pointer-events: none;
       background:
-        radial-gradient(38% 34% at 16% 10%, rgba(158,190,255,0.95) 0%, rgba(158,190,255,0) 72%),
-        radial-gradient(42% 38% at 86% 6%, rgba(255,178,214,0.9) 0%, rgba(255,178,214,0) 74%),
-        radial-gradient(46% 44% at 78% 82%, rgba(186,160,255,0.88) 0%, rgba(186,160,255,0) 72%),
-        radial-gradient(40% 36% at 10% 88%, rgba(255,220,168,0.85) 0%, rgba(255,220,168,0) 72%),
-        linear-gradient(165deg, #eef1ff 0%, #f7ecff 46%, #edf2ff 100%);
+        radial-gradient(120% 70% at 50% -8%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 62%),
+        linear-gradient(180deg, #eff1f6 0%, #e6e9f0 55%, #eceef4 100%);
     }
     /* 极细噪点：模拟磨砂玻璃的颗粒感 */
     [data-theme="glass"] body::after {
@@ -272,6 +269,30 @@
     .widget-card-outer:hover {
       transform: translateY(-2px);
       box-shadow: var(--card-hover-shadow) !important;
+    }
+
+    /* 点击回弹：按下立刻收缩，松手用带过冲的弹性曲线回位 */
+    button, .widget-card-outer, .theme-option, .nav-item, [onclick] {
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+    }
+    .tap-press {
+      transform: scale(0.955) !important;
+      transition: transform 0.07s cubic-bezier(0.2, 0.8, 0.25, 1) !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      button, .widget-card-outer, .theme-option, .nav-item, [onclick] { transition: none; }
+      .tap-press { transform: none !important; }
+    }
+    /* 部件图标：统一线性 SVG，颜色跟随卡片文字色 */
+    .widget-icon-wrap {
+      color: var(--card-text);
+      opacity: 0.82;
+      line-height: 0;
+    }
+    .widget-icon {
+      width: 30px;
+      height: 30px;
+      display: block;
     }
     /* 首页部件卡片描述最多两行，保证双列网格高度一致 */
     .widget-card-desc {
@@ -747,8 +768,8 @@
             <p class="text-xs text-gray-400 mt-0.5">选择界面的外观风格</p>
           </div>
           <div class="grid grid-cols-2 gap-3 max-w-sm">
-            <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(150deg,#e8ecff 0%,#fbe4f4 52%,#e9e1ff 100%);" data-theme="glass" id="theme-opt-glass">
-              <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(150deg, rgba(255,255,255,0.9), rgba(255,255,255,0.35)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 0.5px solid rgba(255,255,255,0.85); box-shadow: inset 0 1px 0 #fff, 0 6px 14px -6px rgba(46,50,94,0.35);"></div>
+            <button onclick="applyTheme('glass')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(150deg,#f4f5f9 0%,#e6e9f0 100%);" data-theme="glass" id="theme-opt-glass">
+              <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(150deg, rgba(255,255,255,0.55), rgba(255,255,255,0.18)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 0.5px solid rgba(255,255,255,0.7); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 14px -6px rgba(46,50,94,0.18);"></div>
               <p class="text-sm font-semibold text-gray-700">玻璃</p>
               <p class="text-xs text-gray-500">iOS 风格</p>
             </button>
@@ -1412,6 +1433,7 @@
   <script src="js/focus.js"></script>
   <script src="js/data-transfer.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/tap.js"></script>
   <script src="js/announce.js"></script>
   <script>
     (function() {
@@ -1423,7 +1445,7 @@
     })();
 
     function updateThemeMeta(theme) {
-      var colors = { glass: '#e9e6f6', white: '#ffffff', dark: '#1c1c1e' };
+      var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e' };
       document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
     }
 

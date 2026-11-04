@@ -93,7 +93,7 @@
       bg = toHexColor(getComputedStyle(root).getPropertyValue('--bg-body'));
     } catch (e) { /* 忽略，走默认色 */ }
     var isDark = bg ? isDarkColor(bg) : theme === 'dark';
-    if (!bg) bg = isDark ? '#1c1c1e' : '#e5e5ea';
+    if (!bg) bg = isDark ? '#1c1c1e' : '#edeff4';
 
     try {
       if (window.AndroidSystemBars && window.AndroidSystemBars.setBarTheme) {

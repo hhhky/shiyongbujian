@@ -38,6 +38,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 点击触感：原生 HapticFeedback 不需要它，这里给 WebView 震动降级方案兜底 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- App 内更新：下载新版本 APK 后拉起系统安装界面 -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -111,6 +112,7 @@ public class MainActivity extends BridgeActivity {
         WebView webView = getBridge().getWebView();
         webView.addJavascriptInterface(new SystemBarsBridge(), "AndroidSystemBars");
         webView.addJavascriptInterface(new UpdateBridge(), "AndroidUpdate");
+        webView.addJavascriptInterface(new HapticBridge(), "AndroidHaptic");
     }
 
     /** 在页面里执行一段 JS（主线程），用于把下载进度/结果回传 */
@@ -152,6 +154,36 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void setBarTheme(final boolean lightBackground, final String backgroundColor) {
             applyBarTheme(lightBackground, backgroundColor);
+        }
+    }
+
+    /**
+     * 触感反馈：走系统 HapticFeedback，而不是直接驱动马达。
+     *
+     * 好处是跟随用户「触摸反馈」开关与机型调校，原生按键音效的质感比 navigator.vibrate
+     * 的整段震动更短、更干净；页面侧只需调用 tap() / confirm()。
+     */
+    private class HapticBridge {
+
+        @JavascriptInterface
+        public void tap() {
+            performHaptic(HapticFeedbackConstants.VIRTUAL_KEY);
+        }
+
+        @JavascriptInterface
+        public void confirm() {
+            // Android 11+ 有专门的确认反馈；旧版本退化为长按反馈
+            int effect = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    ? HapticFeedbackConstants.CONFIRM
+                    : HapticFeedbackConstants.LONG_PRESS;
+            performHaptic(effect);
+        }
+
+        private void performHaptic(final int effect) {
+            runOnUiThread(() -> {
+                View decor = getWindow().getDecorView();
+                decor.performHapticFeedback(effect, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+            });
         }
     }
 
