@@ -71,12 +71,6 @@ const WIDGETS = [
       { id: 'workflows', name: '工作流', shortName: '工作流', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>' },
       { id: 'knowledge', name: '知识导图', shortName: '知识', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>' }
     ]
-  },
-  {
-    id: 'deepseek', name: 'DeepSeek 思考助手', icon: WIDGET_ICONS.robot, desc: 'AI 对话，支持深度推理和 Markdown', color: '#6366f1',
-    tabs: [
-      { id: 'chat', name: 'AI 对话', shortName: '对话', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>' }
-    ]
   }
 ];
 let currentWidget = null;
@@ -145,7 +139,6 @@ function enterWidget(id) {
   if (id === 'review') renderColorPicker();
   if (id === 'memo') { var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
   if (id === 'mindmap') { currentWorkflowId = null; currentMindmapType = 'workflow'; backToWorkflowsList(true); }
-  if (id === 'deepseek' && typeof initChat === 'function') initChat();
   if (id === 'focus' && typeof initFocus === 'function') initFocus();
 }
 
@@ -276,6 +269,8 @@ function gotoAboutItem(item) {
 
   updateAboutVersion();
   updateThemeSelection();
+  // 打开版本页时自动检查一次，有新版本直接展示更新内容
+  if (item === 'version' && typeof checkVersionPage === 'function') setTimeout(checkVersionPage, 120);
 }
 
 function backToAbout() {
@@ -317,8 +312,21 @@ function renderAboutSidebar(active) {
 function switchHomeTab(tab) {
   var widgetsBtn = document.getElementById('home-switch-widgets');
   var aboutBtn = document.getElementById('home-switch-about');
+  var aiBtn = document.getElementById('home-switch-ai');
   var homePage = document.getElementById('page-home');
   var aboutPage = document.getElementById('page-about');
+
+  // AI 小助手目前只作为一级入口占位，点击只弹测试提示
+  if (tab === 'ai') {
+    showAiBetaModal();
+    return;
+  }
+
+  if (aiBtn) {
+    aiBtn.style.background = 'transparent';
+    aiBtn.style.color = 'var(--text-secondary)';
+    aiBtn.style.fontWeight = '500';
+  }
 
   if (tab === 'about') {
     homePage.classList.remove('active');
@@ -341,6 +349,20 @@ function switchHomeTab(tab) {
     widgetsBtn.style.color = 'var(--text-primary)';
     widgetsBtn.style.fontWeight = '600';
   }
+}
+
+function showAiBetaModal() {
+  var mask = document.getElementById('ai-beta-modal');
+  if (!mask) return;
+  mask.classList.remove('hidden');
+  mask.classList.add('flex');
+}
+
+function hideAiBetaModal() {
+  var mask = document.getElementById('ai-beta-modal');
+  if (!mask) return;
+  mask.classList.add('hidden');
+  mask.classList.remove('flex');
 }
 
 function applyTheme(theme) {
@@ -379,12 +401,42 @@ function updateThemeSelection() {
   }
 }
 
+// 各版本的更新内容：版本页展示当前安装版本对应的条目
+var APP_CHANGELOG = {
+  '1.2.0': [
+    '全新应用图标，各机型上居中显示一致',
+    '新增「AI 小助手」一级入口，与部件、关于并列；功能仍在测试中',
+    '公告与版本更新拆分：仅旧版本提示升级，版本页单独展示更新内容',
+    '关于页「介绍」内容更新'
+  ],
+  '1.1.28': [
+    '关于页四个条目图标改为线性矢量图标',
+    '专注时长分布新增「今天」和「自定义」时间范围',
+    '暗黑主题下专注页改用低饱和陶土色强调色'
+  ],
+  '1.1.27': [
+    '玻璃主题进一步提透并移除彩色底斑',
+    '按钮新增按压缩放与原生触感反馈',
+    '五个部件图标统一为线性矢量图标'
+  ]
+};
+
 function updateAboutVersion() {
   var el = document.getElementById('about-version');
   if (el) el.textContent = 'v' + APP_VERSION;
   // 关于首页条目上的版本号
   var entry = document.getElementById('about-version-entry');
   if (entry) entry.textContent = 'v' + APP_VERSION;
+  renderVersionCurrentNotes();
+}
+
+function renderVersionCurrentNotes() {
+  var box = document.getElementById('version-current-notes');
+  if (!box) return;
+  var notes = APP_CHANGELOG[APP_VERSION] || ['本版本为常规修复与体验优化。'];
+  box.innerHTML = notes.map(function(n) {
+    return '<li style="display:flex;gap:7px;"><span style="color:var(--focus-accent);flex-shrink:0;">·</span><span>' + esc(n) + '</span></li>';
+  }).join('');
 }
 
 function renderSidebarTabs(w) {
@@ -464,11 +516,6 @@ async function refreshAll() {
     var sc = document.getElementById('sidebar-footer-text');
     if (sc) sc.textContent = workflows.length + ' 个' + label;
     renderWorkflows();
-  } else if (currentWidget === 'deepseek') {
-    var badge = document.getElementById('header-badge');
-    if (badge) badge.textContent = typeof CONST_DEEPSEEK_MODEL !== 'undefined' && CONST_DEEPSEEK_MODEL === 'deepseek-reasoner' ? 'R1 推理' : 'V3 对话';
-    var sc = document.getElementById('sidebar-footer-text');
-    if (sc) sc.textContent = 'DeepSeek AI';
   } else if (currentWidget === 'focus') {
     if (typeof refreshFocus === 'function') await refreshFocus();
   }
@@ -507,8 +554,6 @@ function switchTab(tab) {
     if (tab === 'workflows') currentMindmapType = 'workflow';
     if (tab === 'knowledge') currentMindmapType = 'knowledge';
     backToWorkflowsList(true); renderWorkflows();
-  } else if (currentWidget === 'deepseek') {
-    if (tab === 'chat' && typeof initChat === 'function') initChat();
   } else if (currentWidget === 'focus') {
     if (tab === 'stats') {
       if (typeof renderStats === 'function') renderStats();

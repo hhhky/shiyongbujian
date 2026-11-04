@@ -239,6 +239,12 @@
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
     .page { display: none; }
     .page.active { display: block; }
+    /* AI 小助手测试提示 */
+    .ai-beta-icon { background: rgba(99,102,241,0.14); color: #6366f1; }
+    [data-theme="dark"] .ai-beta-icon { background: rgba(129,140,248,0.16); color: #a5b4fc; }
+    .ai-beta-ok { background: var(--text-primary); color: #ffffff; }
+    [data-theme="dark"] .ai-beta-ok { color: #1c1c1e; }
+
     /* Toast：用 margin 自动水平居中，动画只做透明度/缩放，避免 transform 覆盖定位导致先偏右再回弹 */
     .toast {
       position: fixed;
@@ -348,6 +354,13 @@
       line-height: 1.4;
       margin-bottom: 8px;
     }
+    .announce-version {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f97316;
+    }
+    [data-theme="dark"] .announce-version { color: #d9a173; }
     .announce-body {
       font-size: 13px;
       line-height: 1.65;
@@ -802,15 +815,30 @@
         <div id="page-about-version" class="page p-4 md:p-6 lg:p-8">
           <div class="mb-5 md:mb-7">
             <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">版本更新</h2>
-            <p class="text-xs text-gray-400 mt-0.5">查看当前版本并检查是否有新版安装包</p>
+            <p class="text-xs text-gray-400 mt-0.5">查看当前版本、更新内容与可用更新</p>
           </div>
           <div class="rounded-[24px] p-5 max-w-sm" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
             <p class="text-xs font-semibold mb-1" style="color: var(--card-subtext);">当前版本</p>
             <p class="text-xl font-bold mb-4" style="color: var(--card-text);" id="about-version">v1.0.0</p>
+
+            <div id="version-new-block" class="hidden mb-4 rounded-[18px] p-4" style="background: var(--focus-accent-soft); border: 0.5px solid var(--focus-accent-line);">
+              <p class="text-xs font-semibold mb-1.5" style="color: var(--focus-accent);">发现新版本 <span id="version-new-num"></span></p>
+              <div id="version-new-notes" class="text-xs leading-relaxed mb-3" style="color: var(--text-primary);"></div>
+              <button type="button" id="version-update-btn" onclick="startVersionUpdate()"
+                      class="w-full py-2.5 rounded-[16px] text-sm font-semibold btn-jelly"
+                      style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">下载并安装</button>
+              <p class="text-[11px] mt-2 leading-relaxed" style="color: var(--text-tertiary);">支持后台下载，完成后自动打开系统安装界面，原有数据保留。</p>
+            </div>
+
             <button type="button" onclick="checkUpdateManually()" id="about-check-update"
                     class="w-full py-2.5 rounded-[16px] text-sm font-semibold transition-all btn-jelly"
                     style="background: rgba(128,128,128,0.14); color: var(--text-primary);">检查更新</button>
-            <p class="text-xs mt-3 leading-relaxed" style="color: var(--card-subtext);">有新版本时会提示下载并安装，安装包会保留原有数据。</p>
+            <p class="text-xs mt-3 leading-relaxed" style="color: var(--card-subtext);">有新版本时会显示该版本的更新内容和安装按钮。</p>
+          </div>
+
+          <div class="rounded-[24px] p-5 max-w-sm mt-4" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
+            <h3 class="text-sm font-bold mb-2" style="color: var(--card-text);">本版本更新内容</h3>
+            <ul id="version-current-notes" class="text-xs leading-relaxed space-y-1.5" style="color: var(--card-subtext);"></ul>
           </div>
         </div>
 
@@ -821,7 +849,15 @@
             <p class="text-xs text-gray-400 mt-0.5">这个 App 是做什么的</p>
           </div>
           <div class="rounded-[24px] p-5 max-w-xl" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
-            <p class="text-sm leading-relaxed" style="color: var(--card-text);">实用部件 — 一站式效率工具，包含资料管理、备忘录、思维导图、AI 对话四大模块。支持 PWA 安装和 Android APK 直接使用。</p>
+            <p class="text-sm leading-relaxed mb-4" style="color: var(--card-text);">实用部件是一款本地优先的效率工具集合，把学习与整理中常用的小工具收进一个 App，数据只保存在你自己的设备上。</p>
+            <ul class="text-sm leading-relaxed space-y-2.5" style="color: var(--card-subtext);">
+              <li><strong style="color: var(--card-text);">专注</strong>：正计时与番茄钟、任务管理、学习时长统计、打卡日历与热力图。</li>
+              <li><strong style="color: var(--card-text);">资料管理</strong>：分类整理并预览 PDF、图片、Word、Excel 等资料。</li>
+              <li><strong style="color: var(--card-text);">备忘录</strong>：记录待办事项，配合日历查看安排。</li>
+              <li><strong style="color: var(--card-text);">思维导图</strong>：梳理工作流与知识结构，可导出图片分享。</li>
+              <li><strong style="color: var(--card-text);">AI 小助手</strong>：正在测试中，敬请期待。</li>
+            </ul>
+            <p class="text-sm leading-relaxed mt-4" style="color: var(--card-subtext);">提供玻璃、白色、暗黑三套主题，支持安装为 PWA，也可以直接使用 Android 安装包；版本更新可在 App 内后台下载并跳转安装。</p>
           </div>
         </div>
 
@@ -1292,8 +1328,9 @@
     <!-- Home bottom switch bar -->
     <div id="home-switch-bar" class="fixed bottom-3 left-4 right-4 z-50 mx-auto flex justify-center" style="margin-bottom: var(--sab);">
       <div class="flex rounded-2xl p-1 gap-1" style="background: var(--nav-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--nav-shadow);">
-        <button onclick="switchHomeTab('widgets')" id="home-switch-widgets" class="px-6 py-2 rounded-xl text-sm font-semibold transition-all" style="background: rgba(0,0,0,0.06); color: var(--text-primary);">部件</button>
-        <button onclick="switchHomeTab('about')" id="home-switch-about" class="px-6 py-2 rounded-xl text-sm font-medium transition-all" style="color: var(--text-secondary);">关于</button>
+        <button onclick="switchHomeTab('widgets')" id="home-switch-widgets" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all" style="background: rgba(0,0,0,0.06); color: var(--text-primary);">部件</button>
+        <button onclick="switchHomeTab('ai')" id="home-switch-ai" class="px-5 py-2 rounded-xl text-sm font-medium transition-all" style="color: var(--text-secondary);">AI 小助手</button>
+        <button onclick="switchHomeTab('about')" id="home-switch-about" class="px-5 py-2 rounded-xl text-sm font-medium transition-all" style="color: var(--text-secondary);">关于</button>
       </div>
     </div>
     <nav id="bottom-nav" class="bottom-nav md:hidden fixed bottom-3 left-4 right-4 z-50 mx-auto max-w-sm hidden" style="background: var(--nav-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border-radius: 24px; box-shadow: var(--nav-shadow); margin-bottom: var(--sab);">
@@ -1437,6 +1474,18 @@
           <button onclick="hideFocusManualModal()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm hover:bg-gray-200 transition-colors">取消</button>
           <button onclick="confirmFocusManual()" class="flex-1 py-3 rounded-[20px] font-semibold text-white text-sm btn-gradient">保存</button>
         </div>
+      </div>
+    </div>
+
+    <!-- AI 小助手测试提示 -->
+    <div id="ai-beta-modal" class="fixed inset-0 hidden items-center justify-center p-6" style="z-index:99999; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideAiBetaModal()">
+      <div class="w-full max-w-[320px] rounded-[28px] p-6 text-center" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: fadeIn 0.2s ease;">
+        <div class="ai-beta-icon mx-auto mb-4 flex items-center justify-center rounded-[22px]" style="width:64px;height:64px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5.5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9.5 16.5h5"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-1.5" style="color: var(--text-primary);">AI 小助手</h3>
+        <p class="text-sm leading-relaxed mb-5" style="color: var(--text-secondary);">仍在测试中，敬请期待</p>
+        <button onclick="hideAiBetaModal()" class="ai-beta-ok w-full py-2.5 rounded-[16px] text-sm font-semibold btn-jelly">知道了</button>
       </div>
     </div>
 

@@ -36,11 +36,21 @@ jobs:
         id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f2)
-          PATCH=$(echo $VERSION | cut -d. -f3)
-          NEW="$MAJOR.$MINOR.$((PATCH + 1))"
-          VCODE=$((MAJOR * 10000 + MINOR * 100 + PATCH + 1))
+          # 提交信息里写 [version 1.2.0] 时按指定版本发布，不再自动加 patch
+          REQUESTED=$(git log -1 --pretty=%B | sed -n 's/.*\[version \([0-9][0-9.]*\)\].*/\1/p' | head -1)
+          if [ -n "$REQUESTED" ]; then
+            NEW="$REQUESTED"
+            echo "Using requested version $NEW"
+          else
+            MAJOR=$(echo $VERSION | cut -d. -f1)
+            MINOR=$(echo $VERSION | cut -d. -f2)
+            PATCH=$(echo $VERSION | cut -d. -f3)
+            NEW="$MAJOR.$MINOR.$((PATCH + 1))"
+          fi
+          MAJOR=$(echo $NEW | cut -d. -f1)
+          MINOR=$(echo $NEW | cut -d. -f2)
+          PATCH=$(echo $NEW | cut -d. -f3)
+          VCODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
           echo "Bumping $VERSION → $NEW  versionCode=$VCODE"
           node -e "
             var fs = require('fs');

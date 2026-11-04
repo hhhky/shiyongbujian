@@ -17,6 +17,13 @@ var announceUpdateSources = [];
 var announceUpdateIndex = 0;
 var announceFileName = '';
 
+// 版本页专用状态：与公告弹窗互不影响
+var versionPageInfo = null;
+var versionUpdating = false;
+var versionUpdateSources = [];
+var versionUpdateIndex = 0;
+var versionUpdateFileName = '';
+
 function announceCurrentVersion() {
   return (typeof APP_VERSION !== 'undefined') ? APP_VERSION : '0';
 }
@@ -100,44 +107,134 @@ async function checkAnnouncement() {
   if (picked) showAnnouncement(picked);
 }
 
+async function fetchAnnounceData() {
+  try {
+    var res = await fetch(ANNOUNCE_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!res || !res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+// 在所有公告里挑出版本号最高、且高于当前安装版本的一条
+function pickNewestVersion(data) {
+  var items = Array.isArray(data) ? data : [data];
+  var best = null;
+  for (var i = 0; i < items.length; i++) {
+    var a = items[i];
+    if (!a || !announceHasNewVersion(a)) continue;
+    if (!best || announceVersionLess(best.version, a.version)) best = a;
+  }
+  return best;
+}
+
+function announceEscape(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function versionNotesHtml(text) {
+  var lines = Array.isArray(text) ? text : String(text || '').split(/\n+/);
+  lines = lines.map(function(s) { return String(s).trim(); }).filter(Boolean);
+  if (!lines.length) return '<div>本次更新以稳定性与体验优化为主。</div>';
+  return lines.map(function(line) {
+    return '<div style="display:flex;gap:7px;margin-bottom:4px;"><span style="color:var(--focus-accent);flex-shrink:0;">·</span><span>' + announceEscape(line) + '</span></div>';
+  }).join('');
+}
+
+// 渲染版本页的“发现新版本”区块；没有新版本时隐藏
+function renderVersionPageBlock(a) {
+  var block = document.getElementById('version-new-block');
+  if (!block) return;
+  if (!a) {
+    block.classList.add('hidden');
+    return;
+  }
+  var num = document.getElementById('version-new-num');
+  var notes = document.getElementById('version-new-notes');
+  var btn = document.getElementById('version-update-btn');
+  if (num) num.textContent = 'v' + a.version;
+  if (notes) notes.innerHTML = versionNotesHtml(a.notes || a.body);
+  if (btn) btn.style.display = announceDownloadUrls(a).length ? '' : 'none';
+  block.classList.remove('hidden');
+  if (btn) { btn.disabled = false; btn.textContent = '下载并安装'; }
+  versionUpdating = false;
+}
+
+async function checkVersionPage() {
+  var data = await fetchAnnounceData();
+  if (!data) return false;
+  versionPageInfo = pickNewestVersion(data);
+  if (versionPageInfo) {
+    renderVersionPageBlock(versionPageInfo);
+  } else {
+    versionPageInfo = null;
+    renderVersionPageBlock(null);
+  }
+  return true;
+}
+
 /**
- * 「关于」页手动检查更新：不看已读记录，直接找比当前版本新的公告。
- * 有新版本就弹出更新弹窗（可下载安装），没有就提示已是最新。
+ * 「关于 > 版本更新」的手动检查：只更新版本页，不弹公告弹窗。
+ * 有新版本时展示该版本的更新内容与安装按钮；已是最新则给提示。
  */
 async function checkUpdateManually() {
   var btn = document.getElementById('about-check-update');
   var label = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '检查中…'; }
 
-  var res = null;
-  try {
-    res = await fetch(ANNOUNCE_URL + '?t=' + Date.now(), { cache: 'no-store' });
-  } catch (e) { /* 下面统一提示 */ }
+  var data = await fetchAnnounceData();
 
   if (btn) { btn.disabled = false; btn.textContent = label; }
 
-  if (!res || !res.ok) { toast('检查失败，请检查网络后重试'); return; }
+  if (!data) { toast('检查失败，请检查网络后重试'); return; }
 
-  var data;
-  try { data = await res.json(); } catch (e) { toast('检查失败，请稍后再试'); return; }
+  versionPageInfo = pickNewestVersion(data);
+  renderVersionPageBlock(versionPageInfo);
 
-  var items = Array.isArray(data) ? data : [data];
-  var best = null;
-  for (var i = 0; i < items.length; i++) {
-    var a = items[i];
-    if (!a || !announceHasNewVersion(a) || !announceDownloadUrls(a).length) continue;
-    if (!best || announceVersionLess(best.version, a.version)) best = a;
-  }
-
-  if (!best) {
+  if (!versionPageInfo) {
     toast('已是最新版本 v' + announceCurrentVersion());
+  } else {
+    toast('发现新版本 v' + versionPageInfo.version);
+  }
+}
+
+function versionUpdateButton() {
+  return document.getElementById('version-update-btn');
+}
+
+function setVersionUpdateStatus(text, disabled) {
+  var btn = versionUpdateButton();
+  if (!btn) return;
+  btn.textContent = text;
+  btn.disabled = !!disabled;
+}
+
+function startVersionUpdate() {
+  var a = versionPageInfo;
+  if (!a || versionUpdating) return;
+  var urls = announceDownloadUrls(a);
+  if (!urls.length) { toast('暂无可用下载地址'); return; }
+
+  // 浏览器 / PWA：没有原生桥时退化为直接打开下载地址
+  if (typeof window === 'undefined' || !window.AndroidUpdate) {
+    window.open(urls[0], '_blank');
     return;
   }
 
-  // 已有弹窗先收掉，避免重复
-  var old = document.getElementById('announce-mask');
-  if (old) old.remove();
-  showAnnouncement(best);
+  versionUpdating = true;
+  versionUpdateSources = urls;
+  versionUpdateIndex = 0;
+  versionUpdateFileName = 'shiyongbujian-' + a.version + '.apk';
+  setVersionUpdateStatus('准备下载…', true);
+  try {
+    window.AndroidUpdate.downloadAndInstall(urls[0], versionUpdateFileName, urls.length > 1);
+  } catch (e) {
+    versionUpdating = false;
+    setVersionUpdateStatus('下载失败，点此重试', false);
+  }
 }
 
 function showAnnouncement(a) {
@@ -154,6 +251,14 @@ function showAnnouncement(a) {
   title.className = 'announce-title';
   title.textContent = a.title;
   card.appendChild(title);
+
+  // 只有当前版本低于公告版本时才提示升级；已是最新版只显示公告正文
+  if (announceHasNewVersion(a)) {
+    var versionLine = document.createElement('p');
+    versionLine.className = 'announce-version';
+    versionLine.textContent = '发现新版本 v' + a.version;
+    card.appendChild(versionLine);
+  }
 
   if (a.body) {
     var body = document.createElement('p');
@@ -272,12 +377,40 @@ function announceUpdateButton() {
 }
 
 window.onUpdateProgress = function(pct) {
+  if (versionUpdating) {
+    setVersionUpdateStatus(pct >= 100 ? '正在打开安装程序…' : ('下载中 ' + pct + '%'), true);
+    return;
+  }
   var btn = announceUpdateButton();
   if (!btn) return;
   btn.textContent = pct >= 100 ? '正在打开安装程序…' : ('下载中 ' + pct + '%');
 };
 
 window.onUpdateError = function(msg) {
+  // 版本页触发的下载：同样支持多线路自动换源
+  if (versionUpdating) {
+    if (msg !== 'needPermission' && versionUpdateIndex + 1 < versionUpdateSources.length) {
+      versionUpdateIndex++;
+      var next = versionUpdateSources[versionUpdateIndex];
+      setVersionUpdateStatus('换线路重试…', true);
+      var stillStrict = versionUpdateIndex + 1 < versionUpdateSources.length;
+      setTimeout(function() {
+        window.AndroidUpdate.downloadAndInstall(next, versionUpdateFileName, stillStrict);
+      }, 300);
+      return;
+    }
+    versionUpdating = false;
+    if (msg === 'needPermission') {
+      setVersionUpdateStatus('请允许安装应用后重试', false);
+      setTimeout(function() {
+        if (!versionUpdating) setVersionUpdateStatus('下载并安装', false);
+      }, 3000);
+    } else {
+      setVersionUpdateStatus('下载失败，点此重试', false);
+    }
+    return;
+  }
+
   var btn = announceUpdateButton();
   announceUpdating = false;
   if (!btn) return;
@@ -307,6 +440,11 @@ window.onUpdateError = function(msg) {
 };
 
 window.onUpdateInstalling = function() {
+  if (versionUpdating) {
+    versionUpdating = false;
+    setVersionUpdateStatus('正在打开安装程序…', true);
+    return;
+  }
   // 系统安装界面已拉起，这条公告不用再提醒
   if (announceCurrent && announceCurrent.id != null) announceMarkSeen(announceCurrent.id);
   announceUpdating = false;
