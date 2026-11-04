@@ -351,8 +351,14 @@ function applyTheme(theme) {
   // 系统栏（状态栏/导航栏）图标黑白与底色跟随主题
   if (typeof window.syncSystemBars === 'function') window.syncSystemBars(theme);
   updateThemeSelection();
-  // 统计页图表依赖主题色，切主题后重绘
-  if (currentWidget === 'focus' && typeof renderStats === 'function') setTimeout(renderStats, 60);
+  // 统计页图表、计时环与任务/日历列表都依赖强调色，切主题后重绘
+  if (currentWidget === 'focus') {
+    if (typeof renderStats === 'function') setTimeout(renderStats, 60);
+    if (typeof updateFocusModeUI === 'function') updateFocusModeUI();
+    if (typeof updateFocusTimerDisplay === 'function') updateFocusTimerDisplay();
+    if (typeof renderFocusTasks === 'function') renderFocusTasks();
+    if (typeof renderFocusCalendar === 'function') renderFocusCalendar();
+  }
 }
 
 function updateThemeSelection() {

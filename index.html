@@ -80,6 +80,12 @@
       --header-bg-size: auto;
       --header-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 24px -14px rgba(46,50,94,0.35);
       --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.9);
+      /* 专注部件的强调色：暗黑主题会覆盖成低饱和的陶土色，避免大片亮橙 */
+      --focus-accent: #f97316;
+      --focus-accent-soft: rgba(249,115,22,0.16);
+      --focus-accent-line: rgba(249,115,22,0.45);
+      --focus-accent-solid: #f97316;
+      --focus-accent-onsolid: #ffffff;
     }
 
     /* 玻璃主题底色：只保留中性的明暗层次，不铺彩色，玻璃的透来自卡片本身 */
@@ -222,6 +228,12 @@
       --header-bg-size: auto;
       --header-shadow: 0 1px 3px rgba(0,0,0,0.3);
       --glass-highlight: inset 0 0.5px 0 rgba(255,255,255,0.12);
+      /* 暗底上用低饱和陶土色替代亮橙，按钮仍是实心但不再刺眼 */
+      --focus-accent: #d9a173;
+      --focus-accent-soft: rgba(217,161,115,0.16);
+      --focus-accent-line: rgba(217,161,115,0.42);
+      --focus-accent-solid: #a5663d;
+      --focus-accent-onsolid: #ffffff;
     }
 
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
@@ -640,7 +652,7 @@
     [data-theme="dark"] .modal-sheet .text-gray-400 { color: #8e8e93; }
     [data-theme="dark"] .modal-sheet .bg-gray-100 { background: rgba(255,255,255,0.1); }
     [data-theme="dark"] .modal-sheet .border-gray-200 { border-color: rgba(255,255,255,0.16); }
-    [data-theme="dark"] .modal-sheet .border-gray-400 { border-color: rgba(249,115,22,0.55); }
+    [data-theme="dark"] .modal-sheet .border-gray-400 { border-color: var(--focus-accent-line); }
 
     /* 列表页：深色主题下筛选胶囊、页签按钮不再刺眼 */
     [data-theme="dark"] .cat-filter-btn.bg-gray-100 { background: rgba(255,255,255,0.08); color: #c7c7cc; }
@@ -739,22 +751,22 @@
           </div>
           <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
             <div onclick="gotoAboutItem('theme')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
-              <div class="text-3xl mb-2 leading-none">🎨</div>
+              <div class="widget-icon-wrap mb-2"><svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.12a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C22 6.01 17.46 2 12 2Z"/><circle cx="13.5" cy="6.5" r=".9"/><circle cx="8.5" cy="7.5" r=".9"/><circle cx="6.5" cy="12.5" r=".9"/><circle cx="17.5" cy="10.5" r=".9"/></svg></div>
               <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">主题样式</h3>
               <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);" id="about-theme-entry">玻璃 · iOS 风格</p>
             </div>
             <div onclick="gotoAboutItem('version')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
-              <div class="text-3xl mb-2 leading-none">🔄</div>
+              <div class="widget-icon-wrap mb-2"><svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.1-6.6L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.1 6.6L3 16"/><path d="M3 21v-5h5"/></svg></div>
               <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">版本更新</h3>
               <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);" id="about-version-entry">v1.0.0</p>
             </div>
             <div onclick="gotoAboutItem('intro')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
-              <div class="text-3xl mb-2 leading-none">📖</div>
+              <div class="widget-icon-wrap mb-2"><svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3Z"/></svg></div>
               <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">介绍</h3>
               <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">一站式效率工具</p>
             </div>
             <div onclick="gotoAboutItem('opensource')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
-              <div class="text-3xl mb-2 leading-none">🔗</div>
+              <div class="widget-icon-wrap mb-2"><svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
               <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">开源</h3>
               <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">GitHub 源码仓库</p>
             </div>
@@ -917,7 +929,7 @@
               <div id="focus-dial" class="relative mx-auto" style="width: min(290px, 78vw); aspect-ratio: 1;">
                 <svg id="focus-ring-svg" viewBox="0 0 240 240" class="w-full h-full" style="transform: rotate(-90deg);">
                   <circle cx="120" cy="120" r="104" fill="none" stroke="rgba(128,128,128,0.14)" stroke-width="12"/>
-                  <circle id="focus-ring" cx="120" cy="120" r="104" fill="none" stroke="#f97316" stroke-width="12" stroke-linecap="round" stroke-dasharray="653.45" stroke-dashoffset="653.45" style="transition: stroke-dashoffset .3s linear, stroke .3s;"/>
+                  <circle id="focus-ring" cx="120" cy="120" r="104" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="653.45" stroke-dashoffset="653.45" style="stroke: var(--focus-accent); transition: stroke-dashoffset .3s linear, stroke .3s;"/>
                 </svg>
                 <div id="focus-dial-inner" class="absolute inset-0 flex flex-col items-center justify-center">
                   <div id="focus-time" class="font-bold tabular-nums" style="font-size: clamp(2.6rem, 12.5vw, 3.4rem); color: var(--text-primary); letter-spacing: -0.02em;">00:00</div>
@@ -927,7 +939,7 @@
               </div>
 
               <div class="flex items-center justify-center gap-3 mt-4">
-                <button id="focus-start-btn" onclick="toggleFocusTimer()" class="px-8 py-3 rounded-[20px] text-white text-sm font-semibold shadow-lg btn-jelly transition-all" style="background: #f97316; box-shadow: 0 2px 8px rgba(249,115,22,0.18);">开始</button>
+                <button id="focus-start-btn" onclick="toggleFocusTimer()" class="px-8 py-3 rounded-[20px] text-sm font-semibold shadow-lg btn-jelly transition-all" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid); box-shadow: 0 2px 8px var(--focus-accent-soft);">开始</button>
                 <button id="focus-stop-btn" onclick="stopFocusTimer(true)" disabled class="px-5 py-3 rounded-[20px] text-sm font-semibold" style="background: rgba(128,128,128,0.12); color: var(--text-secondary); opacity: .4;">结束并记录</button>
               </div>
             </div>
@@ -935,7 +947,7 @@
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
               <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">我的任务</h3>
-                <button onclick="showFocusTaskModal()" class="text-xs px-3 py-1.5 rounded-full font-semibold text-white btn-jelly" style="background:#f97316;">＋ 新建任务</button>
+                <button onclick="showFocusTaskModal()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">＋ 新建任务</button>
               </div>
               <div id="focus-task-list"></div>
             </div>
@@ -955,12 +967,18 @@
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
               <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">专注时长分布</h3>
-                <div class="inline-flex gap-1 p-1 rounded-full" style="background: rgba(128,128,128,0.08);">
-                  <button class="focus-range-btn px-3 py-1 rounded-full text-xs font-semibold border" data-range="7" onclick="setFocusStatsRange(7)">7 天</button>
-                  <button class="focus-range-btn px-3 py-1 rounded-full text-xs font-semibold border" data-range="30" onclick="setFocusStatsRange(30)">30 天</button>
-                  <button class="focus-range-btn px-3 py-1 rounded-full text-xs font-semibold border" data-range="month" onclick="setFocusStatsRange('month')">本月</button>
-                  <button class="focus-range-btn px-3 py-1 rounded-full text-xs font-semibold border" data-range="all" onclick="setFocusStatsRange('all')">全部</button>
+                <div class="inline-flex flex-wrap gap-1 p-1 rounded-full" style="background: rgba(128,128,128,0.08);">
+                  <button class="focus-range-btn px-2.5 py-1 rounded-full text-xs font-semibold border" data-range="1" onclick="setFocusStatsRange(1)">今天</button>
+                  <button class="focus-range-btn px-2.5 py-1 rounded-full text-xs font-semibold border" data-range="7" onclick="setFocusStatsRange(7)">7 天</button>
+                  <button class="focus-range-btn px-2.5 py-1 rounded-full text-xs font-semibold border" data-range="month" onclick="setFocusStatsRange('month')">本月</button>
+                  <button class="focus-range-btn px-2.5 py-1 rounded-full text-xs font-semibold border" data-range="all" onclick="setFocusStatsRange('all')">全部</button>
+                  <button class="focus-range-btn px-2.5 py-1 rounded-full text-xs font-semibold border" data-range="custom" onclick="setFocusStatsRange('custom')">自定义</button>
                 </div>
+              </div>
+              <div id="focus-custom-range" class="hidden flex-wrap items-center gap-2 mb-3">
+                <input type="date" id="focus-range-start" onchange="setFocusCustomRange()" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background: rgba(128,128,128,0.08); color: var(--text-primary);">
+                <span class="text-xs" style="color: var(--text-tertiary);">至</span>
+                <input type="date" id="focus-range-end" onchange="setFocusCustomRange()" class="text-xs px-2 py-1 rounded-lg border-0 focus:outline-none" style="background: rgba(128,128,128,0.08); color: var(--text-primary);">
               </div>
               <div class="grid md:grid-cols-2 gap-4 items-center">
                 <div>
@@ -1000,12 +1018,12 @@
               <div class="flex items-center justify-end gap-1 mt-2 text-xs" style="color: var(--text-tertiary);">
                 <span>少</span>
                 <span style="width:10px;height:10px;border-radius:2px;background:rgba(128,128,128,0.08);"></span>
-                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.18);"></span>
-                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.34);"></span>
-                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.50);"></span>
-                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.66);"></span>
-                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.82);"></span>
-                <span style="width:10px;height:10px;border-radius:2px;background:rgba(249,115,22,0.96);"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--focus-accent);opacity:0.18;"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--focus-accent);opacity:0.34;"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--focus-accent);opacity:0.50;"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--focus-accent);opacity:0.66;"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--focus-accent);opacity:0.82;"></span>
+                <span style="width:10px;height:10px;border-radius:2px;background:var(--focus-accent);opacity:0.96;"></span>
                 <span>多</span>
               </div>
             </div>
@@ -1035,7 +1053,7 @@
                 <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">专注日历</h2>
                 <p class="text-xs text-gray-400 mt-0.5">选择日期，查看当天每个时段完成了哪个专注任务</p>
               </div>
-              <button onclick="focusCalendarToday()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly shrink-0" style="background:rgba(249,115,22,0.14);color:#f97316;white-space:nowrap;">今天</button>
+              <button onclick="focusCalendarToday()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly shrink-0" style="background: var(--focus-accent-soft); color: var(--focus-accent); white-space:nowrap;">今天</button>
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
@@ -1056,7 +1074,7 @@
                   <h3 id="focus-cal-day-title" class="text-sm font-bold" style="color:var(--text-primary);">今天</h3>
                   <p id="focus-cal-day-summary" class="text-xs mt-0.5" style="color:var(--text-tertiary);"></p>
                 </div>
-                <button onclick="showFocusManualModal(focusCalSelected)" class="text-xs px-3 py-1.5 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">＋ 补录</button>
+                <button onclick="showFocusManualModal(focusCalSelected)" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly shrink-0" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">＋ 补录</button>
               </div>
               <div id="focus-cal-day-list"></div>
             </div>
@@ -1077,7 +1095,7 @@
                   <h3 class="text-sm font-bold" style="color: var(--text-primary);">导出专注数据</h3>
                   <p class="text-xs mt-0.5" id="focus-data-local-count" style="color: var(--text-tertiary);">本机已有 0 个任务、0 条专注记录</p>
                 </div>
-                <button onclick="exportModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold text-white btn-jelly shrink-0" style="background:#f97316;">生成</button>
+                <button onclick="exportModuleData('focus')" class="text-xs px-4 py-2 rounded-full font-semibold btn-jelly shrink-0" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">生成</button>
               </div>
               <textarea id="focus-data-export" readonly rows="7" spellcheck="false" placeholder="点击“生成”后，导出字符串会显示在这里" class="w-full rounded-[18px] px-3 py-2.5 text-xs font-mono focus:outline-none" style="background:rgba(128,128,128,0.08);color:var(--text-primary);border:0.5px solid rgba(128,128,128,0.2);resize:vertical;-webkit-user-select:text;user-select:text;"></textarea>
               <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
