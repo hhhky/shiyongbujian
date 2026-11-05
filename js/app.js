@@ -37,6 +37,7 @@ const WIDGET_ICONS = {
   folder: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
   note: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M6 3.5h7L17.5 8v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 20V5A1.5 1.5 0 0 1 6 3.5Z"/><path d="M13 3.5V8h4.5"/><path d="M8 12h6M8 15.5h4"/></svg>',
   brain: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M9.5 3.5a3 3 0 0 0-3 3 2.6 2.6 0 0 0-1.4 4.6A2.9 2.9 0 0 0 6 15.6a3 3 0 0 0 3.5 2.9V3.5Z"/><path d="M14.5 3.5a3 3 0 0 1 3 3 2.6 2.6 0 0 1 1.4 4.6A2.9 2.9 0 0 1 18 15.6a3 3 0 0 1-3.5 2.9V3.5Z"/><path d="M12 6v11"/></svg>',
+  calendar: '<svg ' + WIDGET_ICON_ATTRS + '><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M8 3v3M16 3v3M3 9.5h18"/><path d="M8 13h2M14 13h2M8 17h2M14 17h2"/></svg>',
   robot: '<svg ' + WIDGET_ICON_ATTRS + '><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5.5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9.5 16.5h5"/></svg>'
 };
 const WIDGETS = [
@@ -47,6 +48,13 @@ const WIDGETS = [
       { id: 'stats', name: '数据统计', shortName: '统计', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>' },
       { id: 'focus-calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
       { id: 'focus-data', name: '数据', shortName: '数据', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3-3.582-3-8-3-8 1.343-8 3zm0 5c0 1.657 3.582 3 8 3s8-1.343 8-3"/>' }
+    ]
+  },
+  {
+    id: 'schedule', name: '课表', icon: WIDGET_ICONS.calendar, desc: '课程表、手动排课与 Excel/CSV 导入', color: '#0ea5e9',
+    tabs: [
+      { id: 'timetable', name: '课程表', shortName: '课表', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
+      { id: 'schedule-import', name: '导入课表', shortName: '导入', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>' }
     ]
   },
   {
@@ -76,6 +84,7 @@ const WIDGETS = [
 let currentWidget = null;
 let currentWorkflowId = null;
 let editingMemoId = null;
+let memoFilter = 'all'; // all | linked
 let workflowModalMode = null;
 let editingNodeId = null;
 let calendarYear = null;
@@ -140,6 +149,7 @@ function enterWidget(id) {
   if (id === 'memo') { var now = new Date(); calendarYear = now.getFullYear(); calendarMonth = now.getMonth(); selectedDateStr = null; }
   if (id === 'mindmap') { currentWorkflowId = null; currentMindmapType = 'workflow'; backToWorkflowsList(true); }
   if (id === 'focus' && typeof initFocus === 'function') initFocus();
+  if (id === 'schedule' && typeof initSchedule === 'function') initSchedule();
 }
 
 function goHome() {
@@ -403,6 +413,13 @@ function updateThemeSelection() {
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.2.1': [
+    '新增课表模块：手动新增/编辑/删除课程，支持星期、节次、周次与单双周',
+    '课程与备忘录双向关联：课程详情可管理笔记，备忘录可筛选并跳转课程',
+    '支持 Excel / CSV 导入课表，自动识别字段，重复课程可覆盖或跳过',
+    '新增课表导入内嵌浏览器框架，预留教务系统 DOM 解析钩子',
+    '课程与关联关系全部本地保存，数据表预留扩展字段'
+  ],
   '1.2.0': [
     '全新应用图标，各机型上居中显示一致',
     '新增「AI 小助手」一级入口，与部件、关于并列；功能仍在测试中',
@@ -518,6 +535,13 @@ async function refreshAll() {
     renderWorkflows();
   } else if (currentWidget === 'focus') {
     if (typeof refreshFocus === 'function') await refreshFocus();
+  } else if (currentWidget === 'schedule') {
+    if (typeof refreshSchedule === 'function') await refreshSchedule();
+    var scCount = (typeof scheduleCourses !== 'undefined' && scheduleCourses.length) || 0;
+    var scBadge = document.getElementById('header-badge');
+    if (scBadge) scBadge.textContent = scCount + ' 门课程';
+    var scFoot = document.getElementById('sidebar-footer-text');
+    if (scFoot) scFoot.textContent = scCount + ' 门课程';
   }
 }
 
@@ -565,6 +589,8 @@ function switchTab(tab) {
       if (typeof renderFocusTasks === 'function') renderFocusTasks();
       if (typeof updateFocusTimerDisplay === 'function') updateFocusTimerDisplay();
     }
+  } else if (currentWidget === 'schedule') {
+    if (tab === 'timetable' && typeof renderTimetable === 'function') renderTimetable();
   }
 }
 
@@ -1190,7 +1216,20 @@ function getFileIcon(type, name) {
 }
 
 // ── Memo ───────────────────────────────────
-function showAddMemo() {
+async function populateMemoCourseOptions(selectedId) {
+  var sel = document.getElementById('memo-course-input');
+  if (!sel) return;
+  var courses = [];
+  try { courses = await getCourses(); scheduleCourses = courses; } catch (e) { courses = []; }
+  courses.sort(function(a, b) { return (a.dayOfWeek - b.dayOfWeek) || (a.startSection - b.startSection) || String(a.name).localeCompare(String(b.name)); });
+  sel.innerHTML = '<option value="">不关联课程</option>' + courses.map(function(c) {
+    return '<option value="' + c.id + '">' + esc(c.name) + (c.teacher ? ' · ' + esc(c.teacher) : '') + '</option>';
+  }).join('');
+  sel.value = selectedId ? String(selectedId) : '';
+  if (sel.value !== String(selectedId || '')) sel.value = '';
+}
+
+function showAddMemo(courseId) {
   editingMemoId = null;
   document.getElementById('memo-modal-title').textContent = '新建备忘录';
   document.getElementById('memo-confirm-btn').textContent = '确认创建';
@@ -1198,6 +1237,7 @@ function showAddMemo() {
   document.getElementById('memo-content-input').value = '';
   document.getElementById('memo-deadline-input').value = '';
   document.getElementById('memo-autodelete-check').checked = false;
+  populateMemoCourseOptions(courseId || '');
   document.getElementById('memo-modal').classList.remove('hidden');
   document.getElementById('memo-title-input').focus();
 }
@@ -1211,6 +1251,7 @@ function showEditMemo(id) {
     document.getElementById('memo-confirm-btn').textContent = '确认更新';
     document.getElementById('memo-title-input').value = m.title;
     document.getElementById('memo-content-input').value = m.content || '';
+    populateMemoCourseOptions(m.courseId || '');
     if (m.deadline) {
       var d = new Date(m.deadline);
       document.getElementById('memo-deadline-input').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
@@ -1235,16 +1276,19 @@ async function confirmMemo() {
   var deadlineVal = document.getElementById('memo-deadline-input').value;
   var deadline = deadlineVal ? new Date(deadlineVal).getTime() : null;
   var autoDelete = document.getElementById('memo-autodelete-check').checked;
+  var courseIdVal = document.getElementById('memo-course-input').value;
+  var courseId = courseIdVal ? Number(courseIdVal) : null;
 
   if (editingMemoId) {
-    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete });
+    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete, courseId: courseId });
     toast('备忘录已更新');
   } else {
-    await addMemo(title, content, deadline, autoDelete);
+    await addMemo(title, content, deadline, autoDelete, courseId);
     toast('备忘录已创建');
   }
   hideMemoModal();
   await refreshAll();
+  if (currentWidget === 'schedule' && typeof renderCourseDetail === 'function' && scheduleDetailCourseId) renderCourseDetail();
 }
 
 async function deleteMemoById(id) {
@@ -1282,18 +1326,46 @@ function getDaysInfo(memo) {
   return { label: daysToDeadline + '天后到期', color: '#6b7280', urgent: false };
 }
 
+function setMemoFilter(mode) {
+  memoFilter = mode === 'linked' ? 'linked' : 'all';
+  var all = document.getElementById('memo-filter-all');
+  var linked = document.getElementById('memo-filter-linked');
+  if (all) {
+    all.style.background = memoFilter === 'all' ? 'rgba(128,128,128,0.12)' : 'transparent';
+    all.style.color = memoFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)';
+  }
+  if (linked) {
+    linked.style.background = memoFilter === 'linked' ? 'rgba(128,128,128,0.12)' : 'transparent';
+    linked.style.color = memoFilter === 'linked' ? 'var(--text-primary)' : 'var(--text-secondary)';
+  }
+  renderMemos();
+}
+
 async function renderMemos() {
   await cleanupExpiredMemos();
   var memos = await getMemos();
+  if (typeof scheduleCourses !== 'undefined' && !scheduleCourses.length) {
+    try { scheduleCourses = await getCourses(); } catch (e) { /* ignore */ }
+  }
+  if (memoFilter === 'linked') memos = memos.filter(function(m) { return !!m.courseId; });
   var container = document.getElementById('memos-list');
   if (memos.length === 0) {
-    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有备忘录，点击上方按钮创建</div>';
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">'
+      + (memoFilter === 'linked' ? '还没有关联课程的备忘录，新建时可以选择课程' : '还没有备忘录，点击上方按钮创建')
+      + '</div>';
     return;
   }
   container.innerHTML = memos.sort(function(a,b){ return b.createdAt - a.createdAt; }).map(function(m) {
     var info = getDaysInfo(m);
     var preview = (m.content || '').substring(0, 80);
     if ((m.content || '').length > 80) preview += '...';
+    var course = m.courseId ? (typeof courseById === 'function' ? courseById(m.courseId) : null) : null;
+    var courseTag = '';
+    if (m.courseId) {
+      courseTag = '<div class="mb-2"><button onclick="event.stopPropagation();jumpToCourse(' + m.courseId + ')" class="memo-course-tag">'
+        + '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
+        + '<span>' + esc(course ? course.name : '关联课程已删除') + '</span></button></div>';
+    }
     return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card">'
       + '<div class="flex items-start justify-between mb-2">'
         + '<h4 class="font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(m.title) + '</h4>'
@@ -1303,6 +1375,7 @@ async function renderMemos() {
         + '</div>'
       + '</div>'
       + (preview ? '<p class="text-xs mb-2" style="color: var(--card-subtext);">' + esc(preview) + '</p>' : '')
+      + courseTag
       + '<div class="flex items-center justify-between text-xs">'
         + '<span style="color: var(--card-subtext);">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? '，自动删除' : '') + '</span>'
         + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'

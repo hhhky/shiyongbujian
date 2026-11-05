@@ -1,8 +1,8 @@
 const DB_NAME = 'ReviewAppDB';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 // 统一的数据库结构升级逻辑（openDB / dbOp 共用）
-function upgradeSchema(db, oldVersion) {
+function upgradeSchema(db, oldVersion, tx) {
   if (oldVersion < 1) {
     if (!db.objectStoreNames.contains('categories')) {
       db.createObjectStore('categories', { keyPath: 'id', autoIncrement: true });
@@ -45,6 +45,20 @@ function upgradeSchema(db, oldVersion) {
       fss.createIndex('startAt', 'startAt', { unique: false });
     }
   }
+
+  // v5：课表课程 + 备忘录关联课程。meta 字段留给后续扩展（单双周、调课等）
+  if (oldVersion < 5) {
+    if (!db.objectStoreNames.contains('courses')) {
+      const cs = db.createObjectStore('courses', { keyPath: 'id', autoIncrement: true });
+      cs.createIndex('dayOfWeek', 'dayOfWeek', { unique: false });
+    }
+    if (tx) {
+      const memos = tx.objectStore('memos');
+      if (!memos.indexNames.contains('courseId')) {
+        memos.createIndex('courseId', 'courseId', { unique: false });
+      }
+    }
+  }
 }
 
 function openDB() {
@@ -52,7 +66,7 @@ function openDB() {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
 
     req.onupgradeneeded = (e) => {
-      upgradeSchema(e.target.result, e.oldVersion || 0);
+      upgradeSchema(e.target.result, e.oldVersion || 0, e.target.transaction);
     };
 
     req.onsuccess = (e) => { const db = e.target.result; resolve(db); };
@@ -66,7 +80,7 @@ function dbOp(storeName, mode, callback) {
     const openReq = indexedDB.open(DB_NAME, DB_VERSION);
 
     openReq.onupgradeneeded = (e) => {
-      upgradeSchema(e.target.result, e.oldVersion || 0);
+      upgradeSchema(e.target.result, e.oldVersion || 0, e.target.transaction);
     };
 
     openReq.onsuccess = (e) => {
@@ -152,8 +166,16 @@ async function updateFileName(id, newName) {
 }
 
 // ── Memo operations ────────────────────────
-async function addMemo(title, content, deadline, autoDelete) {
-  return dbOp('memos', 'readwrite', (s) => s.add({ title, content, deadline: deadline || null, autoDelete: !!autoDelete, createdAt: Date.now() }));
+async function addMemo(title, content, deadline, autoDelete, courseId) {
+  return dbOp('memos', 'readwrite', (s) => s.add({
+    title: title,
+    content: content,
+    deadline: deadline || null,
+    autoDelete: !!autoDelete,
+    courseId: courseId || null,
+    meta: {},
+    createdAt: Date.now()
+  }));
 }
 
 async function getMemos() {
@@ -179,6 +201,7 @@ async function updateMemo(id, updates) {
         if (updates.content !== undefined) memo.content = updates.content;
         if (updates.deadline !== undefined) memo.deadline = updates.deadline;
         if (updates.autoDelete !== undefined) memo.autoDelete = updates.autoDelete;
+        if (updates.courseId !== undefined) memo.courseId = updates.courseId || null;
         store.put(memo);
       };
       getReq.onerror = function() { db.close(); reject(getReq.error); };
@@ -324,4 +347,73 @@ async function getFocusSessions() {
 
 async function deleteFocusSession(id) {
   return dbOp('focus_sessions', 'readwrite', (s) => s.delete(id));
+}
+
+// ── Course / Timetable operations ───────────────
+// courses: { id, name, teacher, room, dayOfWeek(1-7), startSection, endSection,
+//            startWeek, endWeek, weekParity('all'|'odd'|'even'), color, note, meta }
+async function addCourse(data) {
+  const course = Object.assign({
+    name: '',
+    teacher: '',
+    room: '',
+    dayOfWeek: 1,
+    startSection: 1,
+    endSection: 2,
+    startWeek: 1,
+    endWeek: 20,
+    weekParity: 'all',
+    color: '#0ea5e9',
+    note: '',
+    meta: {}
+  }, data || {});
+  course.createdAt = Date.now();
+  course.updatedAt = course.createdAt;
+  return dbOp('courses', 'readwrite', (s) => s.add(course));
+}
+
+async function getCourses() {
+  return dbOp('courses', 'readonly', (s) => s.getAll());
+}
+
+async function getCourseById(id) {
+  return dbOp('courses', 'readonly', (s) => s.get(id));
+}
+
+async function updateCourse(id, updates) {
+  return new Promise((resolve, reject) => {
+    const openReq = indexedDB.open(DB_NAME, DB_VERSION);
+    openReq.onupgradeneeded = (e) => {
+      upgradeSchema(e.target.result, e.oldVersion || 0, e.target.transaction);
+    };
+    openReq.onsuccess = (e) => {
+      const db = e.target.result;
+      const tx = db.transaction('courses', 'readwrite');
+      const store = tx.objectStore('courses');
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const course = getReq.result;
+        if (!course) { db.close(); reject(new Error('课程不存在')); return; }
+        Object.keys(updates || {}).forEach((k) => {
+          if (k === 'id' || k === 'createdAt') return;
+          course[k] = updates[k];
+        });
+        course.updatedAt = Date.now();
+        store.put(course);
+      };
+      getReq.onerror = () => { db.close(); reject(getReq.error); };
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    };
+    openReq.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function deleteCourse(id) {
+  return dbOp('courses', 'readwrite', (s) => s.delete(id));
+}
+
+async function getMemosByCourse(courseId) {
+  const memos = await dbOp('memos', 'readonly', (s) => s.getAll());
+  return memos.filter((m) => m.courseId === courseId);
 }

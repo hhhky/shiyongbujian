@@ -24,6 +24,15 @@
 
         </activity>
 
+        <!-- 课表导入内嵌浏览器：只在 App 内打开，不对外暴露 -->
+        <activity
+            android:name=".CourseWebViewActivity"
+            android:label="导入课表"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:launchMode="singleTop"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

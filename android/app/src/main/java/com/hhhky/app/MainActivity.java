@@ -1,5 +1,6 @@
 package com.hhhky.app;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -14,11 +15,15 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
+
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -42,9 +47,23 @@ public class MainActivity extends BridgeActivity {
     /** 返回键处理是否正在等页面回话，用于吞掉连续快按 */
     private boolean backPending = false;
 
+    /** 课表 WebView 导入：返回解析结果后回调页面 */
+    private ActivityResultLauncher<Intent> courseImportLauncher;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        courseImportLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String json = result.getData().getStringExtra("courses");
+                        if (json != null) {
+                            callJs("window.onCourseImportResult && window.onCourseImportResult("
+                                    + JSONObject.quote(json) + ")");
+                        }
+                    }
+                });
         applyEdgeToEdge();
         bindWebViewBridge();
         bindBackHandler();
@@ -113,6 +132,7 @@ public class MainActivity extends BridgeActivity {
         webView.addJavascriptInterface(new SystemBarsBridge(), "AndroidSystemBars");
         webView.addJavascriptInterface(new UpdateBridge(), "AndroidUpdate");
         webView.addJavascriptInterface(new HapticBridge(), "AndroidHaptic");
+        webView.addJavascriptInterface(new CourseImportBridge(), "AndroidCourseImport");
     }
 
     /** 在页面里执行一段 JS（主线程），用于把下载进度/结果回传 */
@@ -183,6 +203,26 @@ public class MainActivity extends BridgeActivity {
             runOnUiThread(() -> {
                 View decor = getWindow().getDecorView();
                 decor.performHapticFeedback(effect, HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING);
+            });
+        }
+    }
+
+    /**
+     * 课表导入：打开内嵌 WebView 浏览器，用户登录教务系统后由页面钩子解析课程。
+     * 账号密码只在 WebView 内使用，不经过这个桥接对象。
+     */
+    private class CourseImportBridge {
+
+        @JavascriptInterface
+        public void open(final String url) {
+            runOnUiThread(() -> {
+                try {
+                    Intent intent = new Intent(MainActivity.this, CourseWebViewActivity.class);
+                    if (url != null && !url.isEmpty()) intent.putExtra("url", url);
+                    courseImportLauncher.launch(intent);
+                } catch (Exception ignored) {
+                    // 启动失败时静默处理，页面侧会保留“仅在 App 内可用”的提示
+                }
             });
         }
     }
