@@ -80,12 +80,14 @@
       --header-bg-size: auto;
       --header-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 8px 24px -14px rgba(46,50,94,0.35);
       --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.9);
-      /* 专注部件的强调色：暗黑主题会覆盖成低饱和的陶土色，避免大片亮橙 */
-      --focus-accent: #f97316;
-      --focus-accent-soft: rgba(249,115,22,0.16);
-      --focus-accent-line: rgba(249,115,22,0.45);
-      --focus-accent-solid: #f97316;
+      /* 专注部件的强调色：柿红 / 珊瑚橙，比系统橙更有辨识度 */
+      --focus-accent: #f0522d;
+      --focus-accent-soft: rgba(240,82,45,0.14);
+      --focus-accent-line: rgba(240,82,45,0.42);
+      --focus-accent-solid: #e8482e;
       --focus-accent-onsolid: #ffffff;
+      --focus-gradient: linear-gradient(135deg, #ff8a4c, #f0522d 55%, #d93b2b);
+      --focus-glow: rgba(240,82,45,0.55);
       /* 课表部件的强调色：青蓝到靛紫，和专注的番茄橙区分开 */
       --sched-accent: #0ea5e9;
       --sched-accent-soft: rgba(14,165,233,0.14);
@@ -236,12 +238,14 @@
       --header-bg-size: auto;
       --header-shadow: 0 1px 3px rgba(0,0,0,0.3);
       --glass-highlight: inset 0 0.5px 0 rgba(255,255,255,0.12);
-      /* 暗底上用低饱和陶土色替代亮橙，按钮仍是实心但不再刺眼 */
-      --focus-accent: #d9a173;
-      --focus-accent-soft: rgba(217,161,115,0.16);
-      --focus-accent-line: rgba(217,161,115,0.42);
-      --focus-accent-solid: #a5663d;
-      --focus-accent-onsolid: #ffffff;
+      /* 暗底上改用暖桃色文字 + 砖红实心按钮，保留番茄的暖感又不刺眼 */
+      --focus-accent: #ff9d7a;
+      --focus-accent-soft: rgba(255,157,122,0.16);
+      --focus-accent-line: rgba(255,157,122,0.4);
+      --focus-accent-solid: #b8502f;
+      --focus-accent-onsolid: #fff4ef;
+      --focus-gradient: linear-gradient(135deg, #c96340, #a03f28);
+      --focus-glow: rgba(185,80,47,0.45);
       --sched-accent: #67e8f9;
       --sched-accent-soft: rgba(103,232,249,0.14);
       --sched-accent-line: rgba(103,232,249,0.4);
@@ -333,12 +337,16 @@
     }
     .tt-corner { min-width: 0; }
     .tt-day-head {
-      display: flex; align-items: center; justify-content: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1px;
       font-size: 10.5px; font-weight: 600;
       color: var(--text-secondary);
       min-width: 0; overflow: hidden;
     }
+    .tt-day-name { line-height: 1.1; }
+    .tt-day-date { font-size: 8px; font-weight: 500; line-height: 1; color: var(--text-tertiary); opacity: 0.85; }
     .tt-day-head.today { color: var(--sched-accent); font-weight: 800; }
+    .tt-day-head.today .tt-day-date { color: var(--sched-accent); opacity: 1; font-weight: 700; }
     .tt-section-label {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 1px; font-size: 9px; line-height: 1; font-weight: 600; color: var(--text-tertiary);
@@ -349,6 +357,13 @@
       color: var(--text-tertiary); opacity: 0.85; white-space: nowrap;
     }
     .tt-cell { background: rgba(128,128,128,0.05); border-radius: 6px; }
+    /* 当前时间所在的一节课：整行高亮 */
+    .tt-cell.tt-now {
+      background: var(--sched-accent-soft);
+      box-shadow: inset 0 0 0 1px var(--sched-accent-line);
+    }
+    .tt-section-label.tt-now { color: var(--sched-accent); opacity: 1; font-weight: 800; }
+    .tt-section-label.tt-now .tt-section-time { color: var(--sched-accent); opacity: 1; }
     .tt-stack {
       display: flex; flex-direction: column; gap: 2px;
       min-width: 0; min-height: 0;
@@ -814,9 +829,9 @@
       color: var(--text-secondary);
     }
     .quick-opt.active {
-      border-color: rgba(249,115,22,0.55);
-      background: rgba(249,115,22,0.14);
-      color: #f97316;
+      border-color: var(--focus-accent-line);
+      background: var(--focus-accent-soft);
+      color: var(--focus-accent);
     }
 
     /* 下拉菜单 */
@@ -1100,7 +1115,7 @@
               </div>
 
               <div class="flex items-center justify-center gap-3 mt-4">
-                <button id="focus-start-btn" onclick="toggleFocusTimer()" class="px-8 py-3 rounded-[20px] text-sm font-semibold shadow-lg btn-jelly transition-all" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid); box-shadow: 0 2px 8px var(--focus-accent-soft);">开始</button>
+                <button id="focus-start-btn" onclick="toggleFocusTimer()" class="px-8 py-3 rounded-[20px] text-sm font-semibold shadow-lg btn-jelly transition-all" style="background: var(--focus-gradient); color: var(--focus-accent-onsolid); box-shadow: 0 10px 24px -12px var(--focus-glow);">开始</button>
                 <button id="focus-stop-btn" onclick="stopFocusTimer(true)" disabled class="px-5 py-3 rounded-[20px] text-sm font-semibold" style="background: rgba(128,128,128,0.12); color: var(--text-secondary); opacity: .4;">结束并记录</button>
               </div>
             </div>
@@ -1223,30 +1238,22 @@
             </div>
 
             <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
-              <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center justify-between mb-2">
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">作息时间</h3>
-                <span class="text-[11px]" style="color: var(--text-tertiary);">自动生成每节上下课时间</span>
+                <button onclick="scheduleAutoFillPeriods()" class="sched-chip text-[11px] px-2.5 py-1 rounded-full font-semibold btn-jelly">自动排满</button>
               </div>
-              <div class="grid grid-cols-3 gap-2 mb-1">
-                <div>
-                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">第一节上课</label>
-                  <input type="time" id="schedule-day-start" class="w-full border border-gray-200 rounded-[16px] px-2.5 py-3 text-sm focus:outline-none bg-gray-50">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">每节时长</label>
-                  <input type="number" id="schedule-period-minutes" min="20" max="180" step="5" class="w-full border border-gray-200 rounded-[16px] px-2.5 py-3 text-sm focus:outline-none bg-gray-50">
-                </div>
-                <div>
-                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">课间休息</label>
-                  <input type="number" id="schedule-break-minutes" min="0" max="60" step="5" class="w-full border border-gray-200 rounded-[16px] px-2.5 py-3 text-sm focus:outline-none bg-gray-50">
-                </div>
-              </div>
-              <p class="text-[11px] mb-3" style="color: var(--text-tertiary);">时长与休息均按分钟计算；最后一节的下课时间在下方预览。</p>
-              <div id="schedule-period-preview" class="rounded-[16px] p-3 max-h-56 overflow-y-auto" style="background: rgba(128,128,128,0.06);"></div>
+              <p class="text-[11px] mb-3" style="color: var(--text-tertiary);">按每天节数逐节设置上下课时间，保存后同步到课表左侧。</p>
+              <div id="schedule-period-editor" class="space-y-2 max-h-[46vh] overflow-y-auto pr-0.5"></div>
             </div>
 
             <button onclick="confirmScheduleSettings()" class="btn-schedule w-full py-3 rounded-[20px] text-sm font-semibold">保存设置</button>
-            <p class="text-[11px] mt-3 leading-relaxed" style="color: var(--text-tertiary);">作息时间只影响课表左侧显示的上下课时间，不会改动已有课程。</p>
+            <p class="text-[11px] mt-3 leading-relaxed" style="color: var(--text-tertiary);">作息时间只影响课表左侧显示的上课时间与当前节高亮，不会改动已有课程。</p>
+
+            <div class="rounded-[28px] p-5 mt-4 mb-2" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">清空当前课表</h3>
+              <p class="text-xs leading-relaxed mb-3" style="color: var(--text-tertiary);">删除课表里的全部课程；已关联的备忘录会保留，但会解除课程关联。</p>
+              <button onclick="showScheduleClearConfirm()" class="w-full py-2.5 rounded-[16px] text-sm font-semibold btn-jelly" style="background: rgba(239,68,68,0.12); color: #ef4444;">清空当前课表</button>
+            </div>
           </div>
         </div>
 
@@ -1822,6 +1829,18 @@
     </div>
 
     <!-- Schedule Settings Modal -->
+    <!-- 清空课表：第一次确认 -->
+    <div id="schedule-clear-modal" class="fixed inset-0 hidden flex items-center justify-center p-6" style="z-index:10000; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideScheduleClearConfirm()">
+      <div class="w-full max-w-[320px] rounded-[24px] p-6" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: fadeIn 0.2s ease;">
+        <h3 class="text-lg font-bold mb-1.5" style="color: var(--text-primary);">清空当前课表？</h3>
+        <p id="schedule-clear-desc" class="text-sm leading-relaxed mb-5" style="color: var(--text-secondary);"></p>
+        <div class="flex gap-3">
+          <button onclick="hideScheduleClearConfirm()" class="flex-1 py-2.5 rounded-[16px] text-sm font-semibold" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">取消</button>
+          <button onclick="scheduleClearSecondConfirm()" class="flex-1 py-2.5 rounded-[16px] text-sm font-semibold text-white" style="background: #ef4444;">继续</button>
+        </div>
+      </div>
+    </div>
+
     <!-- AI 小助手测试提示 -->
     <div id="ai-beta-modal" class="fixed inset-0 hidden items-center justify-center p-6" style="z-index:99999; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideAiBetaModal()">
       <div class="w-full max-w-[320px] rounded-[28px] p-6 text-center" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: fadeIn 0.2s ease;">

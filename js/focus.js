@@ -4,8 +4,8 @@
 //   focus_sessions 每次专注记录（开始/结束/时长）
 // ─────────────────────────────────────────────
 
-var FOCUS_ACCENT = '#f97316';
-// 主题强调色：暗黑主题下由 CSS 变量换成低饱和的陶土色，避免大片亮橙
+var FOCUS_ACCENT = '#f0522d';
+// 主题强调色：暗黑主题下由 CSS 变量换成暖桃色 + 砖红按钮
 function focusAccent() {
   return focusCssVar('--focus-accent', FOCUS_ACCENT);
 }
