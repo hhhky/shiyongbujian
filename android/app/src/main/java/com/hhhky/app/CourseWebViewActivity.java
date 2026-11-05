@@ -1,11 +1,14 @@
 package com.hhhky.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Message;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.util.TypedValue;
@@ -16,7 +19,9 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.webkit.CookieManager;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -27,6 +32,12 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,7 +50,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * 课表导入用内嵌浏览器。
  *
- * 用户在 App 内登录教务系统并打开课表页面，点顶部「解析」时执行页面里的
+ * 用户在 App 内登录教务系统并打开课表页面，点底部「解析课表」时执行页面里的
  * window.CourseImportHooks（由 js/course-webview-hooks.js 注入），把解析结果回传给主界面。
  * 账号密码只在 WebView 与教务系统之间传递，App 不读取、不保存、不上传。
  */
@@ -50,6 +61,7 @@ public class CourseWebViewActivity extends Activity {
     private static final String SUBTEXT = "#6B7280";
 
     private WebView webView;
+    private WebView popupWebView;
     private EditText urlInput;
     private ProgressBar progress;
 
@@ -77,13 +89,15 @@ public class CourseWebViewActivity extends Activity {
 
     private void applyBarColors() {
         Window window = getWindow();
+        // targetSdk 35+ 强制 edge-to-edge，必须自己处理状态栏/导航栏内边距
+        WindowCompat.setDecorFitsSystemWindows(window, false);
         window.setStatusBarColor(Color.WHITE);
         window.setNavigationBarColor(Color.WHITE);
-        int flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
+        if (controller != null) {
+            controller.setAppearanceLightStatusBars(true);
+            controller.setAppearanceLightNavigationBars(true);
         }
-        window.getDecorView().setSystemUiVisibility(flags);
     }
 
     private int dp(int value) {
@@ -99,7 +113,7 @@ public class CourseWebViewActivity extends Activity {
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
-        toolbar.setPadding(dp(6), dp(6), dp(6), dp(6));
+        toolbar.setPadding(dp(6), dp(6), dp(8), dp(6));
         toolbar.setBackgroundColor(Color.WHITE);
         toolbar.setElevation(dp(2));
 
@@ -120,7 +134,7 @@ public class CourseWebViewActivity extends Activity {
         urlInput.setBackgroundColor(Color.parseColor("#F3F4F6"));
         urlInput.setPadding(dp(12), 0, dp(12), 0);
         LinearLayout.LayoutParams inputLp = new LinearLayout.LayoutParams(0, dp(42), 1f);
-        inputLp.setMargins(dp(4), 0, dp(6), 0);
+        inputLp.setMargins(dp(4), 0, dp(8), 0);
         toolbar.addView(urlInput, inputLp);
         urlInput.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_GO) {
@@ -133,14 +147,7 @@ public class CourseWebViewActivity extends Activity {
         Button open = makeButton("打开", 13, Color.WHITE);
         open.setBackgroundColor(Color.parseColor(ACCENT));
         open.setOnClickListener(v -> navigate());
-        toolbar.addView(open, new LinearLayout.LayoutParams(dp(58), dp(38)));
-
-        Button parse = makeButton("解析", 13, Color.WHITE);
-        parse.setBackgroundColor(Color.parseColor(TEXT));
-        parse.setOnClickListener(v -> parsePage());
-        LinearLayout.LayoutParams parseLp = new LinearLayout.LayoutParams(dp(58), dp(38));
-        parseLp.setMargins(dp(6), 0, 0, 0);
-        toolbar.addView(parse, parseLp);
+        toolbar.addView(open, new LinearLayout.LayoutParams(dp(56), dp(38)));
 
         root.addView(toolbar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -153,17 +160,41 @@ public class CourseWebViewActivity extends Activity {
         webView.setBackgroundColor(Color.WHITE);
         root.addView(webView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        setContentView(root);
-        configureWebView();
+        LinearLayout bottom = new LinearLayout(this);
+        bottom.setOrientation(LinearLayout.HORIZONTAL);
+        bottom.setGravity(Gravity.CENTER_VERTICAL);
+        bottom.setPadding(dp(12), dp(8), dp(12), dp(8));
+        bottom.setBackgroundColor(Color.parseColor("#FAFAFA"));
 
         TextView footer = new TextView(this);
         footer.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         footer.setTextColor(Color.parseColor(SUBTEXT));
-        footer.setText("只在本机访问教务系统；App 不保存账号密码，也不上传页面内容。");
-        footer.setGravity(Gravity.CENTER);
-        footer.setPadding(dp(8), dp(6), dp(8), dp(10));
-        footer.setBackgroundColor(Color.parseColor("#FAFAFA"));
-        root.addView(footer, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        footer.setText("只在本机访问教务系统；不保存账号密码，不上传页面内容。");
+        footer.setLineSpacing(dp(2), 1f);
+        bottom.addView(footer, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button parse = makeButton("解析课表", 13, Color.WHITE);
+        parse.setBackgroundColor(Color.parseColor(TEXT));
+        parse.setOnClickListener(v -> parsePage());
+        LinearLayout.LayoutParams parseLp = new LinearLayout.LayoutParams(dp(92), dp(40));
+        parseLp.setMargins(dp(8), 0, 0, 0);
+        bottom.addView(parse, parseLp);
+
+        root.addView(bottom, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        setContentView(root);
+        applyInsets(root);
+        configureWebView();
+    }
+
+    // 让工具栏落在状态栏下方、底部按钮不被导航栏/键盘盖住
+    private void applyInsets(View root) {
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            v.setPadding(0, bars.top, 0, bars.bottom);
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(root);
     }
 
     private Button makeButton(String text, int textSize, int color) {
@@ -189,18 +220,19 @@ public class CourseWebViewActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
-        s.setJavaScriptCanOpenWindowsAutomatically(false);
-        s.setSupportMultipleWindows(false);
+        s.setJavaScriptCanOpenWindowsAutomatically(true);
+        s.setSupportMultipleWindows(true);
         s.setBuiltInZoomControls(true);
         s.setDisplayZoomControls(false);
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
+        s.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
+        // 很多教务系统的登录页会拦掉带 "wv" 标记的 WebView UA，换成普通 Chrome UA
+        s.setUserAgentString(standardUserAgent(s.getUserAgentString()));
 
         CookieManager cm = CookieManager.getInstance();
         cm.setAcceptCookie(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cm.setAcceptThirdPartyCookies(webView, true);
-        }
+        cm.setAcceptThirdPartyCookies(webView, true);
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -209,16 +241,37 @@ public class CourseWebViewActivity extends Activity {
                 if (url.startsWith("http://") || url.startsWith("https://")) {
                     return false;
                 }
-                return true; // 不把 intent://、文件等外部协议交给 WebView
+                openExternal(url); // 支付宝/微信/拨号等交给系统
+                return true;
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (!urlInput.hasFocus()) {
+                if (!urlInput.hasFocus() && url != null && !url.startsWith("data:")) {
                     urlInput.setText(url);
                 }
                 injectHooks();
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                if (request != null && request.isForMainFrame()) {
+                    toast("网页加载失败：" + (error != null ? error.getDescription() : "网络错误"));
+                }
+            }
+
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, android.net.http.SslError error) {
+                // 部分校园站点证书链不完整：交给用户判断，不静默放行
+                String host = error != null && error.getUrl() != null ? Uri.parse(error.getUrl()).getHost() : "";
+                new AlertDialog.Builder(CourseWebViewActivity.this)
+                        .setTitle("证书不受信任")
+                        .setMessage((TextUtils.isEmpty(host) ? "" : host + "\n") + "该网站的 HTTPS 证书校验失败，继续访问可能不安全。")
+                        .setPositiveButton("继续访问", (d, w) -> handler.proceed())
+                        .setNegativeButton("取消", (d, w) -> handler.cancel())
+                        .show();
             }
         });
 
@@ -232,7 +285,49 @@ public class CourseWebViewActivity extends Activity {
                     progress.setProgress(newProgress);
                 }
             }
+
+            // 教务登录常用 window.open 弹窗，这里接住并继续在当前窗口打开
+            @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+                WebView popup = new WebView(CourseWebViewActivity.this);
+                popupWebView = popup; // 防止被回收
+                popup.setWebViewClient(new WebViewClient() {
+                    @Override
+                    public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
+                        String url = request.getUrl() != null ? request.getUrl().toString() : "";
+                        if (url.startsWith("http://") || url.startsWith("https://")) {
+                            webView.loadUrl(url);
+                        }
+                        return true;
+                    }
+                });
+                WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                transport.setWebView(popup);
+                resultMsg.sendToTarget();
+                return true;
+            }
         });
+    }
+
+    private String standardUserAgent(String current) {
+        String chrome = "131.0.0.0";
+        if (current != null) {
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("Chrome/([\\d.]+)").matcher(current);
+            if (m.find()) chrome = m.group(1);
+        }
+        String model = Build.MODEL == null ? "Android" : Build.MODEL.replace(";", " ");
+        return "Mozilla/5.0 (Linux; Android " + Build.VERSION.RELEASE + "; " + model + ") "
+                + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/" + chrome + " Mobile Safari/537.36";
+    }
+
+    private void openExternal(String url) {
+        if (TextUtils.isEmpty(url)) return;
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+        } catch (Exception e) {
+            toast("无法打开该链接");
+        }
     }
 
     private String readAsset(String path) {
@@ -288,7 +383,7 @@ public class CourseWebViewActivity extends Activity {
                 + "<p>这是一个只在 App 内使用的浏览器。</p>"
                 + "<ol><li>在顶部地址栏输入学校教务系统网址，点「打开」。</li>"
                 + "<li>正常登录并进入课表页面。</li>"
-                + "<li>点顶部「解析」抓取课程；当前版本尚未内置各校解析脚本时会提示敬请期待。</li></ol>"
+                + "<li>点底部「解析课表」抓取课程；当前版本尚未内置各校解析脚本时会提示敬请期待。</li></ol>"
                 + "<div class='tip'>登录信息只在你本机与教务系统之间传输。App 不读取、不上传账号密码和页面内容。</div>"
                 + "</body></html>";
         urlInput.setText("");
@@ -340,6 +435,12 @@ public class CourseWebViewActivity extends Activity {
 
     private void toast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onPause() {
+        CookieManager.getInstance().flush();
+        super.onPause();
     }
 
     @Override
