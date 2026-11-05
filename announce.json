@@ -1,17 +1,17 @@
 {
   "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。",
-  "id": 14,
-  "title": "v1.2.0 已发布",
-  "body": "应用图标焕新；新增「AI 小助手」一级入口（功能测试中）；版本更新页现在会展示新版本内容，并支持后台下载后自动打开安装界面。",
-  "notes": "全新应用图标，各机型居中显示一致\n新增「AI 小助手」入口，功能仍在测试中\n公告与版本更新拆分，仅旧版本提示升级\n关于页介绍内容更新",
+  "id": 15,
+  "title": "v1.2.1 已发布",
+  "body": "课表模块上线：支持手动排课、课程与备忘录双向关联、Excel/CSV 导入，并内置教务系统导入浏览器框架。",
+  "notes": "新增课表模块，可手动新增、编辑、删除课程\n课程与备忘录双向关联，支持筛选与一键跳转\n支持 Excel/CSV 导入课表，重复课程可覆盖或跳过\n新增内嵌浏览器导入框架，预留教务系统解析钩子\n课程与关联关系全部保存在本机",
   "button": "",
-  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.0/shiyongbujian-v1.2.0.apk",
+  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.1/shiyongbujian-v1.2.1.apk",
   "urls": [
-    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.0/shiyongbujian-v1.2.0.apk",
+    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.1/shiyongbujian-v1.2.1.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.0/shiyongbujian-v1.2.0.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.1/shiyongbujian-v1.2.1.apk"
   ],
-  "version": "1.2.0",
+  "version": "1.2.1",
   "minVersion": "",
   "force": false
 }
