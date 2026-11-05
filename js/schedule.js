@@ -6,12 +6,14 @@
 var SCHEDULE_SETTINGS_KEY = 'schedule-settings';
 var SCHEDULE_DAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 var SCHEDULE_COLORS = [
-  '#0284c7', '#4f46e5', '#7c3aed', '#db2777', '#e11d48',
-  '#ea580c', '#b45309', '#047857', '#0f766e', '#475569'
+  '#0ea5e9', '#22d3ee', '#06b6d4', '#14b8a6', '#10b981',
+  '#22c55e', '#84cc16', '#eab308', '#f59e0b', '#f97316',
+  '#ef4444', '#f43f5e', '#ec4899', '#d946ef', '#a855f7',
+  '#8b5cf6', '#6366f1', '#3b82f6', '#0f766e', '#475569'
 ];
 
 var scheduleCourses = [];
-var scheduleSettings = { semesterStart: '', totalWeeks: 20, sections: 12 };
+var scheduleSettings = { semesterStart: '', totalWeeks: 20, sections: 12, dayStart: '08:00', periodMinutes: 45, breakMinutes: 10 };
 var scheduleViewWeek = null;        // null = 跟随当前周
 var scheduleEditingCourseId = null;
 var scheduleDetailCourseId = null;
@@ -39,10 +41,15 @@ function loadScheduleSettings() {
       scheduleSettings.semesterStart = raw.semesterStart || '';
       scheduleSettings.totalWeeks = parseInt(raw.totalWeeks, 10) || 20;
       scheduleSettings.sections = parseInt(raw.sections, 10) || 12;
+      scheduleSettings.dayStart = /^\d{1,2}:\d{2}$/.test(raw.dayStart) ? raw.dayStart : '08:00';
+      scheduleSettings.periodMinutes = parseInt(raw.periodMinutes, 10) || 45;
+      scheduleSettings.breakMinutes = raw.breakMinutes == null ? 10 : (parseInt(raw.breakMinutes, 10) || 0);
     }
   } catch (e) { /* 使用默认值 */ }
   scheduleSettings.totalWeeks = Math.max(1, Math.min(30, scheduleSettings.totalWeeks));
   scheduleSettings.sections = Math.max(6, Math.min(16, scheduleSettings.sections));
+  scheduleSettings.periodMinutes = Math.max(20, Math.min(180, scheduleSettings.periodMinutes));
+  scheduleSettings.breakMinutes = Math.max(0, Math.min(60, scheduleSettings.breakMinutes));
 }
 
 function saveScheduleSettings() {
@@ -140,6 +147,34 @@ function scheduleFullWeeks() {
   return list;
 }
 
+// ── 作息时间 ──────────────────────────────────
+function scheduleParseTime(str) {
+  var m = /^(\d{1,2}):(\d{2})$/.exec(String(str || '').trim());
+  if (!m) return null;
+  var h = parseInt(m[1], 10);
+  var mi = parseInt(m[2], 10);
+  if (h > 23 || mi > 59) return null;
+  return h * 60 + mi;
+}
+
+function scheduleMinutesLabel(mins) {
+  mins = ((mins % 1440) + 1440) % 1440;
+  return schedPad2(Math.floor(mins / 60)) + ':' + schedPad2(mins % 60);
+}
+
+// 第 n 节课的上课 / 下课时间
+function schedulePeriodRange(n) {
+  var start = scheduleParseTime(scheduleSettings.dayStart);
+  if (start == null) return null;
+  var offset = (Math.max(1, n) - 1) * (scheduleSettings.periodMinutes + scheduleSettings.breakMinutes);
+  return {
+    start: start + offset,
+    end: start + offset + scheduleSettings.periodMinutes,
+    startLabel: scheduleMinutesLabel(start + offset),
+    endLabel: scheduleMinutesLabel(start + offset + scheduleSettings.periodMinutes)
+  };
+}
+
 function courseWeeksLabel(c) {
   if (Array.isArray(c.weeks) && c.weeks.length) return '第' + scheduleWeeksText(c.weeks) + '周';
   var label = '第' + c.startWeek + '-' + c.endWeek + '周';
@@ -206,7 +241,10 @@ function renderTimetable() {
     html += '<div class="tt-day-head' + (d === todayIdx ? ' today' : '') + '" style="grid-column:' + (d + 2) + ';grid-row:1;">' + SCHEDULE_DAYS[d] + '</div>';
   }
   for (var s = 1; s <= sections; s++) {
-    html += '<div class="tt-section-label" style="grid-column:1;grid-row:' + (s + 1) + ';">' + s + '</div>';
+    var pr = schedulePeriodRange(s);
+    html += '<div class="tt-section-label" style="grid-column:1;grid-row:' + (s + 1) + ';"'
+      + (pr ? ' title="第 ' + s + ' 节 ' + pr.startLabel + '–' + pr.endLabel + '"' : '')
+      + '>' + s + (pr ? '<span class="tt-section-time">' + pr.startLabel + '</span>' : '') + '</div>';
     for (var dd = 0; dd < 7; dd++) {
       html += '<div class="tt-cell" style="grid-column:' + (dd + 2) + ';grid-row:' + (s + 1) + ';"></div>';
     }
@@ -296,7 +334,10 @@ function openCourseModal(id) {
   scheduleFormColor = c && c.color ? c.color : SCHEDULE_COLORS[0];
   renderScheduleColorPicker();
   document.getElementById('course-modal').classList.remove('hidden');
-  document.getElementById('course-name-input').focus();
+  setTimeout(function() {
+    var inp = document.getElementById('course-name-input');
+    if (inp) inp.focus();
+  }, 120);
 }
 
 function hideCourseModal() {
@@ -308,7 +349,11 @@ function renderScheduleColorPicker() {
   var box = document.getElementById('course-color-picker');
   if (!box) return;
   box.innerHTML = SCHEDULE_COLORS.map(function(color) {
-    return '<button type="button" onclick="selectScheduleColor(\'' + color + '\')" class="w-8 h-8 rounded-full btn-jelly" style="background:' + color + ';box-shadow:0 0 0 ' + (scheduleFormColor === color ? '2px var(--text-primary)' : '0 transparent') + ';"></button>';
+    var selected = scheduleFormColor === color;
+    var tickColor = scheduleTextColor(color);
+    return '<button type="button" aria-label="课程颜色" onclick="selectScheduleColor(\'' + color + '\')" class="w-9 h-9 rounded-full btn-jelly flex items-center justify-center" style="background:' + color + ';box-shadow:0 0 0 ' + (selected ? '2.5px var(--sched-accent), 0 0 0 5px var(--sched-accent-soft)' : '0 transparent') + ';">'
+      + (selected ? '<svg class="w-4 h-4" style="color:' + tickColor + ';" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : '')
+      + '</button>';
   }).join('');
 }
 
@@ -439,25 +484,71 @@ function jumpToCourse(courseId) {
 
 // ── 学期设置 ─────────────────────────────────
 function showScheduleSettings() {
-  document.getElementById('schedule-start-date').value = scheduleSettings.semesterStart || '';
-  document.getElementById('schedule-total-weeks').value = scheduleSettings.totalWeeks;
-  document.getElementById('schedule-sections').value = scheduleSettings.sections;
-  document.getElementById('schedule-settings-modal').classList.remove('hidden');
+  switchTab('schedule-settings');
 }
 
-function hideScheduleSettings() {
-  document.getElementById('schedule-settings-modal').classList.add('hidden');
+function scheduleReadSettingsForm() {
+  var start = document.getElementById('schedule-start-date');
+  var weeks = document.getElementById('schedule-total-weeks');
+  var sections = document.getElementById('schedule-sections');
+  var dayStart = document.getElementById('schedule-day-start');
+  var period = document.getElementById('schedule-period-minutes');
+  var brk = document.getElementById('schedule-break-minutes');
+  return {
+    semesterStart: start ? start.value : '',
+    totalWeeks: Math.max(1, Math.min(30, parseInt(weeks && weeks.value, 10) || 20)),
+    sections: Math.max(6, Math.min(16, parseInt(sections && sections.value, 10) || 12)),
+    dayStart: dayStart && /^\d{1,2}:\d{2}$/.test(dayStart.value) ? dayStart.value : '08:00',
+    periodMinutes: Math.max(20, Math.min(180, parseInt(period && period.value, 10) || 45)),
+    breakMinutes: Math.max(0, Math.min(60, parseInt(brk && brk.value, 10) || 0))
+  };
+}
+
+function renderScheduleSettingsPage() {
+  var start = document.getElementById('schedule-start-date');
+  if (!start) return;
+  start.value = scheduleSettings.semesterStart || '';
+  document.getElementById('schedule-total-weeks').value = scheduleSettings.totalWeeks;
+  document.getElementById('schedule-sections').value = scheduleSettings.sections;
+  document.getElementById('schedule-day-start').value = scheduleSettings.dayStart || '08:00';
+  document.getElementById('schedule-period-minutes').value = scheduleSettings.periodMinutes;
+  document.getElementById('schedule-break-minutes').value = scheduleSettings.breakMinutes;
+  ['schedule-sections', 'schedule-day-start', 'schedule-period-minutes', 'schedule-break-minutes'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.oninput = scheduleRenderPeriodPreview;
+  });
+  scheduleRenderPeriodPreview();
+}
+
+// 设置页的作息预览：逐节列出上课与下课时间
+function scheduleRenderPeriodPreview() {
+  var box = document.getElementById('schedule-period-preview');
+  if (!box) return;
+  var form = scheduleReadSettingsForm();
+  var startMin = scheduleParseTime(form.dayStart);
+  var html = '';
+  for (var i = 1; i <= form.sections; i++) {
+    var s = startMin + (i - 1) * (form.periodMinutes + form.breakMinutes);
+    var e = s + form.periodMinutes;
+    html += '<div class="flex items-center justify-between text-xs py-1" style="' + (i === form.sections ? 'border-top:1px solid rgba(128,128,128,0.18);margin-top:4px;padding-top:6px;' : '') + '">'
+      + '<span style="color: var(--text-secondary);">第 ' + i + ' 节</span>'
+      + '<span class="tabular-nums font-semibold" style="color: ' + (i === form.sections ? 'var(--sched-accent)' : 'var(--text-primary)') + ';">'
+      + scheduleMinutesLabel(s) + ' – ' + scheduleMinutesLabel(e) + '</span>'
+      + '</div>';
+  }
+  box.innerHTML = html;
 }
 
 function confirmScheduleSettings() {
-  var start = document.getElementById('schedule-start-date').value;
-  var weeks = Math.max(1, Math.min(30, parseInt(document.getElementById('schedule-total-weeks').value, 10) || 20));
-  var sections = Math.max(6, Math.min(16, parseInt(document.getElementById('schedule-sections').value, 10) || 12));
-  scheduleSettings.semesterStart = start || '';
-  scheduleSettings.totalWeeks = weeks;
-  scheduleSettings.sections = sections;
+  var form = scheduleReadSettingsForm();
+  scheduleSettings.semesterStart = form.semesterStart;
+  scheduleSettings.totalWeeks = form.totalWeeks;
+  scheduleSettings.sections = form.sections;
+  scheduleSettings.dayStart = form.dayStart;
+  scheduleSettings.periodMinutes = form.periodMinutes;
+  scheduleSettings.breakMinutes = form.breakMinutes;
   saveScheduleSettings();
-  hideScheduleSettings();
+  scheduleRenderPeriodPreview();
   renderTimetable();
   toast('课表设置已保存');
 }
@@ -935,6 +1026,15 @@ window.onCourseImportResult = async function(json) {
   if (!courses.length) {
     renderImportResult({ added: 0, updated: 0, skipped: 0, failed: errors.length, errors: errors }, '网页导入');
     toast('没有可导入的课程');
+    return;
+  }
+  // 通用识别可能有误差，导入前先让用户确认
+  var preview = courses.slice(0, 7).map(function(c) {
+    return c.name + '（' + SCHEDULE_DAYS[(c.dayOfWeek || 1) - 1] + ' 第' + c.startSection + '-' + c.endSection + '节）';
+  }).join('\n');
+  if (!await confirmDialog('识别到 ' + courses.length + ' 个课程安排：\n' + preview
+      + (courses.length > 7 ? '\n…' : '') + '\n\n确认导入到本机课表？')) {
+    toast('已取消导入');
     return;
   }
   var res = await applyImportedCourses(courses, scheduleImportConflict);

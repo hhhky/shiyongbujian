@@ -86,6 +86,14 @@
       --focus-accent-line: rgba(249,115,22,0.45);
       --focus-accent-solid: #f97316;
       --focus-accent-onsolid: #ffffff;
+      /* 课表部件的强调色：青蓝到靛紫，和专注的番茄橙区分开 */
+      --sched-accent: #0ea5e9;
+      --sched-accent-soft: rgba(14,165,233,0.14);
+      --sched-accent-line: rgba(14,165,233,0.42);
+      --sched-accent-solid: #0ea5e9;
+      --sched-accent-onsolid: #ffffff;
+      --sched-gradient: linear-gradient(135deg, #22d3ee, #4f8ef7 55%, #6366f1);
+      --sched-gradient-hover: linear-gradient(135deg, #06b6d4, #3b82f6 55%, #4f46e5);
     }
 
     /* 玻璃主题底色：只保留中性的明暗层次，不铺彩色，玻璃的透来自卡片本身 */
@@ -234,6 +242,13 @@
       --focus-accent-line: rgba(217,161,115,0.42);
       --focus-accent-solid: #a5663d;
       --focus-accent-onsolid: #ffffff;
+      --sched-accent: #67e8f9;
+      --sched-accent-soft: rgba(103,232,249,0.14);
+      --sched-accent-line: rgba(103,232,249,0.4);
+      --sched-accent-solid: #0891b2;
+      --sched-accent-onsolid: #ecfeff;
+      --sched-gradient: linear-gradient(135deg, #0891b2, #2563eb 58%, #4f46e5);
+      --sched-gradient-hover: linear-gradient(135deg, #0e7490, #1d4ed8 58%, #4338ca);
     }
 
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
@@ -305,7 +320,7 @@
     .timetable-scroll { padding-bottom: 2px; }
     .timetable-grid {
       display: grid;
-      grid-template-columns: 18px repeat(7, minmax(0, 1fr));
+      grid-template-columns: 30px repeat(7, minmax(0, 1fr));
       grid-auto-rows: 42px;
       gap: 3px;
       min-width: 0; /* 七天完整铺满屏幕，左右不滚动 */
@@ -314,7 +329,7 @@
       .timetable-grid { grid-auto-rows: 40px; gap: 2px; }
     }
     @media (max-width: 360px) {
-      .timetable-grid { grid-auto-rows: 37px; grid-template-columns: 15px repeat(7, minmax(0, 1fr)); }
+      .timetable-grid { grid-auto-rows: 37px; grid-template-columns: 27px repeat(7, minmax(0, 1fr)); }
     }
     .tt-corner { min-width: 0; }
     .tt-day-head {
@@ -323,11 +338,15 @@
       color: var(--text-secondary);
       min-width: 0; overflow: hidden;
     }
-    .tt-day-head.today { color: var(--focus-accent); font-weight: 800; }
+    .tt-day-head.today { color: var(--sched-accent); font-weight: 800; }
     .tt-section-label {
-      display: flex; align-items: center; justify-content: center;
-      font-size: 9px; font-weight: 600; color: var(--text-tertiary);
-      opacity: 0.7;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1px; font-size: 9px; line-height: 1; font-weight: 600; color: var(--text-tertiary);
+      opacity: 0.8; overflow: hidden;
+    }
+    .tt-section-time {
+      font-size: 6.5px; font-weight: 500; line-height: 1; letter-spacing: -0.2px;
+      color: var(--text-tertiary); opacity: 0.85; white-space: nowrap;
     }
     .tt-cell { background: rgba(128,128,128,0.05); border-radius: 6px; }
     .tt-stack {
@@ -584,6 +603,28 @@
       transform: translateY(-1px);
     }
     .btn-gradient:active { animation: jelly 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+    /* 课表专用按钮：青蓝渐变，不沿用专注的橙色 */
+    .btn-schedule {
+      background: var(--sched-gradient);
+      color: #fff;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 18px -10px rgba(59,130,246,0.65);
+    }
+    .btn-schedule:hover {
+      background: var(--sched-gradient-hover);
+      box-shadow: 0 8px 22px -10px rgba(59,130,246,0.75);
+      transform: translateY(-1px);
+    }
+    .btn-schedule:active { animation: jelly 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .sched-chip {
+      background: var(--sched-accent-soft);
+      color: var(--sched-accent);
+    }
+    .sched-avatar {
+      background: var(--sched-accent-soft);
+      color: var(--sched-accent);
+    }
 
     .card-hover {
       transition: all 0.2s ease;
@@ -1083,10 +1124,7 @@
                 <p id="schedule-week-sub" class="text-xs mt-0.5" style="color: var(--text-tertiary);">未设置开学日期，可手动切换周次</p>
               </div>
               <div class="flex items-center gap-2 shrink-0">
-                <button onclick="showScheduleSettings()" class="w-9 h-9 flex items-center justify-center rounded-full btn-jelly" style="background: rgba(128,128,128,0.1); color: var(--text-secondary);" title="课表设置">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                </button>
-                <button onclick="openCourseModal()" class="btn-gradient text-white text-xs md:text-sm px-4 py-2 rounded-full font-semibold shadow-lg">＋ 课程</button>
+                <button onclick="openCourseModal()" class="btn-schedule text-xs md:text-sm px-4 py-2 rounded-full font-semibold shadow-lg">＋ 课程</button>
               </div>
             </div>
 
@@ -1094,7 +1132,7 @@
               <button onclick="scheduleShiftWeek(-1)" class="w-8 h-8 flex items-center justify-center rounded-full btn-jelly" style="background: rgba(128,128,128,0.1); color: var(--text-secondary);">‹</button>
               <span id="schedule-week-label" class="text-sm font-semibold px-2" style="color: var(--text-primary);">第 1 周</span>
               <button onclick="scheduleShiftWeek(1)" class="w-8 h-8 flex items-center justify-center rounded-full btn-jelly" style="background: rgba(128,128,128,0.1); color: var(--text-secondary);">›</button>
-              <button onclick="scheduleGoCurrentWeek()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly ml-1" style="background: var(--focus-accent-soft); color: var(--focus-accent);">本周</button>
+              <button onclick="scheduleGoCurrentWeek()" class="sched-chip text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly ml-1">本周</button>
             </div>
 
             <div class="timetable-scroll">
@@ -1105,7 +1143,7 @@
               <p class="text-sm mb-1" style="color: var(--text-secondary);">还没有课程</p>
               <p class="text-xs mb-4" style="color: var(--text-tertiary);">手动添加一门课，或从 Excel / CSV 导入整张课表</p>
               <div class="flex items-center justify-center gap-2">
-                <button onclick="openCourseModal()" class="px-4 py-2 rounded-full text-xs font-semibold btn-jelly" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">新增课程</button>
+                <button onclick="openCourseModal()" class="btn-schedule px-4 py-2 rounded-full text-xs font-semibold">新增课程</button>
                 <button onclick="switchTab('schedule-import')" class="px-4 py-2 rounded-full text-xs font-semibold btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">导入课表</button>
               </div>
             </div>
@@ -1130,7 +1168,7 @@
               <p class="text-xs mb-3 leading-relaxed" style="color: var(--text-tertiary);">支持 .xlsx、.xls、.csv。既可以直接用教务系统导出的整张课表（星期为列、节次为行），也支持「课程名称 / 教师 / 教室 / 星期 / 节次 / 周次」表头式表格，列顺序不限。</p>
               <div class="flex flex-wrap gap-2 mb-3">
                 <input type="file" id="schedule-file-input" accept=".xlsx,.xls,.csv" class="hidden" onchange="onScheduleFileSelected(this)">
-                <button onclick="pickScheduleFile()" class="px-4 py-2 rounded-full text-xs font-semibold btn-jelly" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">选择文件</button>
+                <button onclick="pickScheduleFile()" class="btn-schedule px-4 py-2 rounded-full text-xs font-semibold">选择文件</button>
                 <button onclick="downloadScheduleTemplate()" class="px-4 py-2 rounded-full text-xs font-semibold btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">下载模板</button>
               </div>
               <div class="rounded-[16px] p-3 mb-3 text-xs leading-relaxed" style="background: rgba(128,128,128,0.06); color: var(--text-secondary);">
@@ -1152,10 +1190,63 @@
 
             <div class="rounded-[28px] p-5" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
               <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">从教务系统导入</h3>
-              <p class="text-xs mb-3 leading-relaxed" style="color: var(--text-tertiary);">在 App 内的浏览器登录学校教务系统、打开课表页面，再由解析脚本抓取。当前版本先提供容器与解析钩子，具体学校的解析脚本会陆续补充。</p>
+              <p class="text-xs mb-3 leading-relaxed" style="color: var(--text-tertiary);">在 App 内的浏览器登录学校教务系统、停在课表页面，再点底部「解析课表」。通用识别会自动读取页面里以星期为列的课表表格，或教务系统页面中的课表数据；解析和确认都在本机完成。</p>
               <button onclick="openCourseWebImport()" class="px-4 py-2 rounded-full text-xs font-semibold btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">打开内嵌浏览器</button>
               <p class="text-[11px] mt-3 leading-relaxed" style="color: var(--text-tertiary);">登录完全发生在你本机的网页里；App 不保存、不上传教务账号和密码，也不会把页面内容发到服务器。</p>
             </div>
+          </div>
+        </div>
+
+        <!-- Timetable Settings Page -->
+        <div id="page-schedule-settings" class="page p-4 md:p-6 lg:p-8">
+          <div class="max-w-2xl mx-auto">
+            <div class="mb-5 md:mb-6">
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">课表设置</h2>
+              <p class="text-xs text-gray-400 mt-0.5">学期周次与每天的作息时间</p>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">学期</h3>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">开学日期（可选）</label>
+              <input type="date" id="schedule-start-date" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-1 focus:outline-none bg-gray-50">
+              <p class="text-[11px] mb-4" style="color: var(--text-tertiary);">设置后自动计算当前是第几周；不设置也可以手动切换周次。</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">总周数</label>
+                  <input type="number" id="schedule-total-weeks" min="1" max="30" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm focus:outline-none bg-gray-50">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">每天节数</label>
+                  <input type="number" id="schedule-sections" min="6" max="16" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm focus:outline-none bg-gray-50">
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-[28px] p-5 mb-4" style="background: var(--card-bg); border: var(--card-border); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); box-shadow: var(--card-box-shadow);">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">作息时间</h3>
+                <span class="text-[11px]" style="color: var(--text-tertiary);">自动生成每节上下课时间</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 mb-1">
+                <div>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">第一节上课</label>
+                  <input type="time" id="schedule-day-start" class="w-full border border-gray-200 rounded-[16px] px-2.5 py-3 text-sm focus:outline-none bg-gray-50">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">每节时长</label>
+                  <input type="number" id="schedule-period-minutes" min="20" max="180" step="5" class="w-full border border-gray-200 rounded-[16px] px-2.5 py-3 text-sm focus:outline-none bg-gray-50">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-gray-700 mb-1.5">课间休息</label>
+                  <input type="number" id="schedule-break-minutes" min="0" max="60" step="5" class="w-full border border-gray-200 rounded-[16px] px-2.5 py-3 text-sm focus:outline-none bg-gray-50">
+                </div>
+              </div>
+              <p class="text-[11px] mb-3" style="color: var(--text-tertiary);">时长与休息均按分钟计算；最后一节的下课时间在下方预览。</p>
+              <div id="schedule-period-preview" class="rounded-[16px] p-3 max-h-56 overflow-y-auto" style="background: rgba(128,128,128,0.06);"></div>
+            </div>
+
+            <button onclick="confirmScheduleSettings()" class="btn-schedule w-full py-3 rounded-[20px] text-sm font-semibold">保存设置</button>
+            <p class="text-[11px] mt-3 leading-relaxed" style="color: var(--text-tertiary);">作息时间只影响课表左侧显示的上下课时间，不会改动已有课程。</p>
           </div>
         </div>
 
@@ -1655,7 +1746,7 @@
     </div>
 
     <!-- Course Detail Modal -->
-    <div id="course-detail-modal" class="fixed inset-0 hidden items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+    <div id="course-detail-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
       <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
         <div class="flex items-start justify-between gap-3 mb-1">
           <h3 id="course-detail-title" class="title-gradient text-lg font-bold" style="color: var(--text-primary);">课程</h3>
@@ -1665,7 +1756,7 @@
 
         <div class="flex items-center justify-between mb-2">
           <h4 class="text-sm font-semibold" style="color: var(--text-primary);">关联备忘录</h4>
-          <button onclick="addMemoForCourse()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background: var(--focus-accent-soft); color: var(--focus-accent);">＋ 新建笔记</button>
+          <button onclick="addMemoForCourse()" class="sched-chip text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly">＋ 新建笔记</button>
         </div>
         <div id="course-memo-list" class="max-h-[36vh] overflow-y-auto mb-4"></div>
 
@@ -1678,7 +1769,7 @@
     </div>
 
     <!-- Course Form Modal -->
-    <div id="course-modal" class="fixed inset-0 hidden items-end md:items-center justify-center modal-sheet" style="z-index:9999; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
+    <div id="course-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9999; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
       <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease; max-height: 92vh; overflow-y: auto;">
         <h3 id="course-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新增课程</h3>
         <input type="text" id="course-name-input" placeholder="课程名称（必填）" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
@@ -1722,38 +1813,15 @@
           <input type="text" id="course-weeks-input" placeholder="如 1-3,5-9；留空则按上面的起止周和单双周" class="w-full border border-gray-200 rounded-[16px] px-4 py-3 text-sm focus:outline-none bg-gray-50">
         </div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">课程颜色</label>
-        <div id="course-color-picker" class="flex flex-wrap gap-2 mb-5"></div>
+        <div id="course-color-picker" class="grid grid-cols-5 gap-2.5 mb-5"></div>
         <div class="flex gap-3">
           <button onclick="hideCourseModal()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm">取消</button>
-          <button onclick="confirmCourse()" class="flex-1 py-3 rounded-[20px] font-semibold text-white text-sm btn-gradient">保存</button>
+          <button onclick="confirmCourse()" class="btn-schedule flex-1 py-3 rounded-[20px] font-semibold text-sm">保存</button>
         </div>
       </div>
     </div>
 
     <!-- Schedule Settings Modal -->
-    <div id="schedule-settings-modal" class="fixed inset-0 hidden items-end md:items-center justify-center modal-sheet" style="z-index:9999; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
-        <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">课表设置</h3>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">开学日期（可选）</label>
-        <input type="date" id="schedule-start-date" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none bg-gray-50">
-        <p class="text-[11px] mb-3 -mt-1" style="color: var(--text-tertiary);">设置后会自动计算当前是第几周；不设置也可以手动切换周次。</p>
-        <div class="grid grid-cols-2 gap-3 mb-5">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">总周数</label>
-            <input type="number" id="schedule-total-weeks" min="1" max="30" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm focus:outline-none bg-gray-50">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">每天节数</label>
-            <input type="number" id="schedule-sections" min="6" max="16" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm focus:outline-none bg-gray-50">
-          </div>
-        </div>
-        <div class="flex gap-3">
-          <button onclick="hideScheduleSettings()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm">取消</button>
-          <button onclick="confirmScheduleSettings()" class="flex-1 py-3 rounded-[20px] font-semibold text-white text-sm btn-gradient">保存</button>
-        </div>
-      </div>
-    </div>
-
     <!-- AI 小助手测试提示 -->
     <div id="ai-beta-modal" class="fixed inset-0 hidden items-center justify-center p-6" style="z-index:99999; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideAiBetaModal()">
       <div class="w-full max-w-[320px] rounded-[28px] p-6 text-center" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: fadeIn 0.2s ease;">

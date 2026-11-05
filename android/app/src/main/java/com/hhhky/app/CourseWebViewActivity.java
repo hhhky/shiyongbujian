@@ -383,8 +383,8 @@ public class CourseWebViewActivity extends Activity {
                 + "<p>这是一个只在 App 内使用的浏览器。</p>"
                 + "<ol><li>在顶部地址栏输入学校教务系统网址，点「打开」。</li>"
                 + "<li>正常登录并进入课表页面。</li>"
-                + "<li>点底部「解析课表」抓取课程；当前版本尚未内置各校解析脚本时会提示敬请期待。</li></ol>"
-                + "<div class='tip'>登录信息只在你本机与教务系统之间传输。App 不读取、不上传账号密码和页面内容。</div>"
+                + "<li>点底部「解析课表」自动识别页面里的课程表。</li></ol>"
+                + "<div class='tip'>登录信息只在你本机与教务系统之间传输。App 不读取、不上传账号密码和页面内容。识别在本机完成；如果没识别到，多半是课表在另一层页面或由脚本动态绘制。</div>"
                 + "</body></html>";
         urlInput.setText("");
         webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
@@ -402,7 +402,7 @@ public class CourseWebViewActivity extends Activity {
                 if (!obj.optBoolean("ok")) {
                     String err = obj.optString("error");
                     if ("no_parser".equals(err) || "no_course".equals(err)) {
-                        toast("尚未配置这所学校的解析脚本，敬请期待");
+                        toast("没有识别到课表，请先打开课表页面再点解析");
                     } else {
                         toast("解析失败：" + err);
                     }

@@ -54,7 +54,8 @@ const WIDGETS = [
     id: 'schedule', name: '课表', icon: WIDGET_ICONS.calendar, desc: '课程表、手动排课与 Excel/CSV 导入', color: '#0ea5e9',
     tabs: [
       { id: 'timetable', name: '课程表', shortName: '课表', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
-      { id: 'schedule-import', name: '导入课表', shortName: '导入', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>' }
+      { id: 'schedule-import', name: '导入课表', shortName: '导入', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>' },
+      { id: 'schedule-settings', name: '课表设置', shortName: '设置', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>' }
     ]
   },
   {
@@ -413,6 +414,15 @@ function updateThemeSelection() {
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.2.3': [
+    '课表设置独立成标签页：开学日期、总周数、每天节数、第一节上课时间、每节时长与课间休息',
+    '按设置自动计算每节课的上下课时间，并显示在课表左侧',
+    '加课弹窗改为与专注「新建任务」一致的底部弹层，自动聚焦输入框',
+    '课程颜色扩充到 20 种，重复导入时优先分配不同颜色',
+    '课表按钮改用青蓝渐变，不再沿用专注的番茄橙',
+    '内嵌浏览器支持通用课表识别：自动读取课表表格、iframe、role=grid 网格与课表数据数组',
+    '网页识别结果在导入前先展示课程清单确认，避免误导入'
+  ],
   '1.2.2': [
     '课表改为整块实色卡片，七天完整铺满一个屏幕，不再左右滑动',
     '支持直接导入教务系统导出的整表（星期为列、节次为行）',
@@ -599,6 +609,7 @@ function switchTab(tab) {
     }
   } else if (currentWidget === 'schedule') {
     if (tab === 'timetable' && typeof renderTimetable === 'function') renderTimetable();
+    if (tab === 'schedule-settings' && typeof renderScheduleSettingsPage === 'function') renderScheduleSettingsPage();
   }
 }
 
