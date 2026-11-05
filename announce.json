@@ -1,17 +1,17 @@
 {
   "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。",
-  "id": 16,
-  "title": "v1.2.2 已发布",
-  "body": "课表改为整屏实色色块，支持教务系统整表导入；内嵌浏览器登录问题已修复。",
-  "notes": "课表改为整块实色卡片，七天完整铺满一屏，不再左右滑动\n支持直接导入教务系统导出的整表（星期为列、节次为行）\n自动识别多段周次与单双周，并合并同一门课的不同教师\n导入时自动读取开学日期与总周数\n内嵌浏览器修复地址栏与状态栏重叠，网址输入不再受影响\n修复教务系统登录被拦：支持 http、普通 UA、登录弹窗与第三方 Cookie",
+  "id": 17,
+  "title": "v1.2.3 已发布",
+  "body": "课表设置独立成标签页，新增作息时间与每节上下课时间；内嵌浏览器支持通用课表识别。",
+  "notes": "课表设置独立成标签页：开学日期、总周数、每天节数、每节时长与课间休息\n自动计算每节课的上下课时间并显示在课表左侧\n加课弹窗改为与专注一致的底部弹层，自动聚焦输入框\n课程颜色扩充到 20 种，课表按钮改用青蓝配色\n内嵌浏览器新增通用课表识别：表格、iframe、ARIA 网格与页面课表数组\n识别结果导入前先展示课程清单确认",
   "button": "",
-  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.2/shiyongbujian-v1.2.2.apk",
+  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.3/shiyongbujian-v1.2.3.apk",
   "urls": [
-    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.2/shiyongbujian-v1.2.2.apk",
+    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.3/shiyongbujian-v1.2.3.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.2/shiyongbujian-v1.2.2.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.3/shiyongbujian-v1.2.3.apk"
   ],
-  "version": "1.2.2",
+  "version": "1.2.3",
   "minVersion": "",
   "force": false
 }
