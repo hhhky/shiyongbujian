@@ -123,7 +123,10 @@ function enterWidget(id) {
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
   var firstTabId = w.tabs[0].id;
   var firstPage = document.getElementById('page-' + firstTabId);
-  if (firstPage) firstPage.classList.add('active');
+  if (firstPage) {
+    firstPage.classList.add('active');
+    animatePageIn(firstPage, true);
+  }
 
   // Header
   document.getElementById('header-back-btn').classList.remove('hidden');
@@ -161,6 +164,7 @@ function goHome() {
   // Hide widget pages, show home
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
   document.getElementById('page-home').classList.add('active');
+  animatePageIn(document.getElementById('page-home'), false);
   switchHomeTab('widgets'); // reset to widgets tab
 
   // Header
@@ -342,6 +346,7 @@ function switchHomeTab(tab) {
   if (tab === 'about') {
     homePage.classList.remove('active');
     aboutPage.classList.add('active');
+    animatePageIn(aboutPage, true);
     widgetsBtn.style.background = 'transparent';
     widgetsBtn.style.color = 'var(--text-tertiary)';
     widgetsBtn.style.fontWeight = '500';
@@ -353,6 +358,7 @@ function switchHomeTab(tab) {
   } else {
     aboutPage.classList.remove('active');
     homePage.classList.add('active');
+    animatePageIn(homePage, false);
     aboutBtn.style.background = 'transparent';
     aboutBtn.style.color = 'var(--text-tertiary)';
     aboutBtn.style.fontWeight = '500';
@@ -414,6 +420,12 @@ function updateThemeSelection() {
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.2.5': [
+    '页面切换加入过渡动画：按标签顺序左右滑动进出，返回时反向',
+    '所有弹窗改为升起式入场，关闭时先收回再消失',
+    '列表与卡片逐条错开淡入，首页部件、分类、资料、备忘录、导图与专注任务均可感知',
+    '系统开启「减少动态效果」时自动关闭全部动画'
+  ],
   '1.2.4': [
     '课表星期下方显示具体日期，只有本周的今天会高亮',
     '课表设置改为逐节自定义上下课时间，可一键按 45 分钟自动排满',
@@ -572,11 +584,39 @@ async function refreshAll() {
 }
 
 // ── Tab Navigation ────────────────────────
+function tabIndexFor(id) {
+  var w = WIDGETS.find(function(x){ return x.id === currentWidget; });
+  if (!w) return -1;
+  for (var i = 0; i < w.tabs.length; i++) if (w.tabs[i].id === id) return i;
+  return -1;
+}
+
+function animatePageIn(page, forward) {
+  if (!page) return;
+  page.classList.remove('page-in-forward', 'page-in-back');
+  void page.offsetWidth;
+  page.classList.add(forward ? 'page-in-forward' : 'page-in-back');
+  clearTimeout(page.__motionTimer);
+  page.__motionTimer = setTimeout(function() {
+    page.classList.remove('page-in-forward', 'page-in-back');
+  }, 260);
+}
+
 function switchTab(tab) {
   if (!currentWidget) return;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   var page = document.getElementById('page-' + tab);
-  if (page) page.classList.add('active');
+  var wasActive = !!page && page.classList.contains('active');
+  var activePage = document.querySelector('.page.active');
+  var prevTab = activePage && activePage.id.indexOf('page-') === 0 ? activePage.id.slice(5) : '';
+  var prevIdx = tabIndexFor(prevTab);
+  var nextIdx = tabIndexFor(tab);
+  var forward = (prevIdx < 0 || nextIdx < 0) ? true : nextIdx >= prevIdx;
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  if (page) {
+    page.classList.add('active');
+    if (!wasActive) animatePageIn(page, forward);
+  }
 
   // Bottom nav buttons (mobile)
   document.querySelectorAll('.nav-tab').forEach(function(b) {
@@ -634,6 +674,80 @@ function confirmDialog(msg) {
     if (confirm(msg)) { resolve(true); } else { resolve(false); }
   });
 }
+
+// ── 弹层动画 ──────────────────────────────
+// 打开时由 CSS 自动播放入场；关闭时先播放收回动画，再真正加上 hidden
+(function initOverlayMotion() {
+  if (typeof MutationObserver === 'undefined') return;
+  var SELECTOR = '.modal-sheet, #schedule-clear-modal';
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var observed = [];
+  var pending = [];
+  var scheduled = false;
+
+  var observer = new MutationObserver(function (records) {
+    records.forEach(function (record) {
+      if (record.attributeName !== 'class') return;
+      if (pending.indexOf(record.target) < 0) pending.push(record.target);
+    });
+    if (scheduled || !pending.length) return;
+    scheduled = true;
+    setTimeout(flush, 0);
+  });
+
+  // 同一轮里可能连续开关，统一按最终状态处理一次
+  function flush() {
+    scheduled = false;
+    var list = pending.slice();
+    pending.length = 0;
+    if (reduceMotion) return;
+    list.forEach(handle);
+  }
+
+  function handle(el) {
+    if (!el.classList) return;
+    if (!el.classList.contains('hidden')) {
+      if (!el.__closing) return;
+      clearTimeout(el.__closeTimer);
+      el.__closing = false;
+      paused(function () { el.classList.remove('is-closing'); });
+      return;
+    }
+    if (el.__closing || el.classList.contains('is-closing')) return;
+    el.__closing = true;
+    paused(function () {
+      el.classList.remove('hidden');
+      el.classList.add('is-closing');
+    });
+    el.__closeTimer = setTimeout(function () {
+      paused(function () {
+        el.classList.remove('is-closing');
+        el.classList.add('hidden');
+      });
+      el.__closing = false;
+    }, 160);
+  }
+
+  function observeAll() {
+    observer.disconnect();
+    observed = Array.prototype.slice.call(document.querySelectorAll(SELECTOR));
+    observed.forEach(function (el) {
+      observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
+  // 自己改 class 时暂停观察，避免递归触发
+  function paused(fn) {
+    observer.disconnect();
+    try { fn(); } finally { observeAll(); }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeAll);
+  } else {
+    observeAll();
+  }
+})();
 
 // ── Category Modal ────────────────────────
 function showAddCategory() {

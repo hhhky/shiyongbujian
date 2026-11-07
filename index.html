@@ -258,6 +258,73 @@
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
     .page { display: none; }
     .page.active { display: block; }
+
+    /* ── 过渡动效 ───────────────────────────── */
+    :root {
+      --motion-fast: 180ms;
+      --motion-base: 220ms;
+      --motion-ease: cubic-bezier(.22, 1, .36, 1);
+    }
+    .main-content { overflow-x: hidden; }
+
+    /* 页面横向进出场：向后切从右侧滑入，返回从左侧滑入 */
+    .page.page-in-forward { animation: page-in-forward var(--motion-base) var(--motion-ease) both; }
+    .page.page-in-back { animation: page-in-back var(--motion-base) var(--motion-ease) both; }
+    @keyframes page-in-forward {
+      from { opacity: 0; transform: translate3d(24px, 0, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    @keyframes page-in-back {
+      from { opacity: 0; transform: translate3d(-24px, 0, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    /* 列表逐条淡入上移，最多错开 8 项 */
+    .stagger-list > * { animation: item-in var(--motion-base) var(--motion-ease) both; }
+    .stagger-list > *:nth-child(1) { animation-delay: 0ms; }
+    .stagger-list > *:nth-child(2) { animation-delay: 18ms; }
+    .stagger-list > *:nth-child(3) { animation-delay: 36ms; }
+    .stagger-list > *:nth-child(4) { animation-delay: 54ms; }
+    .stagger-list > *:nth-child(5) { animation-delay: 72ms; }
+    .stagger-list > *:nth-child(6) { animation-delay: 90ms; }
+    .stagger-list > *:nth-child(7) { animation-delay: 108ms; }
+    .stagger-list > *:nth-child(8) { animation-delay: 126ms; }
+    .stagger-list > *:nth-child(n+9) { animation-delay: 140ms; }
+    @keyframes item-in {
+      from { opacity: 0; transform: translate3d(0, 10px, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    /* 弹层：背景淡入 + 面板升起，关闭时反向收回 */
+    .modal-sheet:not(.hidden),
+    #schedule-clear-modal:not(.hidden) { animation: overlay-in var(--motion-fast) ease both; }
+    .modal-sheet:not(.hidden) > div,
+    #schedule-clear-modal:not(.hidden) > div { animation: sheet-rise-in var(--motion-base) var(--motion-ease) both; }
+    .modal-sheet.is-closing,
+    #schedule-clear-modal.is-closing { animation: overlay-out 150ms ease both; }
+    .modal-sheet.is-closing > div,
+    #schedule-clear-modal.is-closing > div { animation: sheet-rise-out 160ms cubic-bezier(.4, 0, .7, 1) both; }
+    #preview-overlay:not(.hidden) { animation: overlay-in var(--motion-fast) ease both; }
+    @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes sheet-rise-in {
+      from { opacity: 0; transform: translate3d(0, 26px, 0); }
+      to { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+    @keyframes sheet-rise-out {
+      from { opacity: 1; transform: translate3d(0, 0, 0); }
+      to { opacity: 0; transform: translate3d(0, 22px, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .page.page-in-forward, .page.page-in-back,
+      .stagger-list > *,
+      .modal-sheet:not(.hidden), .modal-sheet:not(.hidden) > div,
+      .modal-sheet.is-closing, .modal-sheet.is-closing > div,
+      #schedule-clear-modal:not(.hidden), #schedule-clear-modal:not(.hidden) > div,
+      #schedule-clear-modal.is-closing, #schedule-clear-modal.is-closing > div,
+      #preview-overlay:not(.hidden) { animation: none !important; }
+    }
     /* AI 小助手测试提示 */
     .ai-beta-icon { background: rgba(99,102,241,0.14); color: #6366f1; }
     [data-theme="dark"] .ai-beta-icon { background: rgba(129,140,248,0.16); color: #a5b4fc; }
@@ -892,7 +959,7 @@
             <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">我的部件</h2>
             <p class="text-xs text-gray-400 mt-0.5">点击部件进入使用</p>
           </div>
-          <div id="widgets-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+          <div id="widgets-grid" class="stagger-list grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
           </div>
         </div>
 
@@ -1022,7 +1089,7 @@
             </div>
             <button onclick="showAddCategory()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建分类</button>
           </div>
-          <div id="categories-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div id="categories-list" class="stagger-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有分类，点击上方按钮创建</div>
           </div>
         </div>
@@ -1038,7 +1105,7 @@
               <input type="text" id="file-search" oninput="renderFiles()" placeholder="搜索文件名..." class="w-full sm:w-48 lg:w-56 text-sm border rounded-[20px] pl-9 pr-3 py-2 focus:outline-none transition-all shrink-0" style="background: rgba(255,255,255,0.15); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); color: var(--text-primary);">
             </div>
           </div>
-          <div id="files-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div id="files-list" class="stagger-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有上传资料</div>
           </div>
         </div>
@@ -1125,7 +1192,7 @@
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">我的任务</h3>
                 <button onclick="showFocusTaskModal()" class="text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background: var(--focus-accent-solid); color: var(--focus-accent-onsolid);">＋ 新建任务</button>
               </div>
-              <div id="focus-task-list"></div>
+              <div id="focus-task-list" class="stagger-list"></div>
             </div>
           </div>
         </div>
@@ -1442,7 +1509,7 @@
             <button onclick="setMemoFilter('all')" id="memo-filter-all" class="text-xs px-3 py-1.5 rounded-full font-semibold border btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary); border-color: transparent;">全部</button>
             <button onclick="setMemoFilter('linked')" id="memo-filter-linked" class="text-xs px-3 py-1.5 rounded-full font-semibold border btn-jelly" style="background: transparent; color: var(--text-secondary); border-color: transparent;">已关联课程</button>
           </div>
-          <div id="memos-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div id="memos-list" class="stagger-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有备忘录，点击上方按钮创建</div>
           </div>
         </div>
@@ -1503,7 +1570,7 @@
               </div>
               <button onclick="showAddWorkflow()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建思维导图</button>
             </div>
-            <div id="workflows-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div id="workflows-grid" class="stagger-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有思维导图，点击上方按钮创建</div>
             </div>
           </div>
@@ -1637,7 +1704,7 @@
 
     <!-- Category Modal -->
     <div id="category-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建分类</h3>
         <input type="text" id="new-cat-name" placeholder="分类名称，如：英语、政治" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">选择颜色</label>
@@ -1651,7 +1718,7 @@
 
     <!-- Memo Modal -->
     <div id="memo-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <h3 id="memo-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建备忘录</h3>
         <input type="text" id="memo-title-input" placeholder="标题" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <textarea id="memo-content-input" rows="3" placeholder="内容（可选）" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50 resize-none"></textarea>
@@ -1674,7 +1741,7 @@
 
     <!-- Workflow Modal -->
     <div id="workflow-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <h3 id="workflow-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建思维导图</h3>
         <input type="text" id="workflow-name-input" placeholder="思维导图名称" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <div id="workflow-node-fields" class="hidden">
@@ -1701,7 +1768,7 @@
 
     <!-- Focus Task Modal -->
     <div id="focus-task-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <h3 id="focus-task-modal-title" class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">新建任务</h3>
         <input type="text" id="focus-task-name-input" placeholder="任务名称，如：英语阅读、高数复习" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">选择颜色</label>
@@ -1715,7 +1782,7 @@
 
     <!-- Focus Settings Modal -->
     <div id="focus-settings-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">计时设置</h3>
         <label class="block text-sm font-semibold text-gray-700 mb-2">番茄钟时长（分钟）</label>
         <input type="number" id="focus-set-pomodoro" min="1" max="180" value="25" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-5 focus:outline-none focus:border-gray-400 bg-gray-50">
@@ -1728,7 +1795,7 @@
 
     <!-- Focus Manual Record Modal -->
     <div id="focus-manual-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">补录专注记录</h3>
         <label class="block text-sm font-semibold text-gray-700 mb-2">任务</label>
         <select id="focus-manual-task" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-4 focus:outline-none focus:border-gray-400 bg-gray-50"></select>
@@ -1754,7 +1821,7 @@
 
     <!-- Course Detail Modal -->
     <div id="course-detail-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);">
-      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab)); animation: fadeIn 0.25s ease;">
+      <div class="bg-white rounded-t-[28px] md:rounded-[28px] w-full md:max-w-md p-5 shadow-2xl" style="padding-bottom: calc(1.25rem + var(--sab));">
         <div class="flex items-start justify-between gap-3 mb-1">
           <h3 id="course-detail-title" class="title-gradient text-lg font-bold" style="color: var(--text-primary);">课程</h3>
           <button onclick="hideCourseDetail()" class="text-gray-400 hover:text-gray-600 shrink-0" title="关闭">✕</button>
@@ -1831,7 +1898,7 @@
     <!-- Schedule Settings Modal -->
     <!-- 清空课表：第一次确认 -->
     <div id="schedule-clear-modal" class="fixed inset-0 hidden flex items-center justify-center p-6" style="z-index:10000; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideScheduleClearConfirm()">
-      <div class="w-full max-w-[320px] rounded-[24px] p-6" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: fadeIn 0.2s ease;">
+      <div class="w-full max-w-[320px] rounded-[24px] p-6" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18);">
         <h3 class="text-lg font-bold mb-1.5" style="color: var(--text-primary);">清空当前课表？</h3>
         <p id="schedule-clear-desc" class="text-sm leading-relaxed mb-5" style="color: var(--text-secondary);"></p>
         <div class="flex gap-3">
@@ -1843,7 +1910,7 @@
 
     <!-- AI 小助手测试提示 -->
     <div id="ai-beta-modal" class="fixed inset-0 hidden items-center justify-center p-6" style="z-index:99999; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideAiBetaModal()">
-      <div class="w-full max-w-[320px] rounded-[28px] p-6 text-center" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18); animation: fadeIn 0.2s ease;">
+      <div class="w-full max-w-[320px] rounded-[28px] p-6 text-center" style="background: var(--panel-bg); border: var(--card-border); box-shadow: 0 20px 60px rgba(0,0,0,0.18);">
         <div class="ai-beta-icon mx-auto mb-4 flex items-center justify-center rounded-[22px]" style="width:64px;height:64px;">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5.5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9.5 16.5h5"/></svg>
         </div>
