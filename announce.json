@@ -1,17 +1,17 @@
 {
   "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。",
-  "id": 19,
-  "title": "v1.2.6 已发布",
-  "body": "页面切换、弹窗与列表都加上了过渡动画，操作更连贯。",
-  "notes": "页面切换按标签顺序左右滑动进出，返回时反向\n所有弹窗改为升起式入场，关闭时先收回再消失\n列表与卡片逐条错开淡入，最多错开 8 项\n修复课程弹窗面板残留的内联淡入，统一改用升起动画\n系统开启「减少动态效果」时自动关闭全部动画",
+  "id": 20,
+  "title": "v1.2.7 已发布",
+  "body": "新增「刷题」部件，导入题库后可在本机离线刷题。",
+  "notes": "新增刷题部件：题库导入后离线刷题\n支持 JSON、CSV/TSV 与纯文本题库，带解析预览\n五种模式：标准、速刷、背题、随机、测试\n单选、多选、判断、填空、简答即时判分并显示解析\n答题卡跳题、收藏与斩题、错题本重刷、分库进度统计\n题库与进度只存本机，退出后可继续上次进度",
   "button": "",
-  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.6/shiyongbujian-v1.2.6.apk",
+  "url": "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.7/shiyongbujian-v1.2.7.apk",
   "urls": [
-    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.6/shiyongbujian-v1.2.6.apk",
+    "https://gh-proxy.com/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.7/shiyongbujian-v1.2.7.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.6/shiyongbujian-v1.2.6.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.7/shiyongbujian-v1.2.7.apk"
   ],
-  "version": "1.2.6",
+  "version": "1.2.7",
   "minVersion": "",
   "force": false
 }
