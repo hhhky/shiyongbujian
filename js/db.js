@@ -1,5 +1,5 @@
 const DB_NAME = 'ReviewAppDB';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 // 统一的数据库结构升级逻辑（openDB / dbOp 共用）
 function upgradeSchema(db, oldVersion, tx) {
@@ -57,6 +57,24 @@ function upgradeSchema(db, oldVersion, tx) {
       if (!memos.indexNames.contains('courseId')) {
         memos.createIndex('courseId', 'courseId', { unique: false });
       }
+    }
+  }
+  // v6：刷题题库、题目、作答记录与标记
+  if (oldVersion < 6) {
+    if (!db.objectStoreNames.contains('shua_banks')) {
+      db.createObjectStore('shua_banks', { keyPath: 'id', autoIncrement: true });
+    }
+    if (!db.objectStoreNames.contains('shua_questions')) {
+      const sq = db.createObjectStore('shua_questions', { keyPath: 'id', autoIncrement: true });
+      sq.createIndex('bankId', 'bankId', { unique: false });
+    }
+    if (!db.objectStoreNames.contains('shua_records')) {
+      const sr = db.createObjectStore('shua_records', { keyPath: 'id', autoIncrement: true });
+      sr.createIndex('bankId', 'bankId', { unique: false });
+      sr.createIndex('qid', 'qid', { unique: false });
+    }
+    if (!db.objectStoreNames.contains('shua_flags')) {
+      db.createObjectStore('shua_flags', { keyPath: 'qid' });
     }
   }
 }

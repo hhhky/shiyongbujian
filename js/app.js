@@ -38,6 +38,7 @@ const WIDGET_ICONS = {
   note: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M6 3.5h7L17.5 8v12a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 20V5A1.5 1.5 0 0 1 6 3.5Z"/><path d="M13 3.5V8h4.5"/><path d="M8 12h6M8 15.5h4"/></svg>',
   brain: '<svg ' + WIDGET_ICON_ATTRS + '><path d="M9.5 3.5a3 3 0 0 0-3 3 2.6 2.6 0 0 0-1.4 4.6A2.9 2.9 0 0 0 6 15.6a3 3 0 0 0 3.5 2.9V3.5Z"/><path d="M14.5 3.5a3 3 0 0 1 3 3 2.6 2.6 0 0 1 1.4 4.6A2.9 2.9 0 0 1 18 15.6a3 3 0 0 1-3.5 2.9V3.5Z"/><path d="M12 6v11"/></svg>',
   calendar: '<svg ' + WIDGET_ICON_ATTRS + '><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M8 3v3M16 3v3M3 9.5h18"/><path d="M8 13h2M14 13h2M8 17h2M14 17h2"/></svg>',
+  quizzes: '<svg ' + WIDGET_ICON_ATTRS + '><rect x="3.5" y="5" width="12" height="15" rx="3"/><path d="M8 5V4a1.5 1.5 0 0 1 1.5-1.5H18A2.5 2.5 0 0 1 20.5 5v9.5A1.5 1.5 0 0 1 19 16h-1"/><path d="M7.5 10h4M7.5 13.5h2.5"/></svg>',
   robot: '<svg ' + WIDGET_ICON_ATTRS + '><rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 8V5.5"/><circle cx="12" cy="4" r="1"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M9.5 16.5h5"/></svg>'
 };
 const WIDGETS = [
@@ -56,6 +57,15 @@ const WIDGETS = [
       { id: 'timetable', name: '课程表', shortName: '课表', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
       { id: 'schedule-import', name: '导入课表', shortName: '导入', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>' },
       { id: 'schedule-settings', name: '课表设置', shortName: '设置', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>' }
+    ]
+  },
+  {
+    id: 'shua', name: '刷题', icon: WIDGET_ICONS.quizzes, desc: '导入题库，五种模式离线刷题', color: '#8b5cf6',
+    tabs: [
+      { id: 'shua-banks', name: '题库', shortName: '题库', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5.5A2.5 2.5 0 016.5 3H19v15H6.5A2.5 2.5 0 004 20.5V5.5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 18.5A2.5 2.5 0 016.5 16H19"/>' },
+      { id: 'shua-study', name: '刷题', shortName: '刷题', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>' },
+      { id: 'shua-wrong', name: '错题', shortName: '错题', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 21V4"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h11l-1.6 3.5L16 11H5"/>' },
+      { id: 'shua-stats', name: '统计', shortName: '统计', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20v-6M12 20v-9M17 20v-4"/>' }
     ]
   },
   {
@@ -154,6 +164,7 @@ function enterWidget(id) {
   if (id === 'mindmap') { currentWorkflowId = null; currentMindmapType = 'workflow'; backToWorkflowsList(true); }
   if (id === 'focus' && typeof initFocus === 'function') initFocus();
   if (id === 'schedule' && typeof initSchedule === 'function') initSchedule();
+  if (id === 'shua' && typeof initShua === 'function') initShua();
 }
 
 function goHome() {
@@ -202,7 +213,12 @@ function androidBackCloseOverlay() {
     ['workflow-modal', 'hideWorkflowModal'],
     ['focus-task-modal', 'hideFocusTaskModal'],
     ['focus-settings-modal', 'hideFocusSettings'],
-    ['focus-manual-modal', 'hideFocusManualModal']
+    ['focus-manual-modal', 'hideFocusManualModal'],
+    ['shua-rename-modal', 'shuaCancelRename'],
+    ['shua-bank-menu-modal', 'shuaCloseBankMenu'],
+    ['shua-import-modal', 'shuaCloseImport'],
+    ['shua-setup-modal', 'shuaCloseSetup'],
+    ['shua-sheet-modal', 'shuaCloseSheet']
   ];
   for (var i = 0; i < overlays.length; i++) {
     var el = document.getElementById(overlays[i][0]);
@@ -420,6 +436,14 @@ function updateThemeSelection() {
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.2.7': [
+    '新增「刷题」部件：导入题库后可在本机离线刷题',
+    '支持 JSON、CSV/TSV 与纯文本题库，带解析预览与题型统计',
+    '五种模式：标准、速刷、背题、随机、测试；可按状态、章节、题型筛选',
+    '单选、多选、判断、填空、简答均可作答，即时判分并显示答案解析',
+    '答题卡跳题、收藏与斩题、错题本单独重刷、分库进度统计',
+    '题库与作答记录存本机 IndexedDB，退出后可继续上次进度'
+  ],
   '1.2.6': [
     '页面切换加入过渡动画：按标签顺序左右滑动进出，返回时反向',
     '所有弹窗改为升起式入场，关闭时先收回再消失',
@@ -580,6 +604,8 @@ async function refreshAll() {
     if (scBadge) scBadge.textContent = scCount + ' 门课程';
     var scFoot = document.getElementById('sidebar-footer-text');
     if (scFoot) scFoot.textContent = scCount + ' 门课程';
+  } else if (currentWidget === 'shua') {
+    if (typeof initShua === 'function') await initShua();
   }
 }
 
@@ -658,6 +684,9 @@ function switchTab(tab) {
   } else if (currentWidget === 'schedule') {
     if (tab === 'timetable' && typeof renderTimetable === 'function') renderTimetable();
     if (tab === 'schedule-settings' && typeof renderScheduleSettingsPage === 'function') renderScheduleSettingsPage();
+  } else if (currentWidget === 'shua') {
+    if (tab !== 'shua-study' && typeof shuaPauseAutoNext === 'function') shuaPauseAutoNext();
+    if (typeof renderShua === 'function') renderShua(tab);
   }
 }
 

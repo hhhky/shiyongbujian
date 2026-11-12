@@ -1,4 +1,4 @@
-const CACHE = 'review-v28';
+const CACHE = 'review-v29';
 
 // Cache all local files on install
 self.addEventListener('install', e => {
@@ -20,6 +20,9 @@ self.addEventListener('install', e => {
         './js/db.js',
         './js/focus.js',
         './js/schedule.js',
+        './js/shua-core.js',
+        './js/shua-store.js',
+        './js/shua.js',
         './js/course-webview-hooks.js',
         './js/data-transfer.js',
         './js/announce.js',
