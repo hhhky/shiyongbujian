@@ -184,12 +184,27 @@ async function updateFileName(id, newName) {
 }
 
 // ── Memo operations ────────────────────────
-async function addMemo(title, content, deadline, autoDelete, courseId) {
+// 旧数据可能缺少 done / doneAt / startDate，读取时补默认值，不重排、不清空
+function normalizeMemo(m) {
+  if (!m) return m;
+  var created = typeof m.createdAt === 'number' ? m.createdAt : Date.now();
+  m.done = m.done === true;
+  m.doneAt = m.done ? (typeof m.doneAt === 'number' ? m.doneAt : (m.updatedAt || created)) : null;
+  m.startDate = (typeof m.startDate === 'number' && m.startDate > 0) ? m.startDate : created;
+  // 历史数据里可能存成 "false" / 0 / "0"，只有明确 true 才允许自动删除
+  m.autoDelete = m.autoDelete === true;
+  return m;
+}
+
+async function addMemo(title, content, deadline, autoDelete, courseId, startDate) {
   return dbOp('memos', 'readwrite', (s) => s.add({
     title: title,
     content: content,
     deadline: deadline || null,
-    autoDelete: !!autoDelete,
+    autoDelete: autoDelete === true,
+    done: false,
+    doneAt: null,
+    startDate: (typeof startDate === 'number' && startDate > 0) ? startDate : Date.now(),
     courseId: courseId || null,
     meta: {},
     createdAt: Date.now()
@@ -197,7 +212,8 @@ async function addMemo(title, content, deadline, autoDelete, courseId) {
 }
 
 async function getMemos() {
-  return dbOp('memos', 'readonly', (s) => s.getAll());
+  const list = await dbOp('memos', 'readonly', (s) => s.getAll());
+  return (list || []).map(normalizeMemo);
 }
 
 async function deleteMemo(id) {
@@ -218,9 +234,15 @@ async function updateMemo(id, updates) {
         if (updates.title !== undefined) memo.title = updates.title;
         if (updates.content !== undefined) memo.content = updates.content;
         if (updates.deadline !== undefined) memo.deadline = updates.deadline;
-        if (updates.autoDelete !== undefined) memo.autoDelete = updates.autoDelete;
+        if (updates.autoDelete !== undefined) memo.autoDelete = updates.autoDelete === true;
         if (updates.courseId !== undefined) memo.courseId = updates.courseId || null;
-        store.put(memo);
+        if (updates.startDate !== undefined) memo.startDate = updates.startDate || memo.createdAt;
+        if (updates.done !== undefined) {
+          memo.done = updates.done === true;
+          memo.doneAt = memo.done ? Date.now() : null;
+        }
+        if (updates.doneAt !== undefined) memo.doneAt = updates.doneAt || null;
+        store.put(normalizeMemo(memo));
       };
       getReq.onerror = function() { db.close(); reject(getReq.error); };
       tx.oncomplete = function() { db.close(); resolve(); };
@@ -433,5 +455,5 @@ async function deleteCourse(id) {
 
 async function getMemosByCourse(courseId) {
   const memos = await dbOp('memos', 'readonly', (s) => s.getAll());
-  return memos.filter((m) => m.courseId === courseId);
+  return (memos || []).map(normalizeMemo).filter((m) => m.courseId === courseId);
 }

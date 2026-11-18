@@ -123,7 +123,7 @@
     if (!banks.length) {
       box.innerHTML = '<div class="shua-card p-7 text-center">'
         + '<p class="font-semibold text-sm" style="color: var(--text-primary);">还没有题库</p>'
-        + '<p class="text-xs mt-1.5 mb-4 leading-relaxed" style="color: var(--text-tertiary);">支持 JSON、CSV 和纯文本题目，也可以粘贴其他设备导出的题库。</p>'
+        + '<p class="text-xs mt-1.5 mb-4 leading-relaxed" style="color: var(--text-tertiary);">支持 Excel（.xlsx / .xls）与 CSV 题库；PDF、Word 等格式需要先转换成表格。</p>'
         + '<button onclick="shuaOpenImport()" class="btn-shua w-full py-3 rounded-full text-sm font-semibold">导入题库</button>'
         + '</div>';
       var foot0 = el('shua-bank-foot');
@@ -150,7 +150,34 @@
   }
 
   // ── 导入题库 ──────────────────────────────
+  var IMPORT_PROMPT = '请把我上传的 PDF 题库整理成 CSV 表格，只输出表格内容，不要任何解释。\n'
+    + '要求：\n'
+    + '1. 第一行固定表头：题干,A,B,C,D,E,F,答案,解析,章节\n'
+    + '2. 每道题占一行，题干里不要带题号和选项\n'
+    + '3. 选项按 A、B、C… 分列，没有的列留空\n'
+    + '4. 答案只写字母，多选连写，如 AB\n'
+    + '5. 解析和章节没有就留空\n'
+    + '6. 用英文逗号分隔，字段里有逗号时用英文双引号包起来';
+
   function shuaOpenImport() {
+    el('shua-import-guide-modal').classList.remove('hidden');
+  }
+
+  function shuaCloseImportGuide() {
+    el('shua-import-guide-modal').classList.add('hidden');
+  }
+
+  function shuaCopyImportPrompt() {
+    copyText(IMPORT_PROMPT);
+    toast('提示词已复制');
+  }
+
+  function shuaGoImportPanel() {
+    shuaCloseImportGuide();
+    shuaOpenImportPanel();
+  }
+
+  function shuaOpenImportPanel() {
     S.parsed = null;
     el('shua-import-name').value = '';
     el('shua-import-text').value = '';
@@ -188,20 +215,56 @@
     el('shua-import-result').classList.add('hidden');
   }
 
-  function shuaChooseFile(input) {
+  function readTextFile(file) {
+    if (typeof file.text === 'function') return file.text();
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = function () { reject(reader.error); };
+      reader.readAsText(file, 'utf-8');
+    });
+  }
+
+  function rowsToCsv(rows) {
+    return rows.map(function (row) {
+      return (row || []).map(function (cell) {
+        var s = String(cell == null ? '' : cell);
+        return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }).join(',');
+    }).filter(function (line) {
+      return line.replace(/,/g, '').trim();
+    }).join('\n');
+  }
+
+  async function shuaChooseFile(input) {
     var file = input.files && input.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function () {
-      el('shua-import-text').value = String(reader.result || '');
-      el('shua-import-name').value = (file.name || '').replace(/\.[^.]+$/, '');
+    input.value = '';
+    var name = file.name || '';
+    try {
+      var text;
+      if (/\.(xlsx|xls)$/i.test(name)) {
+        if (typeof XLSX === 'undefined' && typeof loadScript === 'function') {
+          try { await loadScript('js/xlsx.full.min.js'); } catch (e) { /* 下面统一提示 */ }
+        }
+        if (typeof XLSX === 'undefined') { toast('表格解析组件未加载，请先把表格另存为 CSV'); return; }
+        var buf = await file.arrayBuffer();
+        var wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+        var sheet = wb.Sheets[wb.SheetNames[0]];
+        if (!sheet) { toast('表格里没有内容'); return; }
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+        text = rowsToCsv(rows);
+      } else {
+        text = await readTextFile(file);
+      }
+      el('shua-import-text').value = text;
+      el('shua-import-name').value = name.replace(/\.[^.]+$/, '');
       el('shua-import-preview').classList.add('hidden');
       el('shua-import-result').classList.add('hidden');
       shuaPreviewImport();
-    };
-    reader.onerror = function () { toast('读取文件失败'); };
-    reader.readAsText(file, 'utf-8');
-    input.value = '';
+    } catch (e) {
+      toast('读取文件失败');
+    }
   }
 
   function shuaDetectAndParse(text) {
@@ -1020,6 +1083,10 @@
   window.renderShuaStats = renderShuaStats;
   window.shuaPauseAutoNext = shuaPauseAutoNext;
   window.shuaOpenImport = shuaOpenImport;
+  window.shuaCloseImportGuide = shuaCloseImportGuide;
+  window.shuaCopyImportPrompt = shuaCopyImportPrompt;
+  window.shuaGoImportPanel = shuaGoImportPanel;
+  window.shuaOpenImportPanel = shuaOpenImportPanel;
   window.shuaCloseImport = shuaCloseImport;
   window.shuaFillSample = shuaFillSample;
   window.shuaChooseFile = shuaChooseFile;

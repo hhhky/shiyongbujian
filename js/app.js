@@ -79,9 +79,8 @@ const WIDGETS = [
   {
     id: 'memo', name: '备忘录', icon: WIDGET_ICONS.note, desc: '记录待办事项，查看日历', color: '#10b981',
     tabs: [
-      { id: 'memos', name: '备忘录', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' },
       { id: 'calendar', name: '日历', shortName: '日历', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>' },
-      { id: 'memo-data', name: '数据', shortName: '数据', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.657 3.582 3 8 3s8-1.343 8-3V7M4 7c0 1.657 3.582 3 8 3s8-1.343 8-3-3.582-3-8-3-8 1.343-8 3zm0 5c0 1.657 3.582 3 8 3s8-1.343 8-3"/>' }
+      { id: 'memos', name: '备忘', shortName: '备忘', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>' }
     ]
   },
   {
@@ -214,6 +213,7 @@ function androidBackCloseOverlay() {
     ['focus-task-modal', 'hideFocusTaskModal'],
     ['focus-settings-modal', 'hideFocusSettings'],
     ['focus-manual-modal', 'hideFocusManualModal'],
+    ['shua-import-guide-modal', 'shuaCloseImportGuide'],
     ['shua-rename-modal', 'shuaCancelRename'],
     ['shua-bank-menu-modal', 'shuaCloseBankMenu'],
     ['shua-import-modal', 'shuaCloseImport'],
@@ -401,7 +401,7 @@ function hideAiBetaModal() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('app-theme', theme);
-  var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e' };
+  var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e', warm: '#fdf7f0' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   // 系统栏（状态栏/导航栏）图标黑白与底色跟随主题
   if (typeof window.syncSystemBars === 'function') window.syncSystemBars(theme);
@@ -418,7 +418,7 @@ function applyTheme(theme) {
 
 function updateThemeSelection() {
   var current = document.documentElement.getAttribute('data-theme') || 'glass';
-  ['glass', 'white', 'dark'].forEach(function(t) {
+  ['glass', 'white', 'dark', 'warm'].forEach(function(t) {
     var opt = document.getElementById('theme-opt-' + t);
     if (opt) {
       var active = current === t;
@@ -429,13 +429,24 @@ function updateThemeSelection() {
   // 关于首页条目上显示当前主题
   var entry = document.getElementById('about-theme-entry');
   if (entry) {
-    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '暗黑 · 护眼深色' };
+    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '暗黑 · 护眼深色', warm: '暖色调 · 米杏暖光' };
     entry.textContent = names[current] || names.glass;
   }
 }
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.2.8': [
+    '刷题导入前增加说明与豆包提示词，支持直接读取 Excel（.xlsx/.xls）与 CSV',
+    '备忘新增完成勾选：未完成在前、已完成沉底，可切换「已完成淡显 / 隐藏」并记住设置',
+    '备忘按开始日期分组（今天 / 昨天 / 日期），点分组标题可收起展开',
+    '日历改为区间色条：开始到截止跨天显示，跨周自动分段、同周多条堆叠，点色条直接编辑',
+    '日历点某天新建默认是当天任务，备忘页新建默认无截止',
+    '修复未开启自动删除却显示「自动删除」、历史数据误删的问题',
+    '备忘改用深绿渐变主色，子导航调整为「日历 → 备忘」',
+    '所有弹窗统一米白底、黄渐变主按钮与新的升降动画',
+    '新增「暖色调」主题，首页、专注、课表、备忘、刷题等页面整体适配'
+  ],
   '1.2.7': [
     '新增「刷题」部件：导入题库后可在本机离线刷题',
     '支持 JSON、CSV/TSV 与纯文本题库，带解析预览与题型统计',
@@ -581,10 +592,12 @@ async function refreshAll() {
   } else if (currentWidget === 'memo') {
     await cleanupExpiredMemos();
     var memos = await getMemos();
+    var undone = memos.filter(function(m) { return !m.done; }).length;
     var badge = document.getElementById('header-badge');
-    if (badge) badge.textContent = memos.length + ' 条备忘';
+    if (badge) badge.textContent = undone + ' 条未完成';
     var sc = document.getElementById('sidebar-footer-text');
     if (sc) sc.textContent = memos.length + ' 条备忘';
+    if (typeof updateMemoDoneViewUI === 'function') updateMemoDoneViewUI();
     renderMemos();
     if (document.getElementById('page-calendar') && document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
   } else if (currentWidget === 'mindmap') {
@@ -1399,17 +1412,161 @@ async function populateMemoCourseOptions(selectedId) {
   if (sel.value !== String(selectedId || '')) sel.value = '';
 }
 
+// ── Memo helpers：完成态与日期分组 ──────────
+var MEMO_DONE_VIEW_KEY = 'memo-done-view';
+var memoDoneView = 'dim';
+try { memoDoneView = localStorage.getItem(MEMO_DONE_VIEW_KEY) === 'hide' ? 'hide' : 'dim'; } catch (e) { memoDoneView = 'dim'; }
+var memoCollapsedDays = {};
+var memoCreateDefaults = { onCalendar: false, startKey: '' };
+
+function memoDayKey(ts) {
+  var d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function memoTodayKey() { return memoDayKey(Date.now()); }
+
+function memoDayLabel(key) {
+  if (key === memoTodayKey()) return '今天';
+  if (key === memoDayKey(Date.now() - 86400000)) return '昨天';
+  var p = key.split('-');
+  return p[0] + '/' + p[1] + '/' + p[2];
+}
+
+function memoStartTs(m) {
+  return (typeof m.startDate === 'number' && m.startDate > 0) ? m.startDate : (m.createdAt || Date.now());
+}
+
+function memoEndTs(m) {
+  return m.deadline || memoStartTs(m);
+}
+
+function memoDayStart(key) {
+  var p = key.split('-');
+  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getTime();
+}
+
+function memoTimeValue(ts) {
+  var d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function setMemoDoneView(mode) {
+  memoDoneView = mode === 'hide' ? 'hide' : 'dim';
+  try { localStorage.setItem(MEMO_DONE_VIEW_KEY, memoDoneView); } catch (e) { /* ignore */ }
+  updateMemoDoneViewUI();
+  if (typeof currentWidget !== 'undefined' && currentWidget === 'memo') {
+    var activePage = document.querySelector('.page.active');
+    if (activePage && activePage.id === 'page-calendar') renderCalendar();
+    else renderMemos();
+  }
+}
+
+function updateMemoDoneViewUI() {
+  ['memo-done-dim', 'calendar-done-dim'].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    b.style.background = memoDoneView === 'dim' ? 'var(--memo-accent-soft)' : 'rgba(128,128,128,0.12)';
+    b.style.color = memoDoneView === 'dim' ? 'var(--memo-accent)' : 'var(--text-secondary)';
+  });
+  ['memo-done-hide', 'calendar-done-hide'].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    b.style.background = memoDoneView === 'hide' ? 'var(--memo-accent-soft)' : 'rgba(128,128,128,0.12)';
+    b.style.color = memoDoneView === 'hide' ? 'var(--memo-accent)' : 'var(--text-secondary)';
+  });
+}
+
+function toggleMemoGroup(key) {
+  memoCollapsedDays[key] = !memoCollapsedDays[key];
+  renderMemos();
+}
+
+function memoBarColor(m, now) {
+  if (m.done) return '#c7cbd4';
+  if (!m.deadline) return '#94a3b8';
+  if (now > m.deadline) return '#ef4444';
+  var days = Math.ceil((m.deadline - now) / 86400000);
+  if (days <= 1) return '#ef4444';
+  if (days <= 3) return '#fb923c';
+  return '#34d399';
+}
+
+function memoCardHtml(m) {
+  var info = getDaysInfo(m);
+  var preview = (m.content || '').substring(0, 80);
+  if ((m.content || '').length > 80) preview += '...';
+  var course = m.courseId ? (typeof courseById === 'function' ? courseById(m.courseId) : null) : null;
+  var courseTag = '';
+  if (m.courseId) {
+    courseTag = '<div class="mb-2"><button onclick="event.stopPropagation();jumpToCourse(' + m.courseId + ')" class="memo-course-tag">'
+      + '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
+      + '<span>' + esc(course ? course.name : '关联课程已删除') + '</span></button></div>';
+  }
+  var dateLabel = new Date(memoStartTs(m)).toLocaleDateString('zh-CN');
+  return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card' + (m.done ? ' is-done' : '') + '">'
+    + '<div class="flex items-start gap-2.5">'
+      + '<button onclick="event.stopPropagation();toggleMemoDone(' + m.id + ', ' + (m.done ? 'false' : 'true') + ')" class="memo-check' + (m.done ? ' on' : '') + '" title="' + (m.done ? '标记为未完成' : '标记为完成') + '">'
+        + '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>'
+      + '</button>'
+      + '<div class="flex-1 min-w-0">'
+        + '<div class="flex items-start justify-between mb-1">'
+          + '<h4 class="memo-title font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(m.title) + '</h4>'
+          + '<div class="flex gap-0.5 shrink-0 ml-2">'
+            + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
+            + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="icon-btn-del" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
+          + '</div>'
+        + '</div>'
+        + (preview ? '<p class="text-xs mb-2" style="color: var(--card-subtext);">' + esc(preview) + '</p>' : '')
+        + courseTag
+        + '<div class="flex items-center justify-between gap-2 text-xs">'
+          + (m.done
+              ? '<span class="memo-done-tag">已完成</span>'
+              : '<span style="color: var(--card-subtext);">' + dateLabel + (m.autoDelete ? '，自动删除' : '') + '</span>')
+          + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
+        + '</div>'
+      + '</div>'
+    + '</div>'
+  + '</div>';
+}
+
+async function toggleMemoDone(id, done) {
+  await updateMemo(id, { done: done === true });
+  if (done === true && memoDoneView === 'hide') toast('已完成，已按设置隐藏');
+  await renderMemos();
+  var activePage = document.querySelector('.page.active');
+  if (activePage && activePage.id === 'page-calendar') renderCalendar();
+  var memos = await getMemos();
+  var badge = document.getElementById('header-badge');
+  if (badge) badge.textContent = memos.filter(function(m) { return !m.done; }).length + ' 条未完成';
+}
+
 function showAddMemo(courseId) {
   editingMemoId = null;
+  var onCalendar = !!document.querySelector('#page-calendar.active');
+  var startKey = (onCalendar && selectedDateStr) ? selectedDateStr : memoTodayKey();
+  memoCreateDefaults = { onCalendar: onCalendar, startKey: startKey };
   document.getElementById('memo-modal-title').textContent = '新建备忘录';
   document.getElementById('memo-confirm-btn').textContent = '确认创建';
   document.getElementById('memo-title-input').value = '';
   document.getElementById('memo-content-input').value = '';
-  document.getElementById('memo-deadline-input').value = '';
+  document.getElementById('memo-start-input').value = startKey;
+  // 日历页新建默认是当天任务：开始与截止都是选中的那一天
+  document.getElementById('memo-deadline-input').value = onCalendar ? startKey + 'T23:59' : '';
   document.getElementById('memo-autodelete-check').checked = false;
   populateMemoCourseOptions(courseId || '');
   document.getElementById('memo-modal').classList.remove('hidden');
   document.getElementById('memo-title-input').focus();
+}
+
+// 日历页默认截止就是开始当天 23:59；改了开始日期时同步过去，用户改截止则不跟随
+function memoStartChanged(value) {
+  if (!value) return;
+  var deadlineEl = document.getElementById('memo-deadline-input');
+  if (memoCreateDefaults.onCalendar && deadlineEl && deadlineEl.value === memoCreateDefaults.startKey + 'T23:59') {
+    deadlineEl.value = value + 'T23:59';
+    memoCreateDefaults.startKey = value;
+  }
 }
 
 function showEditMemo(id) {
@@ -1422,9 +1579,9 @@ function showEditMemo(id) {
     document.getElementById('memo-title-input').value = m.title;
     document.getElementById('memo-content-input').value = m.content || '';
     populateMemoCourseOptions(m.courseId || '');
+    document.getElementById('memo-start-input').value = memoDayKey(memoStartTs(m));
     if (m.deadline) {
-      var d = new Date(m.deadline);
-      document.getElementById('memo-deadline-input').value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + 'T' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      document.getElementById('memo-deadline-input').value = memoTimeValue(m.deadline);
     } else {
       document.getElementById('memo-deadline-input').value = '';
     }
@@ -1445,15 +1602,18 @@ async function confirmMemo() {
   var content = document.getElementById('memo-content-input').value.trim();
   var deadlineVal = document.getElementById('memo-deadline-input').value;
   var deadline = deadlineVal ? new Date(deadlineVal).getTime() : null;
+  var startVal = document.getElementById('memo-start-input').value;
+  var startDate = startVal ? new Date(startVal + 'T00:00:00').getTime() : Date.now();
+  if (deadline && deadline < startDate) deadline = startDate;
   var autoDelete = document.getElementById('memo-autodelete-check').checked;
   var courseIdVal = document.getElementById('memo-course-input').value;
   var courseId = courseIdVal ? Number(courseIdVal) : null;
 
   if (editingMemoId) {
-    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete, courseId: courseId });
+    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete, courseId: courseId, startDate: startDate });
     toast('备忘录已更新');
   } else {
-    await addMemo(title, content, deadline, autoDelete, courseId);
+    await addMemo(title, content, deadline, autoDelete, courseId, startDate);
     toast('备忘录已创建');
   }
   hideMemoModal();
@@ -1474,7 +1634,8 @@ async function cleanupExpiredMemos() {
     var now = Date.now();
     var GRACE = 7 * 24 * 60 * 60 * 1000;
     for (var i = 0; i < memos.length; i++) {
-      if (memos[i].autoDelete && memos[i].deadline && (memos[i].deadline + GRACE) < now) {
+      // 只有明确开启自动删除的事项才允许删除；历史数据里的 "false"、0 不算
+      if (memos[i].autoDelete === true && memos[i].deadline && (memos[i].deadline + GRACE) < now) {
         await deleteMemo(memos[i].id);
       }
     }
@@ -1482,18 +1643,29 @@ async function cleanupExpiredMemos() {
 }
 
 function getDaysInfo(memo) {
-  if (!memo.deadline) return { label: '无截止日期', color: '#9ca3af', urgent: false };
+  if (memo.done) return { label: '已完成', color: '#94a3b8', urgent: false };
+  if (!memo.deadline) return { label: '无截止日期', color: '#94a3b8', urgent: false };
   var now = Date.now();
   var deadline = memo.deadline;
-  var deletionTime = deadline + 7 * 24 * 60 * 60 * 1000;
-  var msRemaining = deletionTime - now;
-  if (msRemaining <= 0) return { label: '即将删除...', color: '#ef4444', urgent: true };
-  var days = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
-  if (now > deadline) return { label: '已过期，' + days + '天后自动删除', color: '#f97316', urgent: true };
-  var daysToDeadline = Math.ceil((deadline - now) / (24 * 60 * 60 * 1000));
-  if (daysToDeadline <= 1) return { label: '即将到期，' + days + '天后删除', color: '#e11d48', urgent: true };
-  if (daysToDeadline <= 3) return { label: daysToDeadline + '天后到期，' + days + '天后删除', color: '#f97316', urgent: false };
-  return { label: daysToDeadline + '天后到期', color: '#6b7280', urgent: false };
+  var auto = memo.autoDelete === true;
+  var GRACE = 7 * 24 * 60 * 60 * 1000;
+  if (now > deadline) {
+    var overDays = Math.max(1, Math.ceil((now - deadline) / 86400000));
+    if (auto) {
+      var left = Math.ceil((deadline + GRACE - now) / 86400000);
+      if (left <= 0) return { label: '即将删除...', color: '#ef4444', urgent: true };
+      return { label: '已过期 ' + overDays + ' 天，' + left + ' 天后自动删除', color: '#ef4444', urgent: true };
+    }
+    return { label: '已过期 ' + overDays + ' 天', color: '#ef4444', urgent: true };
+  }
+  var daysToDeadline = Math.ceil((deadline - now) / 86400000);
+  if (daysToDeadline <= 1) {
+    return { label: '即将到期' + (auto ? '，到期 7 天后自动删除' : ''), color: '#ef4444', urgent: true };
+  }
+  if (daysToDeadline <= 3) {
+    return { label: daysToDeadline + ' 天后到期' + (auto ? '，到期 7 天后自动删除' : ''), color: '#fb923c', urgent: false };
+  }
+  return { label: daysToDeadline + ' 天后到期' + (auto ? '，到期 7 天后自动删除' : ''), color: '#6b7280', urgent: false };
 }
 
 function setMemoFilter(mode) {
@@ -1501,12 +1673,12 @@ function setMemoFilter(mode) {
   var all = document.getElementById('memo-filter-all');
   var linked = document.getElementById('memo-filter-linked');
   if (all) {
-    all.style.background = memoFilter === 'all' ? 'rgba(128,128,128,0.12)' : 'transparent';
-    all.style.color = memoFilter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)';
+    all.style.background = memoFilter === 'all' ? 'var(--memo-accent-soft)' : 'transparent';
+    all.style.color = memoFilter === 'all' ? 'var(--memo-accent)' : 'var(--text-secondary)';
   }
   if (linked) {
-    linked.style.background = memoFilter === 'linked' ? 'rgba(128,128,128,0.12)' : 'transparent';
-    linked.style.color = memoFilter === 'linked' ? 'var(--text-primary)' : 'var(--text-secondary)';
+    linked.style.background = memoFilter === 'linked' ? 'var(--memo-accent-soft)' : 'transparent';
+    linked.style.color = memoFilter === 'linked' ? 'var(--memo-accent)' : 'var(--text-secondary)';
   }
   renderMemos();
 }
@@ -1517,160 +1689,154 @@ async function renderMemos() {
   if (typeof scheduleCourses !== 'undefined' && !scheduleCourses.length) {
     try { scheduleCourses = await getCourses(); } catch (e) { /* ignore */ }
   }
+  updateMemoDoneViewUI();
+  // 已完成：淡显保留在列表里，隐藏则整条剔除
+  if (memoDoneView === 'hide') memos = memos.filter(function(m) { return !m.done; });
   if (memoFilter === 'linked') memos = memos.filter(function(m) { return !!m.courseId; });
   var container = document.getElementById('memos-list');
+  if (!container) return;
   if (memos.length === 0) {
-    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm col-span-full">'
+    container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">'
       + (memoFilter === 'linked' ? '还没有关联课程的备忘录，新建时可以选择课程' : '还没有备忘录，点击上方按钮创建')
       + '</div>';
     return;
   }
-  container.innerHTML = memos.sort(function(a,b){ return b.createdAt - a.createdAt; }).map(function(m) {
-    var info = getDaysInfo(m);
-    var preview = (m.content || '').substring(0, 80);
-    if ((m.content || '').length > 80) preview += '...';
-    var course = m.courseId ? (typeof courseById === 'function' ? courseById(m.courseId) : null) : null;
-    var courseTag = '';
-    if (m.courseId) {
-      courseTag = '<div class="mb-2"><button onclick="event.stopPropagation();jumpToCourse(' + m.courseId + ')" class="memo-course-tag">'
-        + '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>'
-        + '<span>' + esc(course ? course.name : '关联课程已删除') + '</span></button></div>';
-    }
-    return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card">'
-      + '<div class="flex items-start justify-between mb-2">'
-        + '<h4 class="font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(m.title) + '</h4>'
-        + '<div class="flex gap-0.5 shrink-0 ml-2">'
-          + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
-          + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="icon-btn-del" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
-        + '</div>'
-      + '</div>'
-      + (preview ? '<p class="text-xs mb-2" style="color: var(--card-subtext);">' + esc(preview) + '</p>' : '')
-      + courseTag
-      + '<div class="flex items-center justify-between text-xs">'
-        + '<span style="color: var(--card-subtext);">' + new Date(m.createdAt).toLocaleDateString('zh-CN') + (m.autoDelete ? '，自动删除' : '') + '</span>'
-        + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
-      + '</div>'
-    + '</div>';
+  // 按开始日期分组，组内未完成在前、已完成沉底
+  var groups = {};
+  var order = [];
+  memos.forEach(function(m) {
+    var key = memoDayKey(memoStartTs(m));
+    if (!groups[key]) { groups[key] = []; order.push(key); }
+    groups[key].push(m);
+  });
+  order.sort(function(a, b) { return a < b ? 1 : -1; });
+  container.innerHTML = order.map(function(key) {
+    var list = groups[key].slice().sort(function(a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return memoStartTs(b) - memoStartTs(a);
+    });
+    var collapsed = !!memoCollapsedDays[key];
+    return '<div class="memo-group' + (collapsed ? ' collapsed' : '') + '">'
+      + '<button class="memo-group-head" onclick="toggleMemoGroup(\'' + key + '\')">'
+        + '<svg class="memo-arrow w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 9l6 6 6-6"/></svg>'
+        + '<span>' + memoDayLabel(key) + '</span>'
+        + '<span class="memo-group-count">' + list.length + ' 条</span>'
+      + '</button>'
+      + '<div class="memo-group-body space-y-2 mt-1">' + list.map(memoCardHtml).join('') + '</div>'
+      + '</div>';
   }).join('');
 }
 
 // ── Calendar ────────────────────────────────
-function getMemosByDate(memos) {
-  var map = {};
-  memos.forEach(function(m) {
-    if (!m.deadline) return;
-    var d = new Date(m.deadline);
-    var key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    if (!map[key]) map[key] = [];
-    map[key].push(m);
-  });
-  return map;
-}
-
-function getDateUrgency(memos) {
-  var now = Date.now();
-  var maxUrgency = 0; // 0=green, 1=orange, 2=red
-  memos.forEach(function(m) {
-    var info = getDaysInfo(m);
-    if (info.urgent && info.color === '#ef4444') maxUrgency = Math.max(maxUrgency, 2);
-    else if (info.urgent || info.color === '#f97316') maxUrgency = Math.max(maxUrgency, 1);
-  });
-  return ['#34d399', '#fb923c', '#ef4444'][maxUrgency];
-}
-
 async function renderCalendar() {
-  var memos = await getMemos();
-  var memosByDate = getMemosByDate(memos);
+  var allMemos = await getMemos();
+  updateMemoDoneViewUI();
+  var memos = memoDoneView === 'hide' ? allMemos.filter(function(m) { return !m.done; }) : allMemos;
   var year = calendarYear || new Date().getFullYear();
   var month = calendarMonth !== null ? calendarMonth : new Date().getMonth();
 
-  // Update label
   document.getElementById('calendar-month-label').textContent = year + '年 ' + (month + 1) + '月';
 
-  // First day of month (0=Sun), days in month
   var firstDay = new Date(year, month, 1).getDay();
   var daysInMonth = new Date(year, month + 1, 0).getDate();
-  var prevMonthDays = new Date(year, month, 0).getDate();
-
-  var today = new Date();
-  var todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  var totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+  if (totalCells < 35) totalCells = 35;
+  var weekCount = totalCells / 7;
+  var todayKey = memoTodayKey();
+  var now = Date.now();
 
   var grid = document.getElementById('calendar-grid');
-  var cells = [];
+  var html = '';
 
-  // Previous month padding
-  for (var i = firstDay - 1; i >= 0; i--) {
-    var d = prevMonthDays - i;
-    cells.push('<div class="cal-day other-month"><span>' + d + '</span></div>');
-  }
-
-  // Current month days
-  for (var d = 1; d <= daysInMonth; d++) {
-    var dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    var dayMemos = memosByDate[dateStr] || [];
-    var isToday = dateStr === todayStr;
-    var isSelected = dateStr === selectedDateStr;
-
-    var cls = 'cal-day';
-    if (isToday) cls += ' today';
-    if (isSelected) cls += ' selected';
-
-    var dotsHtml = '';
-    if (dayMemos.length > 0) {
-      var urgency = getDateUrgency(dayMemos);
-      dotsHtml = '<span class="cal-dot" style="background:' + urgency + '; box-shadow: 0 0 4px ' + urgency + ';"></span>';
+  for (var w = 0; w < weekCount; w++) {
+    var days = [];
+    for (var i = 0; i < 7; i++) {
+      days.push(new Date(year, month, 1 - firstDay + w * 7 + i));
     }
+    var weekStartTs = memoDayStart(memoDayKey(days[0].getTime()));
+    var weekEndTs = memoDayStart(memoDayKey(days[6].getTime()));
 
-    cells.push('<div class="' + cls + '" onclick="selectDate(\'' + dateStr + '\')"><span>' + d + '</span>' + (dotsHtml ? '<div class="cal-day-legend">' + dotsHtml + '</div>' : '') + '</div>');
+    // 找出本周内的所有事项区间，跨周的按周切成段
+    var segs = [];
+    memos.forEach(function(m) {
+      var s = memoDayStart(memoDayKey(memoStartTs(m)));
+      var e = memoDayStart(memoDayKey(memoEndTs(m)));
+      if (e < s) e = s;
+      if (e < weekStartTs || s > weekEndTs) return;
+      var from = Math.round((Math.max(s, weekStartTs) - weekStartTs) / 86400000);
+      var to = Math.round((Math.min(e, weekEndTs) - weekStartTs) / 86400000);
+      segs.push({ m: m, from: from, to: to, contStart: s < weekStartTs, contEnd: e > weekEndTs });
+    });
+    segs.sort(function(a, b) { return a.from - b.from || (b.to - b.from) - (a.to - a.from); });
+
+    // 同周内自动换行堆叠：每条占一个未被占用的泳道
+    var lanes = [];
+    segs.forEach(function(seg) {
+      var lane = 0;
+      while (lane < lanes.length && lanes[lane].some(function(x) { return !(seg.to < x.from || seg.from > x.to); })) lane++;
+      if (!lanes[lane]) lanes[lane] = [];
+      lanes[lane].push(seg);
+      seg.lane = lane;
+    });
+    var laneCount = Math.max(1, lanes.length);
+
+    html += '<div class="cal-week">';
+    html += '<div class="cal-week-days">';
+    days.forEach(function(d) {
+      var key = memoDayKey(d.getTime());
+      var inMonth = d.getMonth() === month;
+      var cls = 'cal-day-num' + (inMonth ? '' : ' other') + (key === todayKey ? ' today' : '') + (key === selectedDateStr ? ' selected' : '');
+      html += '<div class="' + cls + '"' + (inMonth ? ' onclick="selectDate(\'' + key + '\')"' : '') + '>' + d.getDate() + '</div>';
+    });
+    html += '</div>';
+
+    html += '<div class="cal-week-lanes" style="grid-template-rows: repeat(' + laneCount + ', 15px)">';
+    for (var r = 0; r < laneCount; r++) {
+      for (var c = 0; c < 7; c++) {
+        var cellKey = memoDayKey(days[c].getTime());
+        var clickable = days[c].getMonth() === month;
+        html += '<div class="cal-lane-bg" style="grid-row:' + (r + 1) + ';grid-column:' + (c + 1) + '"'
+          + (clickable ? ' onclick="selectDate(\'' + cellKey + '\')"' : '') + '></div>';
+      }
+    }
+    segs.forEach(function(seg) {
+      var color = memoBarColor(seg.m, now);
+      var cls = 'cal-bar' + (seg.m.done ? ' is-done' : '')
+        + (seg.contStart ? ' is-cont-start' : '') + (seg.contEnd ? ' is-cont-end' : '');
+      html += '<button class="' + cls + '" style="grid-row:' + (seg.lane + 1)
+        + ';grid-column:' + (seg.from + 1) + ' / span ' + (seg.to - seg.from + 1) + ';background:' + color + '"'
+        + ' onclick="event.stopPropagation();showEditMemo(' + seg.m.id + ')" title="' + esc(seg.m.title) + '">'
+        + esc(seg.m.title) + '</button>';
+    });
+    html += '</div></div>';
   }
+  grid.innerHTML = html;
 
-  // Fill remaining cells to complete 6 rows
-  var totalCells = firstDay + daysInMonth;
-  var remaining = totalCells % 7 === 0 ? 0 : 7 - totalCells % 7;
-  // Ensure at least 6 rows
-  if (firstDay + daysInMonth + remaining < 42) remaining += 7;
-  for (var d = 1; d <= remaining; d++) {
-    cells.push('<div class="cal-day other-month"><span>' + d + '</span></div>');
-  }
-
-  grid.innerHTML = cells.join('');
-
-  // Render selected date memos
+  // 选中某天：列出当天覆盖的所有事项（含跨天区间）
   var memoContainer = document.getElementById('calendar-memos');
-  if (selectedDateStr && memosByDate[selectedDateStr]) {
-    var dayMemos = memosByDate[selectedDateStr];
-    memoContainer.innerHTML = '<div class="flex items-center gap-2 mb-3"><h3 class="font-semibold text-sm" style="color: var(--text-primary);">' + selectedDateStr + ' (' + dayMemos.length + ' 条备忘)</h3></div>'
-      + dayMemos.sort(function(a,b){ return b.createdAt - a.createdAt; }).map(function(m) {
-        var info = getDaysInfo(m);
-        var preview = (m.content || '').substring(0, 80);
-        if ((m.content || '').length > 80) preview += '...';
-        return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card mb-2">'
-          + '<div class="flex items-start justify-between mb-2">'
-            + '<h4 class="font-semibold text-sm flex-1 min-w-0" style="color: var(--card-text);">' + esc(m.title) + '</h4>'
-            + '<div class="flex gap-0.5 shrink-0 ml-2">'
-              + '<button onclick="event.stopPropagation();showEditMemo(' + m.id + ')" class="icon-btn-edit" title="编辑"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>'
-              + '<button onclick="event.stopPropagation();deleteMemoById(' + m.id + ')" class="icon-btn-del" title="删除"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>'
-            + '</div>'
-          + '</div>'
-          + (preview ? '<p class="text-xs mb-2" style="color: var(--card-subtext);">' + esc(preview) + '</p>' : '')
-          + '<div class="flex items-center justify-between text-xs">'
-            + '<span style="color: var(--card-subtext);">' + (m.autoDelete ? '自动删除' : '手动删除') + '</span>'
-            + '<span class="font-medium" style="color:' + info.color + '">' + info.label + '</span>'
-          + '</div>'
-        + '</div>';
-      }).join('');
-  } else if (selectedDateStr) {
-    memoContainer.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm">当天无待办事项</div>';
+  if (selectedDateStr) {
+    var selTs = memoDayStart(selectedDateStr);
+    var dayMemos = memos.filter(function(m) {
+      var s = memoDayStart(memoDayKey(memoStartTs(m)));
+      var e = memoDayStart(memoDayKey(memoEndTs(m)));
+      return selTs >= s && selTs <= e;
+    }).sort(function(a, b) {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return memoStartTs(a) - memoStartTs(b);
+    });
+    if (dayMemos.length) {
+      memoContainer.innerHTML = '<div class="flex items-center gap-2 mb-3"><h3 class="font-semibold text-sm" style="color: var(--text-primary);">'
+        + memoDayLabel(selectedDateStr) + '（' + dayMemos.length + ' 条）</h3></div>'
+        + '<div class="space-y-2">' + dayMemos.map(memoCardHtml).join('') + '</div>';
+    } else {
+      memoContainer.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm">当天没有事项</div>';
+    }
   } else {
     memoContainer.innerHTML = '';
   }
 
-  // Update badge
   var badge = document.getElementById('header-badge');
-  if (badge) {
-    var totalDue = Object.keys(memosByDate).length;
-    badge.textContent = totalDue + ' 天有截止';
-  }
+  if (badge) badge.textContent = memos.filter(function(m) { return !m.done; }).length + ' 条未完成';
 }
 
 function navigateMonth(delta) {

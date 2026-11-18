@@ -103,6 +103,13 @@
       --shua-gradient: linear-gradient(135deg, #a78bfa, #8b5cf6 55%, #7c3aed);
       --shua-gradient-hover: linear-gradient(135deg, #8b5cf6, #7c3aed 55%, #6d28d9);
       --shua-glow: rgba(139,92,246,0.55);
+      /* 备忘部件的强调色：深绿 */
+      --memo-accent: #047857;
+      --memo-accent-soft: rgba(16,185,129,0.14);
+      --memo-accent-line: rgba(16,185,129,0.45);
+      --memo-gradient: linear-gradient(135deg, #6ee7b7 0%, #10b981 52%, #047857 100%);
+      --memo-gradient-hover: linear-gradient(135deg, #34d399 0%, #059669 52%, #065f46 100%);
+      --memo-glow: rgba(16,185,129,0.55);
     }
 
     /* 玻璃主题底色：只保留中性的明暗层次，不铺彩色，玻璃的透来自卡片本身 */
@@ -262,10 +269,69 @@
       --sched-gradient-hover: linear-gradient(135deg, #0e7490, #1d4ed8 58%, #4338ca);
       --shua-accent: #c4b5fd;
       --shua-accent-soft: rgba(167,139,250,0.16);
-      --shua-accent-line: rgba(167,139,250,0.45);
-      --shua-gradient: linear-gradient(135deg, #7c3aed, #6d28d9 60%, #5b21b6);
+      --shua-accent-line: rgba(167,139,250,0.45);      --shua-gradient: linear-gradient(135deg, #7c3aed, #6d28d9 60%, #5b21b6);
       --shua-gradient-hover: linear-gradient(135deg, #6d28d9, #5b21b6);
       --shua-glow: rgba(124,58,237,0.45);
+      --memo-accent: #6ee7b7;
+      --memo-accent-soft: rgba(110,231,183,0.16);
+      --memo-accent-line: rgba(110,231,183,0.42);
+      --memo-gradient: linear-gradient(135deg, #059669, #047857 60%, #065f46);
+      --memo-gradient-hover: linear-gradient(135deg, #047857, #065f46);
+      --memo-glow: rgba(5,150,105,0.45);
+    }
+
+    /* ====== Theme: Warm —— 米杏暖光 ====== */
+    [data-theme="warm"] {
+      --bg-body: #fdf7f0;
+      --header-bg: linear-gradient(180deg, rgba(253,247,240,0.94) 0%, rgba(247,238,226,0.84) 100%);
+      --header-text: #3f342a;
+      --header-badge-bg: rgba(160,120,80,0.12);
+      --header-badge-text: #8a7663;
+      --header-border: 0.5px solid rgba(214,190,164,0.42);
+      --sidebar-bg: rgba(253,247,240,0.92);
+      --sidebar-border: 0.5px solid rgba(214,190,164,0.45);
+      --sidebar-active-bg: rgba(160,120,80,0.14);
+      --sidebar-active-text: #3f342a;
+      --sidebar-footer-border: 0.5px solid rgba(214,190,164,0.4);
+      --nav-bg: rgba(253,247,240,0.94);
+      --nav-shadow: 0 2px 16px rgba(140,105,70,0.16), 0 0 0 0.5px rgba(214,190,164,0.5);
+      --nav-active-color: #3f342a;
+      --title-color: #3f342a;
+      --btn-bg: #3f342a;
+      --btn-hover-bg: #2f261f;
+      --btn-hover-shadow: 0 4px 16px rgba(120,90,60,0.2);
+      --toast-bg: rgba(63,52,42,0.92);
+      --toast-shadow: 0 10px 32px rgba(120,90,60,0.28);
+      --toast-border: 0.5px solid rgba(255,255,255,0.28);
+      --scrollbar-thumb: rgba(160,120,80,0.24);
+      --scrollbar-thumb-hover: rgba(160,120,80,0.36);
+      --card-bg: linear-gradient(150deg, rgba(255,253,250,0.88) 0%, rgba(255,247,238,0.66) 100%);
+      --card-border: 0.5px solid rgba(255,255,255,0.78);
+      --card-backdrop: blur(18px) saturate(1.25);
+      --card-box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(120,90,60,0.05), 0 10px 30px -12px rgba(140,105,70,0.22);
+      --card-text: #3f342a;
+      --card-subtext: #9c8b79;
+      --card-hover-shadow: inset 0 1px 0 rgba(255,255,255,0.95), 0 6px 18px -8px rgba(140,105,70,0.28);
+      --text-primary: #3f342a;
+      --text-secondary: #9c8b79;
+      --text-tertiary: #b3a08d;
+      --panel-bg: #fffaf4;
+      --header-glow-display: none;
+      --header-anim: none;
+      --header-bg-size: auto;
+      --header-shadow: 0 1px 2px rgba(140,105,70,0.08);
+      --glass-highlight: inset 0 1px 0 rgba(255,255,255,0.9);
+    }
+    [data-theme="warm"] { background: #fdf7f0; }
+    [data-theme="warm"] .tt-cell { background: rgba(160, 120, 80, 0.07); }
+    [data-theme="warm"] .cal-day.today { background: rgba(160, 120, 80, 0.12); }
+    [data-theme="warm"] body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background: linear-gradient(180deg, #fdf7f0 0%, #f7eee2 55%, #faf3ea 100%);
     }
 
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
@@ -308,26 +374,67 @@
       to { opacity: 1; transform: translate3d(0, 0, 0); }
     }
 
-    /* 弹层：背景淡入 + 面板升起，关闭时反向收回 */
+    /* 弹层：遮罩淡入；居中弹窗上浮缩放；底部弹层自下升起 */
     .modal-sheet:not(.hidden),
-    #schedule-clear-modal:not(.hidden) { animation: overlay-in var(--motion-fast) ease both; }
+    #schedule-clear-modal:not(.hidden) { animation: overlay-in 180ms ease both; }
     .modal-sheet:not(.hidden) > div,
-    #schedule-clear-modal:not(.hidden) > div { animation: sheet-rise-in var(--motion-base) var(--motion-ease) both; }
+    #schedule-clear-modal:not(.hidden) > div { animation: modal-pop-in 240ms cubic-bezier(.22, .9, .3, 1.05) both; }
+    @media (max-width: 767px) {
+      .modal-sheet:not(.hidden) > div { animation: sheet-rise-in 260ms cubic-bezier(.22, .9, .3, 1.05) both; }
+    }
     .modal-sheet.is-closing,
     #schedule-clear-modal.is-closing { animation: overlay-out 150ms ease both; }
     .modal-sheet.is-closing > div,
     #schedule-clear-modal.is-closing > div { animation: sheet-rise-out 160ms cubic-bezier(.4, 0, .7, 1) both; }
-    #preview-overlay:not(.hidden) { animation: overlay-in var(--motion-fast) ease both; }
+    #preview-overlay:not(.hidden) { animation: overlay-in 180ms ease both; }
     @keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
     @keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes modal-pop-in {
+      from { opacity: 0; transform: translateY(14px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
     @keyframes sheet-rise-in {
-      from { opacity: 0; transform: translate3d(0, 26px, 0); }
+      from { opacity: 0; transform: translate3d(0, 32px, 0); }
       to { opacity: 1; transform: translate3d(0, 0, 0); }
     }
     @keyframes sheet-rise-out {
       from { opacity: 1; transform: translate3d(0, 0, 0); }
       to { opacity: 0; transform: translate3d(0, 22px, 0); }
     }
+
+    /* ── 弹窗统一外观 ───────────────────── */
+    :root {
+      --modal-primary: linear-gradient(135deg, #ffd666 0%, #f5b301 55%, #d99a00 100%);
+      --modal-primary-text: #4a3200;
+      --modal-primary-shadow: 0 10px 24px -12px rgba(217, 154, 0, 0.7);
+    }
+    .modal-sheet,
+    #schedule-clear-modal {
+      background: rgba(28, 24, 16, 0.44) !important;
+      backdrop-filter: blur(3px) !important;
+      -webkit-backdrop-filter: blur(3px) !important;
+    }
+    html:not([data-theme="dark"]) .modal-sheet > div,
+    html:not([data-theme="dark"]) #schedule-clear-modal > div {
+      background: #fffdf7 !important;
+      border-radius: 18px !important;
+    }
+    .modal-sheet .btn-gradient,
+    .modal-sheet .btn-shua,
+    .modal-sheet .btn-schedule,
+    .modal-sheet .btn-memo,
+    #schedule-clear-modal .btn-gradient {
+      background: var(--modal-primary) !important;
+      color: var(--modal-primary-text) !important;
+      box-shadow: var(--modal-primary-shadow) !important;
+    }
+    html:not([data-theme="dark"]) .modal-sheet input:not([type="checkbox"]):not([type="radio"]),
+    html:not([data-theme="dark"]) .modal-sheet textarea,
+    html:not([data-theme="dark"]) .modal-sheet select {
+      background: #fff9eb !important;
+      border-color: rgba(214, 190, 164, 0.5) !important;
+    }
+    .modal-sheet h3 { font-weight: 700 !important; letter-spacing: 0.2px; }
 
     @media (prefers-reduced-motion: reduce) {
       .page.page-in-forward, .page.page-in-back,
@@ -676,6 +783,104 @@
     .cal-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
     .memo-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
     .memo-card:hover { border-left-color: rgba(0,0,0,0.2); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+
+    /* ── 备忘：完成态 / 分组 / 深绿按钮 ───── */
+    .btn-memo {
+      background: var(--memo-gradient);
+      color: #05372a;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 18px -10px var(--memo-glow);
+    }
+    .btn-memo:hover {
+      background: var(--memo-gradient-hover);
+      box-shadow: 0 8px 22px -10px var(--memo-glow);
+      transform: translateY(-1px);
+    }
+    .btn-memo:active { animation: jelly 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    [data-theme="dark"] .btn-memo { color: #04352a; }
+    .memo-group-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      text-align: left;
+      padding: 2px 4px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .memo-group-count { font-weight: 500; color: var(--text-tertiary); margin-left: 2px; }
+    .memo-arrow { transition: transform 0.2s ease; flex-shrink: 0; color: var(--text-tertiary); }
+    .memo-group.collapsed .memo-arrow { transform: rotate(-90deg); }
+    .memo-group.collapsed .memo-group-body { display: none; }
+    .memo-check {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1.5px solid var(--memo-accent-line);
+      background: transparent;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      transition: all 0.15s ease;
+    }
+    .memo-check.on { background: var(--memo-accent); border-color: var(--memo-accent); color: #fff; }
+    .memo-card.is-done { opacity: 0.55; }
+    .memo-card.is-done .memo-title { text-decoration: line-through; color: var(--text-tertiary); }
+    .memo-done-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      background: var(--memo-accent-soft);
+      color: var(--memo-accent);
+    }
+    .memo-filter-on { background: var(--memo-accent-soft) !important; color: var(--memo-accent) !important; }
+    .memo-done-view-on { background: var(--memo-accent-soft) !important; color: var(--memo-accent) !important; }
+
+    /* ── 日历：区间色条 ───────────────────── */
+    .cal-week { margin-bottom: 6px; }
+    .cal-week-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+    .cal-week-lanes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 2px; grid-auto-rows: 15px; }
+    .cal-lane-bg { border-radius: 4px; cursor: pointer; }
+    .cal-lane-bg:hover { background: rgba(128,128,128,0.10); }
+    .cal-day-num {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      color: var(--text-primary);
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .cal-day-num.other { color: var(--text-tertiary); cursor: default; }
+    .cal-day-num.today { background: var(--memo-accent-soft); color: var(--memo-accent); font-weight: 700; }
+    .cal-day-num.selected { box-shadow: inset 0 0 0 1.5px var(--memo-accent-line); font-weight: 700; }
+    .cal-bar {
+      height: 15px;
+      line-height: 15px;
+      border-radius: 4px;
+      padding: 0 5px;
+      font-size: 9px;
+      font-weight: 600;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .cal-bar.is-done { opacity: 0.5; }
+    .cal-bar.is-cont-start { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    .cal-bar.is-cont-end { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    [data-theme="dark"] .cal-lane-bg:hover { background: rgba(255,255,255,0.08); }
     .icon-btn-edit, .icon-btn-del {
       width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
       border-radius: 12px; color: var(--text-tertiary); transition: all 0.2s ease; flex-shrink: 0;
@@ -1042,7 +1247,7 @@
     /* ====== 深色主题适配 ====== */
     body { color: var(--text-primary); }
     /* 让原生控件（日期/时间选择器、下拉框、复选框、滚动条）跟随主题深浅 */
-    :root, [data-theme="glass"], [data-theme="white"] { color-scheme: light; }
+    :root, [data-theme="glass"], [data-theme="white"], [data-theme="warm"] { color-scheme: light; }
     [data-theme="dark"] { color-scheme: dark; }
 
     /* 跟随主题的卡片（替代写死的 bg-white/80） */
@@ -1226,6 +1431,11 @@
               <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
               <p class="text-sm font-semibold text-white">暗黑</p>
               <p class="text-xs text-gray-400">护眼深色</p>
+            </button>
+            <button onclick="applyTheme('warm')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(180deg,#fdf7f0 0%,#f7eee2 55%,#faf3ea 100%);" data-theme="warm" id="theme-opt-warm">
+              <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(150deg, rgba(255,253,250,0.9), rgba(255,247,238,0.7)); border: 0.5px solid rgba(255,255,255,0.8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 14px -6px rgba(140,105,70,0.22);"></div>
+              <p class="text-sm font-semibold" style="color:#3f342a;">暖色调</p>
+              <p class="text-xs" style="color:#9c8b79;">米杏暖光</p>
             </button>
           </div>
         </div>
@@ -1761,20 +1971,24 @@
 
         <!-- Memos Page -->
         <div id="page-memos" class="page p-4 md:p-6 lg:p-8">
-          <div class="flex items-center justify-between mb-5 md:mb-7">
+          <div class="flex items-center justify-between mb-4 md:mb-6">
             <div>
-              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">备忘录</h2>
-              <p class="text-xs text-gray-400 mt-0.5">记录待办事项，设置截止日期</p>
+              <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">备忘</h2>
+              <p class="text-xs text-gray-400 mt-0.5">按开始日期分组，可勾选完成</p>
             </div>
-            <button onclick="showAddMemo()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
+            <button onclick="showAddMemo()" class="btn-memo text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
           </div>
-          <div class="flex items-center gap-2 mb-4" id="memo-filter-bar">
-            <button onclick="setMemoFilter('all')" id="memo-filter-all" class="text-xs px-3 py-1.5 rounded-full font-semibold border btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary); border-color: transparent;">全部</button>
-            <button onclick="setMemoFilter('linked')" id="memo-filter-linked" class="text-xs px-3 py-1.5 rounded-full font-semibold border btn-jelly" style="background: transparent; color: var(--text-secondary); border-color: transparent;">已关联课程</button>
+          <div class="flex items-center justify-between gap-2 mb-4 flex-wrap">
+            <div class="flex items-center gap-2" id="memo-filter-bar">
+              <button onclick="setMemoFilter('all')" id="memo-filter-all" class="text-xs px-3 py-1.5 rounded-full font-semibold border btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary); border-color: transparent;">全部</button>
+              <button onclick="setMemoFilter('linked')" id="memo-filter-linked" class="text-xs px-3 py-1.5 rounded-full font-semibold border btn-jelly" style="background: transparent; color: var(--text-secondary); border-color: transparent;">已关联课程</button>
+            </div>
+            <div class="flex items-center gap-1.5" id="memo-done-toggle">
+              <button onclick="setMemoDoneView('dim')" id="memo-done-dim" class="text-[11px] px-2.5 py-1 rounded-full font-semibold btn-jelly">已完成淡显</button>
+              <button onclick="setMemoDoneView('hide')" id="memo-done-hide" class="text-[11px] px-2.5 py-1 rounded-full font-semibold btn-jelly">已完成隐藏</button>
+            </div>
           </div>
-          <div id="memos-list" class="stagger-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="text-center text-gray-400 py-12 text-sm col-span-full">还没有备忘录，点击上方按钮创建</div>
-          </div>
+          <div id="memos-list" class="space-y-4"></div>
         </div>
 
         <!-- Memo Data Page -->
@@ -1881,7 +2095,11 @@
               <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">日历</h2>
               <p class="text-xs text-gray-400 mt-0.5" id="calendar-subtitle">查看截止日期分布</p>
             </div>
-            <button onclick="showAddMemo()" class="btn-gradient text-white text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
+            <button onclick="showAddMemo()" class="btn-memo text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg">＋ 新建备忘</button>
+          </div>
+          <div class="flex items-center justify-end gap-1.5 mb-3" id="calendar-done-toggle">
+            <button onclick="setMemoDoneView('dim')" id="calendar-done-dim" class="text-[11px] px-2.5 py-1 rounded-full font-semibold btn-jelly">已完成淡显</button>
+            <button onclick="setMemoDoneView('hide')" id="calendar-done-hide" class="text-[11px] px-2.5 py-1 rounded-full font-semibold btn-jelly">已完成隐藏</button>
           </div>
           <!-- Month Nav -->
           <div class="flex items-center justify-center gap-4 mb-4">
@@ -1899,7 +2117,7 @@
             <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
           </div>
           <!-- Calendar Grid -->
-          <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+          <div id="calendar-grid" class="space-y-1"></div>
           <!-- Selected date memos -->
           <div id="calendar-memos" class="mt-5"></div>
         </div>
@@ -1989,6 +2207,8 @@
         <select id="memo-course-input" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none bg-gray-50">
           <option value="">不关联课程</option>
         </select>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">开始日期</label>
+        <input type="date" id="memo-start-input" onchange="memoStartChanged(this.value)" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">截止日期（可选）</label>
         <input type="datetime-local" id="memo-deadline-input" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="flex items-center gap-2 mb-5 cursor-pointer">
@@ -2158,6 +2378,18 @@
       </div>
     </div>
 
+    <!-- Shua: Import Guide Modal -->
+    <div id="shua-import-guide-modal" class="fixed inset-0 hidden flex items-center justify-center p-6 modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseImportGuide()">
+      <div class="w-full max-w-[360px] rounded-[24px] p-5">
+        <h3 class="text-base font-bold mb-2" style="color: var(--text-primary);">导入题库</h3>
+        <p class="text-xs leading-relaxed mb-2" style="color: var(--text-secondary);">只支持 Excel（.xlsx / .xls）与 CSV；其他格式（PDF、Word、图片等）需要先转换成表格再导入。</p>
+        <p class="text-xs leading-relaxed mb-4" style="color: var(--text-tertiary);">可以把 PDF 题库交给豆包，用下面的提示词整理成 CSV 表格。</p>
+        <button onclick="shuaCopyImportPrompt()" class="w-full py-2.5 rounded-[14px] text-xs font-semibold mb-2 btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">复制豆包提示词</button>
+        <button onclick="shuaGoImportPanel()" class="btn-shua w-full py-3 rounded-[14px] text-sm font-semibold mb-2">继续导入</button>
+        <button onclick="shuaCloseImportGuide()" class="w-full py-2.5 rounded-[14px] text-sm font-semibold text-gray-500 bg-gray-100">取消</button>
+      </div>
+    </div>
+
     <!-- Shua: Import Modal -->
     <div id="shua-import-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseImport()">
       <div class="w-full md:max-w-md rounded-t-[28px] md:rounded-[28px] p-5 max-h-[88vh] overflow-y-auto" style="background: var(--panel-bg); padding-bottom: calc(1.25rem + var(--sab));">
@@ -2165,9 +2397,9 @@
         <label class="block text-sm font-semibold text-gray-700 mb-2">题库名称</label>
         <input id="shua-import-name" type="text" placeholder="不填则自动命名" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">题库内容</label>
-        <textarea id="shua-import-text" rows="7" spellcheck="false" placeholder="粘贴 JSON、CSV 或题目文本，也可以选择文件" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-xs leading-relaxed mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50 resize-y font-mono"></textarea>
+        <textarea id="shua-import-text" rows="7" spellcheck="false" placeholder="粘贴 CSV 内容，或选择 Excel / CSV 文件" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-xs leading-relaxed mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50 resize-y font-mono"></textarea>
         <div class="flex flex-wrap gap-2 mb-3">
-          <input type="file" id="shua-import-file" accept=".json,.csv,.txt,.md" class="hidden" onchange="shuaChooseFile(this)">
+          <input type="file" id="shua-import-file" accept=".xlsx,.xls,.csv" class="hidden" onchange="shuaChooseFile(this)">
           <button onclick="document.getElementById('shua-import-file').click()" class="shua-plain-btn px-4 py-2 text-xs">选择文件</button>
           <button onclick="shuaFillSample()" class="shua-plain-btn px-4 py-2 text-xs">填入示例</button>
           <button onclick="shuaPreviewImport()" class="btn-shua px-4 py-2 text-xs">解析预览</button>
@@ -2280,7 +2512,7 @@
     })();
 
     function updateThemeMeta(theme) {
-      var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e' };
+      var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e', warm: '#fdf7f0' };
       document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
     }
 
