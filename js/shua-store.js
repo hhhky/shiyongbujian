@@ -6,7 +6,7 @@
   'use strict';
 
   const DB_NAME = 'ReviewAppDB';
-  const DB_VERSION = 6;
+  const DB_VERSION = 7;
   const SESSION_KEY = 'shua-session';
   const RECORD_LIMIT = 6000;
 
@@ -149,6 +149,7 @@
           return {
             id: row.seq,
             qid: row.qid,
+            bankId: row.bankId,
             chapter: row.chapter || '',
             type: row.type,
             subtype: row.subtype || null,
@@ -266,10 +267,215 @@
     });
   }
 
+  // ── 追加 / 编辑题目 ───────────────────────
+  function addQuestions(bankId, questions) {
+    const id = Number(bankId);
+    return Promise.all([getBank(id), getQuestions(id)]).then(function (res) {
+      const bank = res[0];
+      const existing = res[1] || [];
+      if (!bank) throw new Error('题库不存在');
+      let seq = existing.reduce(function (m, q) { return Math.max(m, q.id || 0); }, 0);
+      const rows = questions.map(function (q) {
+        seq++;
+        return Object.assign({}, q, {
+          id: id * 1000000 + seq,
+          bankId: id,
+          seq: seq,
+          qid: id * 1000000 + seq
+        });
+      });
+      return openDBReq().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction(['shua_questions', 'shua_banks'], 'readwrite');
+          const qStore = tx.objectStore('shua_questions');
+          rows.forEach(function (row) { qStore.put(row); });
+          const bStore = tx.objectStore('shua_banks');
+          const getReq = bStore.get(id);
+          getReq.onsuccess = function () {
+            const b = getReq.result;
+            if (b) {
+              b.count = (existing.length || 0) + rows.length;
+              b.updatedAt = Date.now();
+              bStore.put(b);
+            }
+          };
+          tx.oncomplete = function () { db.close(); resolve(rows.length); };
+          tx.onerror = function () { db.close(); reject(tx.error); };
+        });
+      });
+    });
+  }
+
+  function updateQuestion(qid, updates) {
+    const key = Number(qid);
+    return openDBReq().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const tx = db.transaction('shua_questions', 'readwrite');
+        const store = tx.objectStore('shua_questions');
+        const getReq = store.get(key);
+        getReq.onsuccess = function () {
+          const row = getReq.result;
+          if (!row) { tx.abort(); return; }
+          ['stem', 'options', 'answer', 'analysis', 'chapter', 'type', 'sharedStem', 'subtype'].forEach(function (k) {
+            if (updates[k] !== undefined) row[k] = updates[k];
+          });
+          store.put(row);
+        };
+        tx.oncomplete = function () { db.close(); resolve(true); };
+        tx.onerror = function () { db.close(); reject(tx.error); };
+        tx.onabort = function () { db.close(); reject(new Error('题目不存在')); };
+      });
+    });
+  }
+
+  // 按题号区间批量设置章节（from/to 是从 1 开始的序号）
+  function setChapterRange(bankId, from, to, chapter) {
+    return getQuestions(bankId).then(function (list) {
+      const targets = list.filter(function (q) { return q.id >= from && q.id <= to; });
+      return Promise.all(targets.map(function (q) { return updateQuestion(q.qid, { chapter: chapter }); }))
+        .then(function () { return targets.length; });
+    });
+  }
+
+  // ── 题库组 ────────────────────────────────
+  function getGroups() {
+    return getAll('shua_groups').then(function (list) {
+      return list.sort(function (a, b) { return (b.updatedAt || 0) - (a.updatedAt || 0); });
+    });
+  }
+
+  function addGroup(name, bankIds) {
+    return op('shua_groups', 'readwrite', function (s) {
+      return s.add({ name: name, bankIds: bankIds || [], createdAt: Date.now(), updatedAt: Date.now() });
+    });
+  }
+
+  function updateGroup(id, updates) {
+    const key = Number(id);
+    return openDBReq().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const tx = db.transaction('shua_groups', 'readwrite');
+        const store = tx.objectStore('shua_groups');
+        const getReq = store.get(key);
+        getReq.onsuccess = function () {
+          const g = getReq.result;
+          if (!g) { tx.abort(); return; }
+          if (updates.name !== undefined) g.name = updates.name;
+          if (updates.bankIds !== undefined) g.bankIds = updates.bankIds;
+          g.updatedAt = Date.now();
+          store.put(g);
+        };
+        tx.oncomplete = function () { db.close(); resolve(true); };
+        tx.onerror = function () { db.close(); reject(tx.error); };
+        tx.onabort = function () { db.close(); reject(new Error('题库组不存在')); };
+      });
+    });
+  }
+
+  function removeGroup(id) {
+    return op('shua_groups', 'readwrite', function (s) { return s.delete(Number(id)); });
+  }
+
+  // ── 刷题时长（按天累计）────────────────────
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function addStudySeconds(sec) {
+    const add = Math.max(0, Math.round(Number(sec) || 0));
+    if (!add) return Promise.resolve(0);
+    const key = todayKey();
+    return op('shua_time', 'readonly', function (s) { return s.get(key); }).then(function (row) {
+      const next = { date: key, seconds: ((row && row.seconds) || 0) + add };
+      return op('shua_time', 'readwrite', function (s) { return s.put(next); }).then(function () { return next.seconds; });
+    });
+  }
+
+  function getStudyTime() {
+    return getAll('shua_time');
+  }
+
+  // ── 全量导出 / 导入 ───────────────────────
+  function exportAll() {
+    return Promise.all([
+      getBanks(), getAll('shua_questions'), getRecords(),
+      getAll('shua_flags'), getGroups(), getStudyTime()
+    ]).then(function (res) {
+      return JSON.stringify({
+        app: 'shiyongbujian-shua',
+        version: 1,
+        exportedAt: Date.now(),
+        banks: res[0],
+        questions: res[1],
+        records: res[2],
+        flags: res[3],
+        groups: res[4],
+        time: res[5]
+      });
+    });
+  }
+
+  function importAll(data, mode) {
+    if (!data || data.app !== 'shiyongbujian-shua') throw new Error('不是本 App 导出的刷题数据');
+    if (mode === 'append') return importAppend(data);
+
+    return openDBReq().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const tx = db.transaction(
+          ['shua_banks', 'shua_questions', 'shua_records', 'shua_flags', 'shua_groups', 'shua_time'],
+          'readwrite'
+        );
+        const stores = {
+          banks: tx.objectStore('shua_banks'),
+          questions: tx.objectStore('shua_questions'),
+          records: tx.objectStore('shua_records'),
+          flags: tx.objectStore('shua_flags'),
+          groups: tx.objectStore('shua_groups'),
+          time: tx.objectStore('shua_time')
+        };
+        Object.keys(stores).forEach(function (k) { stores[k].clear(); });
+        (data.banks || []).forEach(function (x) { stores.banks.put(x); });
+        (data.questions || []).forEach(function (x) { stores.questions.put(x); });
+        (data.records || []).forEach(function (x) { stores.records.put(x); });
+        (data.flags || []).forEach(function (x) { stores.flags.put(x); });
+        (data.groups || []).forEach(function (x) { stores.groups.put(x); });
+        (data.time || []).forEach(function (x) { stores.time.put(x); });
+        tx.oncomplete = function () { db.close(); resolve({ banks: (data.banks || []).length }); };
+        tx.onerror = function () { db.close(); reject(tx.error); };
+        tx.onabort = function () { db.close(); reject(new Error('导入失败')); };
+      });
+    });
+  }
+
+  // 追加：只导入题库内容，重新分配 ID，不带入记录与标记
+  function importAppend(data) {
+    const banks = data.banks || [];
+    const questions = data.questions || [];
+    let index = 0;
+    function next() {
+      if (index >= banks.length) return Promise.resolve({ banks: banks.length });
+      const bank = banks[index++];
+      const list = questions.filter(function (q) { return q.bankId === bank.id; }).map(function (q) {
+        return {
+          chapter: q.chapter || '', type: q.type, subtype: q.subtype || null,
+          stem: q.stem, sharedStem: q.sharedStem || null, sharedOptions: q.sharedOptions || [],
+          options: q.options || [], answer: q.answer || '', analysis: q.analysis || ''
+        };
+      });
+      return addBank((bank.name || '未命名题库') + '（导入）', list, bank.sourceFileName || '').then(next);
+    }
+    return next();
+  }
+
   window.ShuaStore = {
     getBanks, getBank, addBank, renameBank, removeBank, getQuestions,
+    addQuestions, updateQuestion, setChapterRange,
     getRecords, getRecordsByBank, addRecord,
     getFlags, getFlag, setFlag,
+    getGroups, addGroup, updateGroup, removeGroup,
+    addStudySeconds, getStudyTime,
+    exportAll, importAll,
     saveSession, getSession, exportBankJson
   };
 })();

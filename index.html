@@ -951,6 +951,7 @@
       box-shadow: var(--card-box-shadow);
       border-radius: 24px;
     }
+    .shua-swipe { touch-action: pan-y; }
     .shua-icon-btn {
       width: 34px;
       height: 34px;
@@ -1486,7 +1487,14 @@
               <li><strong style="color: var(--card-text);">思维导图</strong>：梳理工作流与知识结构，可导出图片分享。</li>
               <li><strong style="color: var(--card-text);">AI 小助手</strong>：正在测试中，敬请期待。</li>
             </ul>
-            <p class="text-sm leading-relaxed mt-4" style="color: var(--card-subtext);">提供玻璃、白色、暗黑三套主题，支持安装为 PWA，也可以直接使用 Android 安装包；版本更新可在 App 内后台下载并跳转安装。</p>
+            <p class="text-sm leading-relaxed mt-4" style="color: var(--card-subtext);">提供玻璃、白色、暗黑、暖色调四套主题，支持安装为 PWA，也可以直接使用 Android 安装包；版本更新可在 App 内后台下载并跳转安装。</p>
+            <div class="mt-4 pt-4 flex items-start justify-between gap-3" style="border-top: 0.5px solid rgba(128,128,128,0.18);">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold" style="color: var(--card-text);">发送匿名使用统计</p>
+                <p class="text-xs mt-1 leading-relaxed" style="color: var(--card-subtext);">只上报随机生成的设备编号、App 版本号和各部件的打开次数，用来了解使用情况。不含任何备忘录、课程、题库内容，也不含账号或位置；关闭后完全不发送。</p>
+              </div>
+              <button onclick="toggleUsageStats()" id="usage-toggle" class="shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background: rgba(128,128,128,0.16); color: var(--text-secondary);">已开启</button>
+            </div>
           </div>
         </div>
 
@@ -1749,15 +1757,28 @@
         <!-- Shua: Banks Page -->
         <div id="page-shua-banks" class="page p-4 md:p-6 lg:p-8">
           <div class="max-w-3xl mx-auto">
-            <div class="flex items-start justify-between gap-3 mb-5 md:mb-7">
+            <div class="flex items-start justify-between gap-3 mb-4 md:mb-6">
               <div>
                 <h2 class="title-gradient text-lg md:text-xl font-bold" style="color: var(--text-primary);">题库</h2>
                 <p class="text-xs text-gray-400 mt-0.5">导入题库，离线刷题</p>
               </div>
-              <button onclick="shuaOpenImport()" class="btn-shua text-sm px-5 py-2.5 rounded-full font-semibold shadow-lg shrink-0">＋ 导入</button>
+              <div class="flex items-center gap-2 shrink-0">
+                <button onclick="shuaOpenGroupManager()" class="shua-plain-btn px-3.5 py-2.5 text-xs">题库组</button>
+                <button onclick="shuaOpenImport()" class="btn-shua text-sm px-4 py-2.5 rounded-full font-semibold shadow-lg">＋ 导入</button>
+              </div>
             </div>
+            <div class="mb-4">
+              <input id="shua-search-input" type="search" placeholder="搜索题干、选项或解析" oninput="shuaSearch(this.value)" class="shua-input text-sm">
+            </div>
+            <div id="shua-search-results" class="space-y-2 mb-4"></div>
+            <div id="shua-group-list" class="space-y-3 mb-3"></div>
             <div id="shua-bank-list" class="stagger-list space-y-3"></div>
-            <p id="shua-bank-foot" class="hidden text-[11px] text-center mt-4 leading-relaxed" style="color: var(--text-tertiary);">点击题库开始刷题，点「⋯」可导出、重命名或删除。</p>
+            <p id="shua-bank-foot" class="hidden text-[11px] text-center mt-4 leading-relaxed" style="color: var(--text-tertiary);">点击题库开始刷题，点「⋯」可追加、编辑、导出、重命名或删除。</p>
+            <div class="flex gap-2 mt-4">
+              <button onclick="shuaExportAllData()" class="shua-plain-btn flex-1 py-2.5 text-xs">导出全部数据</button>
+              <button onclick="shuaImportAllOpen()" class="shua-plain-btn flex-1 py-2.5 text-xs">导入数据</button>
+              <input type="file" id="shua-all-file" accept=".json" class="hidden" onchange="shuaImportAllChosen(this)">
+            </div>
           </div>
         </div>
 
@@ -1787,6 +1808,32 @@
               <p class="text-xs text-gray-400 mt-0.5">离线记录，只保存在本机</p>
             </div>
             <div id="shua-ov-grid" class="grid grid-cols-2 gap-3 mb-4 stagger-list"></div>
+            <div class="shua-card p-5 mb-4">
+              <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">刷题时长</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="shua-ov"><p class="shua-ov-label">今日</p><p class="shua-ov-value" id="shua-time-today">-</p></div>
+                <div class="shua-ov"><p class="shua-ov-label">累计</p><p class="shua-ov-value" id="shua-time-all">-</p></div>
+              </div>
+            </div>
+            <div class="shua-card p-5 mb-4">
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">刷题热力图</h3>
+                <div class="flex gap-1.5" id="shua-heat-range">
+                  <button onclick="shuaSetHeatWeeks(8)" data-w="8" class="shua-chip">8 周</button>
+                  <button onclick="shuaSetHeatWeeks(16)" data-w="16" class="shua-chip">16 周</button>
+                  <button onclick="shuaSetHeatWeeks(32)" data-w="32" class="shua-chip">32 周</button>
+                </div>
+              </div>
+              <div id="shua-heatmap" class="overflow-x-auto pb-1"></div>
+              <p class="text-[11px] mt-2" style="color: var(--text-tertiary);">颜色越深表示当天作答越多</p>
+            </div>
+            <div class="shua-card p-5 mb-4">
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">每日明细</h3>
+                <span class="text-[11px]" style="color: var(--text-tertiary);">近 14 天</span>
+              </div>
+              <div id="shua-daily-list"></div>
+            </div>
             <div class="shua-card p-5">
               <div class="flex items-center justify-between gap-2 mb-3">
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">分库进度</h3>
@@ -2378,12 +2425,46 @@
       </div>
     </div>
 
+    <!-- Shua: Data Import Modal -->
+    <div id="shua-data-modal" class="fixed inset-0 hidden flex items-center justify-center p-6 modal-sheet" style="z-index:9999; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseDataModal()">
+      <div class="w-full max-w-[380px] rounded-[24px] p-5" style="background: var(--panel-bg);">
+        <h3 class="text-base font-bold mb-2" style="color: var(--text-primary);">导入刷题数据</h3>
+        <p id="shua-data-summary" class="text-xs leading-relaxed mb-4" style="color: var(--text-secondary);"></p>
+        <button onclick="shuaImportAll('append')" class="btn-shua w-full py-3 rounded-[14px] text-sm font-semibold mb-2">追加导入（只加题库）</button>
+        <button onclick="shuaImportAll('replace')" class="w-full py-3 rounded-[14px] text-sm font-semibold mb-2" style="background: rgba(239,68,68,0.10); color: #ef4444;">覆盖导入（清空后恢复）</button>
+        <button onclick="shuaCloseDataModal()" class="w-full py-2.5 rounded-[14px] text-sm font-semibold text-gray-500 bg-gray-100">取消</button>
+      </div>
+    </div>
+
+    <!-- Shua: Group Manager Modal -->
+    <div id="shua-group-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseGroupManager()">
+      <div class="w-full md:max-w-md rounded-t-[28px] md:rounded-[28px] p-5 max-h-[86vh] overflow-y-auto" style="background: var(--panel-bg); padding-bottom: calc(1.25rem + var(--sab));">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h3 class="text-base font-bold" style="color: var(--text-primary);">题库组</h3>
+          <button onclick="shuaCloseGroupManager()" class="text-2xl leading-none px-1" style="color: var(--text-tertiary);">×</button>
+        </div>
+        <p class="text-xs mb-3 leading-relaxed" style="color: var(--text-tertiary);">把几本相关题库合成一组，按组一起刷，章节/题型筛选照常生效。</p>
+        <div id="shua-group-body"></div>
+      </div>
+    </div>
+
+    <!-- Shua: Question Editor Modal -->
+    <div id="shua-editor-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseEditor()">
+      <div class="w-full md:max-w-md rounded-t-[28px] md:rounded-[28px] p-5 max-h-[88vh] overflow-y-auto" style="background: var(--panel-bg); padding-bottom: calc(1.25rem + var(--sab));">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h3 id="shua-editor-title" class="text-base font-bold truncate" style="color: var(--text-primary);">编辑题目</h3>
+          <button onclick="shuaCloseEditor()" class="text-2xl leading-none px-1" style="color: var(--text-tertiary);">×</button>
+        </div>
+        <div id="shua-editor-body"></div>
+      </div>
+    </div>
+
     <!-- Shua: Import Guide Modal -->
     <div id="shua-import-guide-modal" class="fixed inset-0 hidden flex items-center justify-center p-6 modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseImportGuide()">
       <div class="w-full max-w-[360px] rounded-[24px] p-5">
         <h3 class="text-base font-bold mb-2" style="color: var(--text-primary);">导入题库</h3>
-        <p class="text-xs leading-relaxed mb-2" style="color: var(--text-secondary);">只支持 Excel（.xlsx / .xls）与 CSV；其他格式（PDF、Word、图片等）需要先转换成表格再导入。</p>
-        <p class="text-xs leading-relaxed mb-4" style="color: var(--text-tertiary);">可以把 PDF 题库交给豆包，用下面的提示词整理成 CSV 表格。</p>
+        <p class="text-xs leading-relaxed mb-2" style="color: var(--text-secondary);">支持 Excel（.xlsx / .xls）、CSV，也可以直接导入文字型 Word（.docx）和 PDF。扫描件、拍照或手写内容需要先转成文字或表格。</p>
+        <p class="text-xs leading-relaxed mb-4" style="color: var(--text-tertiary);">扫描版 PDF 可以把文件交给豆包，用下面的提示词整理成 CSV 表格再导入。</p>
         <button onclick="shuaCopyImportPrompt()" class="w-full py-2.5 rounded-[14px] text-xs font-semibold mb-2 btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">复制豆包提示词</button>
         <button onclick="shuaGoImportPanel()" class="btn-shua w-full py-3 rounded-[14px] text-sm font-semibold mb-2">继续导入</button>
         <button onclick="shuaCloseImportGuide()" class="w-full py-2.5 rounded-[14px] text-sm font-semibold text-gray-500 bg-gray-100">取消</button>
@@ -2394,12 +2475,13 @@
     <div id="shua-import-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseImport()">
       <div class="w-full md:max-w-md rounded-t-[28px] md:rounded-[28px] p-5 max-h-[88vh] overflow-y-auto" style="background: var(--panel-bg); padding-bottom: calc(1.25rem + var(--sab));">
         <h3 class="title-gradient text-lg font-bold mb-4" style="color: var(--text-primary);">导入题库</h3>
+        <div id="shua-import-target" class="hidden shua-preview mb-3"></div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">题库名称</label>
         <input id="shua-import-name" type="text" placeholder="不填则自动命名" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-sm mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50">
         <label class="block text-sm font-semibold text-gray-700 mb-2">题库内容</label>
-        <textarea id="shua-import-text" rows="7" spellcheck="false" placeholder="粘贴 CSV 内容，或选择 Excel / CSV 文件" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-xs leading-relaxed mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50 resize-y font-mono"></textarea>
+        <textarea id="shua-import-text" rows="7" spellcheck="false" placeholder="粘贴 CSV 内容，或选择 Excel / Word / PDF 文件" class="w-full border border-gray-200 rounded-[20px] px-4 py-3 text-xs leading-relaxed mb-3 focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 transition-all bg-gray-50 resize-y font-mono"></textarea>
         <div class="flex flex-wrap gap-2 mb-3">
-          <input type="file" id="shua-import-file" accept=".xlsx,.xls,.csv" class="hidden" onchange="shuaChooseFile(this)">
+          <input type="file" id="shua-import-file" accept=".xlsx,.xls,.csv,.docx,.pdf" class="hidden" onchange="shuaChooseFile(this)">
           <button onclick="document.getElementById('shua-import-file').click()" class="shua-plain-btn px-4 py-2 text-xs">选择文件</button>
           <button onclick="shuaFillSample()" class="shua-plain-btn px-4 py-2 text-xs">填入示例</button>
           <button onclick="shuaPreviewImport()" class="btn-shua px-4 py-2 text-xs">解析预览</button>
@@ -2419,6 +2501,8 @@
         <h3 id="shua-bank-menu-title" class="text-base font-bold truncate" style="color: var(--text-primary);"></h3>
         <p id="shua-bank-menu-meta" class="text-xs mt-1 mb-4" style="color: var(--text-tertiary);"></p>
         <button onclick="shuaMenuStart()" class="btn-shua w-full py-3 rounded-[20px] text-sm font-semibold mb-2">开始刷题</button>
+        <button onclick="shuaMenuAppend()" class="shua-menu-btn">追加题目</button>
+        <button onclick="shuaMenuEdit()" class="shua-menu-btn">编辑题目 / 章节</button>
         <button onclick="shuaExportBank()" class="shua-menu-btn">导出题库 JSON</button>
         <button onclick="shuaAskRename()" class="shua-menu-btn">重命名</button>
         <button onclick="shuaDeleteBank()" class="shua-menu-btn is-danger">删除题库</button>
@@ -2460,6 +2544,22 @@
       </div>
     </div>
 
+    <!-- Shua: Question Detail Modal -->
+    <div id="shua-detail-modal" class="fixed inset-0 hidden flex items-end md:items-center justify-center modal-sheet" style="z-index:9998; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);" onclick="if(event.target===this)shuaCloseDetail()">
+      <div class="w-full md:max-w-md rounded-t-[28px] md:rounded-[28px] p-5 max-h-[86vh] overflow-y-auto" style="background: var(--panel-bg); padding-bottom: calc(1.25rem + var(--sab));">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h3 class="text-base font-bold" style="color: var(--text-primary);">题目详情</h3>
+          <button onclick="shuaCloseDetail()" class="text-2xl leading-none px-1" style="color: var(--text-tertiary);">×</button>
+        </div>
+        <div id="shua-detail-body"></div>
+        <div class="flex justify-center gap-3 mt-4">
+          <button onclick="shuaDetailFlag('favorite')" class="shua-pill">收藏</button>
+          <button onclick="shuaDetailFlag('starred')" class="shua-pill">重点</button>
+          <button onclick="shuaDetailFlag('killed')" class="shua-pill">斩题</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Schedule Settings Modal -->
     <!-- 清空课表：第一次确认 -->
     <div id="schedule-clear-modal" class="fixed inset-0 hidden flex items-center justify-center p-6" style="z-index:10000; background: rgba(0,0,0,0.32); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);" onclick="if(event.target===this)hideScheduleClearConfirm()">
@@ -2492,6 +2592,7 @@
 
   <script src="js/db.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/usage.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/focus.js"></script>
   <script src="js/schedule.js"></script>

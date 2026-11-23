@@ -1,4 +1,4 @@
-const CACHE = 'review-v30';
+const CACHE = 'review-v32';
 
 // Cache all local files on install
 self.addEventListener('install', e => {
@@ -17,6 +17,7 @@ self.addEventListener('install', e => {
         './js/statusbar.js',
         './js/chat.js',
         './js/config.js',
+        './js/usage.js',
         './js/db.js',
         './js/focus.js',
         './js/schedule.js',

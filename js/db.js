@@ -1,5 +1,5 @@
 const DB_NAME = 'ReviewAppDB';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 // 统一的数据库结构升级逻辑（openDB / dbOp 共用）
 function upgradeSchema(db, oldVersion, tx) {
@@ -75,6 +75,16 @@ function upgradeSchema(db, oldVersion, tx) {
     }
     if (!db.objectStoreNames.contains('shua_flags')) {
       db.createObjectStore('shua_flags', { keyPath: 'qid' });
+    }
+  }
+
+  // v7：刷题时长与题库组
+  if (oldVersion < 7) {
+    if (!db.objectStoreNames.contains('shua_time')) {
+      db.createObjectStore('shua_time', { keyPath: 'date' });
+    }
+    if (!db.objectStoreNames.contains('shua_groups')) {
+      db.createObjectStore('shua_groups', { keyPath: 'id', autoIncrement: true });
     }
   }
 }

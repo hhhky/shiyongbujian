@@ -126,6 +126,7 @@ function enterWidget(id) {
   currentAboutItem = null;
   var w = WIDGETS.find(function(x){ return x.id === id; });
   if (!w) return;
+  if (typeof usageTrackWidget === 'function') usageTrackWidget(id);
 
   // Show widget pages
   document.getElementById('page-home').classList.remove('active');
@@ -214,6 +215,10 @@ function androidBackCloseOverlay() {
     ['focus-settings-modal', 'hideFocusSettings'],
     ['focus-manual-modal', 'hideFocusManualModal'],
     ['shua-import-guide-modal', 'shuaCloseImportGuide'],
+    ['shua-group-modal', 'shuaCloseGroupManager'],
+    ['shua-editor-modal', 'shuaCloseEditor'],
+    ['shua-data-modal', 'shuaCloseDataModal'],
+    ['shua-detail-modal', 'shuaCloseDetail'],
     ['shua-rename-modal', 'shuaCancelRename'],
     ['shua-bank-menu-modal', 'shuaCloseBankMenu'],
     ['shua-import-modal', 'shuaCloseImport'],
@@ -436,6 +441,15 @@ function updateThemeSelection() {
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.2.9': [
+    '刷题支持左右滑动切题、题目详情查看，速刷间隔可在 1–10 秒间调整并暂停',
+    '刷题新增刷题时长、8/16/32 周热力图、每日明细与「当日错题」重刷，测试报告可看分章节正确率',
+    '新增题库组（多库合并刷）、向已有题库追加题目、题目与章节批量编辑、全库搜索',
+    '刷题新增重点标记与 A1/A2/A3/B 亚型筛选',
+    '刷题可直接导入文字型 Word（.docx）与 PDF，并支持全量数据导出与恢复',
+    '下载更新改用更快的加速线路，修复低速线路被误判放弃的问题',
+    '关于页新增「匿名使用统计」开关；统计服务未启用前不会发送任何数据'
+  ],
   '1.2.8': [
     '刷题导入前增加说明与豆包提示词，支持直接读取 Excel（.xlsx/.xls）与 CSV',
     '备忘新增完成勾选：未完成在前、已完成沉底，可切换「已完成淡显 / 隐藏」并记住设置',

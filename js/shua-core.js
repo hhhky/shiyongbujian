@@ -23,6 +23,7 @@
     { id: 'UNDONE', text: '未做' },
     { id: 'WRONG', text: '错题' },
     { id: 'FAVORITE', text: '收藏' },
+    { id: 'STARRED', text: '重点' },
     { id: 'KILLED', text: '已斩' }
   ];
 
@@ -430,13 +431,13 @@
         return;
       }
 
-      const answerMatch = /^(答案|正确答案|参考答案)\s*[:：]\s*(.+)$/.exec(t);
+      const answerMatch = /^(答案|正确答案|参考答案|answer|correct answer)\s*[:：]\s*(.+)$/i.exec(t);
       if (answerMatch) {
         current.answer = answerMatch[2].trim();
         return;
       }
 
-      const analysisMatch = /^(解析|答案解析|分析)\s*[:：]\s*(.+)$/.exec(t);
+      const analysisMatch = /^(解析|答案解析|分析|explanation|analysis)\s*[:：]\s*(.+)$/i.exec(t);
       if (analysisMatch) {
         current.analysis = analysisMatch[2].trim();
         return;
@@ -469,6 +470,7 @@
 
       const flag = (flags && flags[q.qid]) || {};
       if (status === 'FAVORITE') return !!flag.favorite;
+      if (status === 'STARRED') return !!flag.starred;
       if (status === 'KILLED') return !!flag.killed;
       if (status === 'WRONG') return lastResultOf && lastResultOf[q.qid] === false;
       if (status === 'UNDONE') return !lastResultOf || lastResultOf[q.qid] == null;

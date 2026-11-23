@@ -320,10 +320,11 @@ public class MainActivity extends BridgeActivity {
                         out.write(buf, 0, n);
                         done += n;
 
-                        // 还有备用线路时，主线路太慢就尽快放弃，别让用户干等
+                        // 还有备用线路时，只有慢到不可用才放弃：
+                        // 阈值定太高会把几十 KB/s、其实能跑完的线路误判掉，反而换到更慢的源
                         if (strict) {
                             long elapsed = System.currentTimeMillis() - startedAt;
-                            if (elapsed > 10000 && done * 1000 / elapsed < 102400) {
+                            if (elapsed > 8000 && done * 1000 / elapsed < 40960) {
                                 throw new Exception("线路太慢");
                             }
                         }

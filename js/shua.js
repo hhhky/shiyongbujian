@@ -25,13 +25,29 @@
     examReport: null,
     examAnswers: {},
     autoTimer: null,
+    autoPaused: false,
+    speedSec: 3,
+    lastUsedMs: 0,
+    sessionMs: 0,
+    lastTimeMark: 0,
     questionStartAt: 0,
     parsed: null,
-    setup: { bankId: null, mode: 'SEQUENTIAL', status: 'ALL', chapters: [], types: [], bank: null, questions: [], count: 0 },
+    setup: { bankId: null, mode: 'SEQUENTIAL', status: 'ALL', chapters: [], types: [], subtypes: [], bank: null, questions: [], count: 0 },
     wrongGroups: [],
+    detail: null,
+    editor: { bankId: null, list: [], qid: null },
+    groups: [],
+    search: '',
+    searchResults: [],
     stats: null,
-    statsBanks: []
+    statsBanks: [],
+    heatWeeks: 8
   };
+
+  try {
+    var savedSpeed = Number(localStorage.getItem('shua-speed'));
+    if (savedSpeed >= 1 && savedSpeed <= 10) S.speedSec = savedSpeed;
+  } catch (e) { S.speedSec = 3; }
 
   function core() { return window.ShuaCore; }
   function store() { return window.ShuaStore; }
@@ -72,12 +88,19 @@
     var saved = store().getSession();
     if (!saved || !saved.ids || !saved.ids.length) return;
     try {
-      var qs = await store().getQuestions(saved.bankId);
+      var qs;
+      if (saved.bankId) {
+        qs = await store().getQuestions(saved.bankId);
+      } else {
+        var bs = await store().getBanks();
+        var lists = await Promise.all(bs.map(function (b) { return store().getQuestions(b.id); }));
+        qs = [].concat.apply([], lists);
+      }
       var map = {};
       qs.forEach(function (q) { map[q.qid] = q; });
       var ids = saved.ids.filter(function (id) { return map[id]; });
       if (!ids.length) { store().saveSession(null); return; }
-      var records = await store().getRecordsByBank(saved.bankId);
+      var records = saved.bankId ? await store().getRecordsByBank(saved.bankId) : await store().getRecords();
       S.questionMap = map;
       S.examAnswers = {};
       S.session = {
@@ -119,11 +142,14 @@
     if (!box) return;
     var banks = await store().getBanks();
     S.banks = banks;
+    S.searchCache = null;
+    if (el('shua-search-input') && !el('shua-search-input').value) el('shua-search-results').innerHTML = '';
+    await renderShuaGroups();
     var records = await store().getRecords();
     if (!banks.length) {
       box.innerHTML = '<div class="shua-card p-7 text-center">'
         + '<p class="font-semibold text-sm" style="color: var(--text-primary);">还没有题库</p>'
-        + '<p class="text-xs mt-1.5 mb-4 leading-relaxed" style="color: var(--text-tertiary);">支持 Excel（.xlsx / .xls）与 CSV 题库；PDF、Word 等格式需要先转换成表格。</p>'
+        + '<p class="text-xs mt-1.5 mb-4 leading-relaxed" style="color: var(--text-tertiary);">支持 Excel、CSV，以及文字型 Word（.docx）和 PDF 题库；扫描件需要先转成文字。</p>'
         + '<button onclick="shuaOpenImport()" class="btn-shua w-full py-3 rounded-full text-sm font-semibold">导入题库</button>'
         + '</div>';
       var foot0 = el('shua-bank-foot');
@@ -184,11 +210,28 @@
     el('shua-import-preview').innerHTML = '';
     el('shua-import-preview').classList.add('hidden');
     el('shua-import-result').classList.add('hidden');
+    var banner = el('shua-import-target');
+    if (banner) {
+      if (S.importTarget) {
+        banner.classList.remove('hidden');
+        banner.textContent = '将追加到「' + S.importTarget.name + '」';
+        el('shua-import-name').value = S.importTarget.name;
+        el('shua-import-name').disabled = true;
+      } else {
+        banner.classList.add('hidden');
+        el('shua-import-name').disabled = false;
+      }
+    }
     el('shua-import-modal').classList.remove('hidden');
   }
 
   function shuaCloseImport() {
     el('shua-import-modal').classList.add('hidden');
+    S.importTarget = null;
+    var banner = el('shua-import-target');
+    if (banner) banner.classList.add('hidden');
+    var nameInput = el('shua-import-name');
+    if (nameInput) nameInput.disabled = false;
   }
 
   function shuaFillSample() {
@@ -243,7 +286,8 @@
     var name = file.name || '';
     try {
       var text;
-      if (/\.(xlsx|xls)$/i.test(name)) {
+      var lower = name.toLowerCase();
+      if (/\.(xlsx|xls)$/.test(lower)) {
         if (typeof XLSX === 'undefined' && typeof loadScript === 'function') {
           try { await loadScript('js/xlsx.full.min.js'); } catch (e) { /* 下面统一提示 */ }
         }
@@ -254,6 +298,37 @@
         if (!sheet) { toast('表格里没有内容'); return; }
         var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
         text = rowsToCsv(rows);
+      } else if (/\.docx$/.test(lower)) {
+        if (typeof mammoth === 'undefined' && typeof loadScript === 'function') {
+          try { await loadScript('js/mammoth.browser.min.js'); } catch (e) { /* 下面统一提示 */ }
+        }
+        if (typeof mammoth === 'undefined') { toast('Word 解析组件未加载'); return; }
+        var ab = await file.arrayBuffer();
+        var docx = await mammoth.extractRawText({ arrayBuffer: ab });
+        text = docx.value || '';
+      } else if (/\.pdf$/.test(lower)) {
+        if (typeof pdfjsLib === 'undefined') { toast('PDF 解析组件未加载'); return; }
+        var pb = await file.arrayBuffer();
+        var pdf = await pdfjsLib.getDocument({ data: new Uint8Array(pb) }).promise;
+        var parts = [];
+        for (var p = 1; p <= pdf.numPages; p++) {
+          var page = await pdf.getPage(p);
+          var content = await page.getTextContent();
+          // 按文本行的 y 坐标归并，尽量还原原始换行，题干/选项才不会被黏成一行
+          var lines = {};
+          content.items.forEach(function (it) {
+            if (!it.str || !it.transform) return;
+            var y = Math.round(it.transform[5]);
+            if (!lines[y]) lines[y] = [];
+            lines[y].push(it.str);
+          });
+          Object.keys(lines)
+            .sort(function (a, b) { return Number(b) - Number(a); })
+            .forEach(function (y) { parts.push(lines[y].join('').trim()); });
+          parts.push('');
+        }
+        text = parts.join('\n');
+        if (!text.trim()) { toast('这个 PDF 没有文字层，可能是扫描件'); return; }
       } else {
         text = await readTextFile(file);
       }
@@ -313,9 +388,19 @@
 
   async function shuaConfirmImport() {
     if (!S.parsed) { toast('请先点「解析预览」'); return; }
-    var name = String(el('shua-import-name').value || '').trim() || S.parsed.name || '未命名题库';
     var resultBox = el('shua-import-result');
     try {
+      if (S.importTarget) {
+        var added = await store().addQuestions(S.importTarget.bankId, S.parsed.questions);
+        var targetName = S.importTarget.name;
+        shuaCloseImport();
+        S.parsed = null;
+        await renderShuaBanks();
+        await refreshShuaHeader();
+        toast('已向「' + targetName + '」追加 ' + added + ' 题');
+        return;
+      }
+      var name = String(el('shua-import-name').value || '').trim() || S.parsed.name || '未命名题库';
       var id = await store().addBank(name, S.parsed.questions);
       shuaCloseImport();
       S.parsed = null;
@@ -425,12 +510,15 @@
     var questions = await store().getQuestions(bankId);
     S.setup = {
       bankId: bank.id,
+      groupId: null,
+      groupBankIds: [],
       bank: bank,
       questions: questions,
       mode: 'SEQUENTIAL',
       status: 'ALL',
       chapters: [],
       types: [],
+      subtypes: [],
       count: questions.length
     };
     await loadSetupContext();
@@ -446,13 +534,17 @@
   function shuaSetupFiltered() {
     var lastResult = core().lastResultMap(S.setup.lastRecords || []);
     var flags = S.setup.flags || {};
-    return core().filterQuestions(S.setup.questions, {
+    var list = core().filterQuestions(S.setup.questions, {
       chapters: S.setup.chapters,
       types: S.setup.types,
       status: S.setup.status
     }, lastResult, flags);
+    var subs = S.setup.subtypes || [];
+    if (subs.length) {
+      list = list.filter(function (q) { return subs.indexOf(q.subtype || '') >= 0; });
+    }
+    return list;
   }
-
   function renderSetupSheet() {
     var box = el('shua-setup-body');
     if (!box) return;
@@ -480,6 +572,23 @@
           return '<button class="shua-chip' + (S.setup.types.indexOf(t) >= 0 ? ' is-on' : '') + '" onclick="shuaToggleType(\'' + t + '\')">' + typeLabel(t) + '</button>';
         }).join('') + '</div>';
     }
+    var subtypes = [];
+    questions.forEach(function (q) {
+      if (q.subtype && subtypes.indexOf(q.subtype) < 0) subtypes.push(q.subtype);
+    });
+    if (subtypes.length > 1) {
+      var chosenSubs = S.setup.subtypes || [];
+      html += '<p class="shua-field-label">亚型</p><div class="shua-chip-row">'
+        + subtypes.map(function (t) {
+          return '<button class="shua-chip' + (chosenSubs.indexOf(t) >= 0 ? ' is-on' : '') + '" onclick="shuaToggleSubtype(\'' + t + '\')">' + esc(t) + ' 型</button>';
+        }).join('') + '</div>';
+    }
+    if (S.setup.mode === 'SPEED') {
+      html += '<p class="shua-field-label">速刷间隔</p><div class="shua-chip-row">'
+        + [1, 2, 3, 4, 5, 6, 8, 10].map(function (n) {
+          return '<button class="shua-chip' + (S.speedSec === n ? ' is-on' : '') + '" onclick="shuaSetSpeed(' + n + ')">' + n + ' 秒</button>';
+        }).join('') + '</div>';
+    }
     var count = shuaSetupFiltered().length;
     html += '<p class="text-center text-xs my-3" style="color: var(--text-tertiary);">当前筛选共 ' + count + ' 题</p>';
     html += '<button onclick="shuaBeginStudy()" class="btn-shua w-full py-3 rounded-full text-sm font-semibold">开始刷题</button>';
@@ -487,12 +596,15 @@
   }
 
   async function loadSetupContext() {
-    var res = await Promise.all([
-      store().getRecordsByBank(S.setup.bankId),
-      store().getFlags()
-    ]);
-    S.setup.lastRecords = res[0];
-    S.setup.flags = res[1];
+    var records;
+    if (S.setup.groupId) {
+      var lists = await Promise.all((S.setup.groupBankIds || []).map(function (id) { return store().getRecordsByBank(id); }));
+      records = [].concat.apply([], lists);
+    } else {
+      records = await store().getRecordsByBank(S.setup.bankId);
+    }
+    S.setup.lastRecords = records;
+    S.setup.flags = await store().getFlags();
   }
 
   async function shuaSetMode(id) { S.setup.mode = id; renderSetupSheet(); }
@@ -512,19 +624,36 @@
     renderSetupSheet();
   }
 
+  async function shuaToggleSubtype(t) {
+    var i = S.setup.subtypes.indexOf(t);
+    if (i >= 0) S.setup.subtypes.splice(i, 1); else S.setup.subtypes.push(t);
+    renderSetupSheet();
+  }
+
   async function shuaBeginStudy() {
     await loadSetupContext();
     var list = shuaSetupFiltered();
     if (!list.length) { toast('当前筛选没有题目'); return; }
     shuaCloseSetup();
-    startSession(S.setup.bankId, S.setup.bank.name, list, S.setup.mode, {
+    startSession(S.setup.groupId ? null : S.setup.bankId, S.setup.bank.name, list, S.setup.mode, {
       chapters: S.setup.chapters.slice(),
       types: S.setup.types.slice(),
       status: S.setup.status
     });
   }
 
+  // 把当前会话已用时间累加到当天，防止切走 / 退出时漏记
+  function shuaFlushSessionTime() {
+    if (!S.session || !S.lastTimeMark) return;
+    var delta = Math.round((Date.now() - S.lastTimeMark) / 1000);
+    S.lastTimeMark = Date.now();
+    if (delta >= 3) {
+      try { store().addStudySeconds(delta); } catch (e) { /* ignore */ }
+    }
+  }
+
   function startSession(bankId, bankName, list, mode, filter) {
+    shuaFlushSessionTime();
     var sequence = core().buildSequence(list, mode);
     var map = {};
     sequence.forEach(function (q) { map[q.qid] = q; });
@@ -543,6 +672,7 @@
     S.examMode = mode === 'EXAM';
     S.examFinished = false;
     S.examReport = null;
+    S.lastTimeMark = Date.now();
     clearAutoNext();
     persistSession();
     loadCurrentQuestion();
@@ -568,6 +698,7 @@
     var qid = s.ids[s.index];
     S.current = S.questionMap[qid] || null;
     S.questionStartAt = Date.now();
+    S.lastUsedMs = 0;
     S.answered = false;
     S.isCorrect = false;
     S.fillValue = '';
@@ -593,6 +724,7 @@
     var flag = await store().getFlag(q.qid);
     S.favorite = !!flag.favorite;
     S.killed = !!flag.killed;
+    S.starred = !!flag.starred;
     var isRecite = s.mode === 'RECITE';
     var revealed = isRecite || S.answered;
     var subjective = q.type === 'SHORT_ANSWER' || q.type === 'TERM';
@@ -610,7 +742,8 @@
       + '<button onclick="shuaOpenSheet()" class="shua-pill shrink-0">答题卡</button>'
       + '</div>';
 
-    html += '<div class="shua-card p-5 mb-4">';
+    html += '<div class="shua-swipe" ontouchstart="shuaSwipeStart(event)" ontouchmove="shuaSwipeMove(event)" ontouchend="shuaSwipeEnd(event)" ontouchcancel="shuaSwipeEnd(event)">';
+    html += '<div id="shua-card" class="shua-card p-5 mb-4">';
     html += '<div class="flex items-center gap-2 mb-3 flex-wrap">'
       + '<span class="shua-pill is-accent">' + typeLabel(q.type) + '</span>'
       + (q.chapter ? '<span class="shua-pill">' + esc(q.chapter) + '</span>' : '')
@@ -653,9 +786,10 @@
       html += '<div class="mt-4 pt-4" style="border-top: 0.5px solid rgba(128,128,128,0.18);">'
         + '<p class="text-sm font-semibold" style="color: #059669;">答案：' + esc(q.answer) + '</p>'
         + (q.analysis ? '<p class="text-xs mt-1.5 leading-relaxed whitespace-pre-wrap" style="color: var(--text-secondary);">' + esc(q.analysis) + '</p>' : '')
+        + (S.answered && S.lastUsedMs ? '<p class="text-[11px] mt-2" style="color: var(--text-tertiary);">本题用时 ' + (S.lastUsedMs / 1000).toFixed(1) + ' 秒</p>' : '')
         + '</div>';
     }
-    html += '</div>';
+    html += '</div></div>';
 
     html += '<div class="flex gap-3 mb-3">'
       + '<button onclick="shuaPrev()" class="shua-plain-btn flex-1' + (s.index > 0 ? '' : ' is-disabled') + '">上一题</button>'
@@ -666,13 +800,17 @@
         : '<button onclick="shuaNext()" class="btn-shua flex-1 py-3 rounded-full text-sm font-semibold">下一题</button>')
       + '</div>';
 
-    html += '<div class="flex justify-center gap-3 mt-1">'
+    html += '<div class="flex justify-center gap-3 mt-1 flex-wrap">'
       + '<button onclick="shuaToggleFavorite()" class="shua-pill' + (S.favorite ? ' is-accent' : '') + '">' + (S.favorite ? '已收藏' : '收藏') + '</button>'
+      + '<button onclick="shuaToggleStar()" class="shua-pill' + (S.starred ? ' is-accent' : '') + '">' + (S.starred ? '已标重点' : '重点') + '</button>'
       + '<button onclick="shuaToggleKill()" class="shua-pill' + (S.killed ? ' is-accent' : '') + '">' + (S.killed ? '已斩题' : '斩题') + '</button>'
       + '</div>';
 
-    if (S.speedLeft > 0) {
-      html += '<p class="text-center text-xs mt-3" style="color: var(--shua-accent);">' + S.speedLeft + ' 秒后进入下一题</p>';
+    if (S.speedLeft > 0 || S.autoPaused) {
+      html += '<div class="flex items-center justify-center gap-2 mt-3">'
+        + '<p class="text-xs" style="color: var(--shua-accent);">' + (S.autoPaused ? '已暂停自动翻页' : (S.speedLeft + ' 秒后进入下一题')) + '</p>'
+        + '<button onclick="shuaToggleAutoPause()" class="shua-pill' + (S.autoPaused ? ' is-accent' : '') + '">' + (S.autoPaused ? '继续' : '暂停') + '</button>'
+        + '</div>';
     }
 
     root.innerHTML = html;
@@ -687,10 +825,19 @@
       + '<div class="shua-ov"><p class="shua-ov-label">答对</p><p class="shua-ov-value">' + r.correct + '/' + r.total + '</p></div>'
       + '<div class="shua-ov"><p class="shua-ov-label">用时</p><p class="shua-ov-value">' + esc(r.usedText) + '</p></div>'
       + '</div>';
+    if (r.chapters && r.chapters.length > 1) {
+      html += '<p class="text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">分章节正确率</p>'
+        + r.chapters.map(function (c) {
+          return '<div class="flex items-center gap-2 mb-1.5">'
+            + '<span class="flex-1 min-w-0 truncate text-[11px]" style="color: var(--text-secondary);">' + esc(c.chapter) + '</span>'
+            + '<span class="text-[11px] shrink-0" style="color: var(--text-tertiary);">' + c.correct + '/' + c.total + ' · ' + c.accuracy + '%</span>'
+            + '</div><div class="shua-bar mb-2"><div class="shua-bar-fill" style="width:' + c.accuracy + '%"></div></div>';
+        }).join('');
+    }
     if (r.wrong.length) {
-      html += '<p class="text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">错题</p>'
+      html += '<p class="text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">错题（点开看解析）</p>'
         + r.wrong.map(function (w, i) {
-          return '<p class="text-xs leading-relaxed py-0.5" style="color: var(--text-tertiary);">' + (i + 1) + '. ' + esc(w.stem) + '</p>';
+          return '<button class="block w-full text-left text-xs leading-relaxed py-1" style="color: var(--text-tertiary);" onclick="shuaOpenDetail(' + w.qid + ',' + (w.bankId || 0) + ')">' + (i + 1) + '. ' + esc(w.stem) + '</button>';
         }).join('');
     }
     html += '<button onclick="shuaCloseExam()" class="btn-shua w-full py-3 rounded-full text-sm font-semibold mt-4">返回题库</button>'
@@ -711,6 +858,111 @@
       map[o.key] = cls.trim();
     });
     return map;
+  }
+
+  // ── 左右滑动切题 ──────────────────────────
+  var swipeState = null;
+
+  function shuaSwipeStart(e) {
+    if (!S.session || S.examFinished) return;
+    var t = e.touches && e.touches[0];
+    if (!t) return;
+    swipeState = { x: t.clientX, y: t.clientY, dx: 0, horizontal: false, el: document.getElementById('shua-card') };
+  }
+
+  function shuaSwipeMove(e) {
+    if (!swipeState) return;
+    var t = e.touches && e.touches[0];
+    if (!t) return;
+    var dx = t.clientX - swipeState.x;
+    var dy = t.clientY - swipeState.y;
+    if (!swipeState.horizontal) {
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+        swipeState.horizontal = true;
+      } else if (Math.abs(dy) > 12) {
+        swipeState = null;
+        return;
+      }
+    }
+    if (!swipeState.horizontal) return;
+    if (e.cancelable) e.preventDefault();
+    swipeState.dx = dx;
+    if (swipeState.el) swipeState.el.style.transform = 'translateX(' + (dx * 0.55) + 'px)';
+  }
+
+  function shuaSwipeEnd() {
+    if (!swipeState) return;
+    var st = swipeState;
+    swipeState = null;
+    if (st.el) {
+      st.el.style.transition = 'transform .18s ease';
+      st.el.style.transform = '';
+      setTimeout(function () { if (st.el) st.el.style.transition = ''; }, 200);
+    }
+    if (!st.horizontal) return;
+    if (st.dx <= -70) shuaNext();
+    else if (st.dx >= 70) shuaPrev();
+  }
+
+  // ── 题目详情 ──────────────────────────────
+  async function shuaOpenDetail(qid, bankId) {
+    var q = S.questionMap[qid];
+    if (!q) {
+      var id = Number(bankId) || Math.floor(Number(qid) / 1000000);
+      if (!id) return;
+      var list = await store().getQuestions(id);
+      q = list.find(function (x) { return x.qid === Number(qid); });
+    }
+    if (!q) return;
+    var flag = await store().getFlag(q.qid);
+    S.detail = { q: q, flag: flag };
+    renderDetail();
+    el('shua-detail-modal').classList.remove('hidden');
+  }
+
+  function renderDetail() {
+    var box = el('shua-detail-body');
+    if (!box || !S.detail) return;
+    var q = S.detail.q;
+    var flag = S.detail.flag || {};
+    var correctKeys = (core().resolveToLetters(q.answer, q.options) || String(q.answer || '')).toUpperCase();
+    var html = '<div class="flex items-center gap-2 mb-3 flex-wrap">'
+      + '<span class="shua-pill is-accent">' + typeLabel(q.type) + '</span>'
+      + (q.chapter ? '<span class="shua-pill">' + esc(q.chapter) + '</span>' : '')
+      + (flag.starred ? '<span class="shua-pill is-accent">重点</span>' : '')
+      + (flag.favorite ? '<span class="shua-pill is-accent">已收藏</span>' : '')
+      + '</div>';
+    if (q.sharedStem) html += '<div class="shua-shared mb-3">' + esc(q.sharedStem).replace(/\n/g, '<br>') + '</div>';
+    html += '<p class="shua-stem">' + esc(q.stem).replace(/\n/g, '<br>') + '</p>';
+    if (q.options && q.options.length) {
+      html += q.options.map(function (o) {
+        var cls = correctKeys.indexOf(o.key) >= 0 ? ' is-right' : '';
+        return '<div class="shua-opt ' + cls + '"><span class="shua-opt-key">' + esc(o.key) + '</span>'
+          + '<span class="shua-opt-text">' + esc(o.text) + '</span></div>';
+      }).join('');
+    }
+    html += '<div class="mt-4 pt-4" style="border-top: 0.5px solid rgba(128,128,128,0.18);">'
+      + '<p class="text-sm font-semibold" style="color: #059669;">答案：' + esc(q.answer || '（暂无）') + '</p>'
+      + (q.analysis ? '<p class="text-xs mt-1.5 leading-relaxed whitespace-pre-wrap" style="color: var(--text-secondary);">' + esc(q.analysis) + '</p>' : '')
+      + '</div>';
+    box.innerHTML = html;
+  }
+
+  function shuaCloseDetail() {
+    el('shua-detail-modal').classList.add('hidden');
+    S.detail = null;
+  }
+
+  async function shuaDetailFlag(field) {
+    if (!S.detail) return;
+    var qid = S.detail.q.qid;
+    var next = !(S.detail.flag && S.detail.flag[field]);
+    await store().setFlag(qid, field, next);
+    S.detail.flag = S.detail.flag || {};
+    S.detail.flag[field] = next;
+    renderDetail();
+    if (S.current && S.current.qid === qid) renderShuaStudy();
+    toast(next ? (field === 'starred' ? '已标为重点' : '已收藏') : '已取消');
   }
 
   // ── 答题动作 ──────────────────────────────
@@ -778,6 +1030,7 @@
     var q = S.current;
     if (!q || !S.session) return;
     var usedMs = Math.max(0, Date.now() - (S.questionStartAt || Date.now()));
+    S.lastUsedMs = usedMs;
     S.session.results = S.session.results || {};
     S.session.results[q.qid] = !!correct;
     if (selected) S.selected = selected;
@@ -786,7 +1039,7 @@
     S.showAnswer = true;
     renderShuaStudy();
     store().addRecord({
-      bankId: S.session.bankId,
+      bankId: q.bankId || S.session.bankId,
       qid: q.qid,
       answer: answerText,
       correct: !!correct,
@@ -798,12 +1051,17 @@
 
   function startAutoNext() {
     clearAutoNext();
-    S.speedLeft = 3;
+    S.autoPaused = false;
+    S.speedLeft = S.speedSec;
     renderShuaStudy();
     S.autoTimer = setInterval(function () {
+      if (S.autoPaused) return;
       S.speedLeft--;
       if (S.speedLeft <= 0) {
-        clearAutoNext();
+        var timer = S.autoTimer;
+        S.autoTimer = null;
+        S.speedLeft = 0;
+        if (timer) clearInterval(timer);
         shuaNext();
       } else {
         renderShuaStudy();
@@ -814,10 +1072,25 @@
   function clearAutoNext() {
     if (S.autoTimer) { clearInterval(S.autoTimer); S.autoTimer = null; }
     S.speedLeft = 0;
+    S.autoPaused = false;
+  }
+
+  function shuaToggleAutoPause() {
+    if (!S.autoTimer) return;
+    S.autoPaused = !S.autoPaused;
+    renderShuaStudy();
+  }
+
+  function shuaSetSpeed(n) {
+    var v = Math.min(10, Math.max(1, Number(n) || 3));
+    S.speedSec = v;
+    try { localStorage.setItem('shua-speed', String(v)); } catch (e) { /* ignore */ }
+    renderSetupSheet();
   }
 
   function shuaPauseAutoNext() {
     clearAutoNext();
+    shuaFlushSessionTime();
   }
 
   async function shuaNext() {
@@ -848,6 +1121,7 @@
   async function shuaExitStudy() {
     if (!await confirmDialog('退出刷题？退出后可在题库里重新开始。')) return;
     clearAutoNext();
+    shuaFlushSessionTime();
     store().saveSession(null);
     S.session = null;
     S.current = null;
@@ -863,6 +1137,15 @@
     S.favorite = !S.favorite;
     await store().setFlag(q.qid, 'favorite', S.favorite);
     toast(S.favorite ? '已收藏' : '已取消收藏');
+    renderShuaStudy();
+  }
+
+  async function shuaToggleStar() {
+    var q = S.current;
+    if (!q) return;
+    S.starred = !S.starred;
+    await store().setFlag(q.qid, 'starred', S.starred);
+    toast(S.starred ? '已标为重点' : '已取消重点');
     renderShuaStudy();
   }
 
@@ -925,14 +1208,21 @@
     var correct = 0;
     var wrong = [];
     var tasks = [];
+    var chapterStat = {};
     ids.forEach(function (qid) {
       var q = S.questionMap[qid];
       var answer = (S.examAnswers[qid] || []).join('');
       var ok = q && core().judgeAnswer(q, answer);
       if (ok) correct++;
-      else if (q) wrong.push({ qid: qid, stem: q.stem.slice(0, 40) });
+      else if (q) wrong.push({ qid: qid, bankId: q.bankId || s.bankId, stem: q.stem.slice(0, 40) });
+      if (q) {
+        var ck = q.chapter || '未分章';
+        if (!chapterStat[ck]) chapterStat[ck] = { chapter: ck, total: 0, correct: 0 };
+        chapterStat[ck].total++;
+        if (ok) chapterStat[ck].correct++;
+      }
       tasks.push(store().addRecord({
-        bankId: s.bankId,
+        bankId: (q && q.bankId) || s.bankId,
         qid: qid,
         answer: answer,
         correct: !!ok,
@@ -942,13 +1232,18 @@
     });
     await Promise.all(tasks);
     var usedSec = Math.max(1, Math.round((Date.now() - s.startedAt) / 1000));
+    shuaFlushSessionTime();
     S.examFinished = true;
     S.examReport = {
       total: ids.length,
       correct: correct,
       accuracy: ids.length ? Math.round(correct / ids.length * 100) : 0,
       usedText: formatUsed(usedSec),
-      wrong: wrong.slice(0, 30)
+      wrong: wrong.slice(0, 30),
+      chapters: Object.keys(chapterStat).map(function (k) {
+        var c = chapterStat[k];
+        return { chapter: c.chapter, total: c.total, correct: c.correct, accuracy: Math.round(c.correct / c.total * 100) };
+      }).sort(function (a, b) { return a.accuracy - b.accuracy; })
     };
     store().saveSession(null);
     S.session = null;
@@ -1020,10 +1315,120 @@
   }
 
   // ── 统计 ──────────────────────────────────
+  // ── 统计：时长 / 热力图 / 每日明细 ─────────
+  var HEAT_LEVELS = [
+    'rgba(128,128,128,0.14)',
+    'rgba(139,92,246,0.22)',
+    'rgba(139,92,246,0.42)',
+    'rgba(139,92,246,0.66)',
+    'rgba(124,58,237,0.92)'
+  ];
+
+  function shuaDayKey(ts) {
+    var d = new Date(ts || Date.now());
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function shuaFormatMinutes(sec) {
+    var s = Math.round(Number(sec) || 0);
+    if (s < 60) return s + ' 秒';
+    var m = Math.round(s / 60);
+    if (m < 60) return m + ' 分钟';
+    var h = Math.floor(m / 60);
+    return h + ' 小时' + (m % 60 ? ' ' + (m % 60) + ' 分' : '');
+  }
+
+  function shuaHeatLevel(n) {
+    if (!n) return 0;
+    if (n <= 5) return 1;
+    if (n <= 15) return 2;
+    if (n <= 30) return 3;
+    return 4;
+  }
+
+  function shuaSetHeatWeeks(w) {
+    S.heatWeeks = Number(w) || 8;
+    renderShuaStats();
+  }
+
+  function renderHeatmap(box, byDay) {
+    if (!box) return;
+    var weeks = S.heatWeeks || 8;
+    var today = new Date();
+    var start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() - (weeks - 1) * 7);
+    var html = '<div class="flex gap-1">';
+    for (var w = 0; w < weeks; w++) {
+      html += '<div class="flex flex-col gap-1">';
+      for (var d = 0; d < 7; d++) {
+        var day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d);
+        var key = shuaDayKey(day.getTime());
+        var n = byDay[key] || 0;
+        var future = day.getTime() > today.getTime();
+        html += '<div title="' + key + '：' + n + ' 题" style="width:10px;height:10px;border-radius:2px;background:'
+          + (future ? 'transparent' : HEAT_LEVELS[shuaHeatLevel(n)]) + '"></div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+    box.innerHTML = html;
+    var range = el('shua-heat-range');
+    if (range) {
+      Array.prototype.forEach.call(range.children, function (b) {
+        b.classList.toggle('is-on', Number(b.dataset.w) === weeks);
+      });
+    }
+  }
+
+  function renderDaily(box, records) {
+    if (!box) return;
+    var byDay = {};
+    records.forEach(function (r) {
+      var key = shuaDayKey(r.at || Date.now());
+      var d = byDay[key] || (byDay[key] = { total: 0, correct: 0, last: {} });
+      d.total++;
+      if (r.correct) d.correct++;
+      d.last[r.qid] = r.correct;
+    });
+    var keys = Object.keys(byDay).sort().reverse().slice(0, 14);
+    if (!keys.length) {
+      box.innerHTML = '<p class="text-xs text-center py-4" style="color: var(--text-tertiary);">还没有作答记录</p>';
+      return;
+    }
+    box.innerHTML = keys.map(function (key) {
+      var d = byDay[key];
+      var wrong = Object.keys(d.last).filter(function (q) { return d.last[q] === false; }).length;
+      return '<div class="flex items-center gap-2 py-1.5">'
+        + '<span class="flex-1 text-xs" style="color: var(--text-primary);">' + key.slice(5).replace('-', '/') + '</span>'
+        + '<span class="text-[11px]" style="color: var(--text-tertiary);">' + d.total + ' 题 · '
+        + (d.total ? Math.round(d.correct / d.total * 100) : 0) + '%</span>'
+        + (wrong ? '<button class="shua-pill is-accent" onclick="shuaRetryDay(\'' + key + '\')">当日错题 ' + wrong + '</button>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  function shuaRetryDay(key) {
+    return Promise.all([store().getRecords(), store().getBanks()]).then(function (res) {
+      var records = res[0];
+      var banks = res[1];
+      var last = {};
+      records.filter(function (r) { return shuaDayKey(r.at || 0) === key; })
+        .forEach(function (r) { last[r.qid] = r.correct; });
+      var wrongIds = Object.keys(last).filter(function (q) { return last[q] === false; }).map(Number);
+      if (!wrongIds.length) { toast('当天没有错题'); return; }
+      return Promise.all(banks.map(function (b) { return store().getQuestions(b.id); })).then(function (lists) {
+        var all = [].concat.apply([], lists);
+        var list = all.filter(function (q) { return wrongIds.indexOf(q.qid) >= 0; });
+        if (!list.length) { toast('题目已被删除'); return; }
+        startSession(null, '当日错题', list, 'SEQUENTIAL', { status: 'WRONG' });
+      });
+    });
+  }
+
   async function renderShuaStats() {
-    var res = await Promise.all([store().getRecords(), store().getBanks()]);
+    var res = await Promise.all([store().getRecords(), store().getBanks(), store().getStudyTime()]);
     var records = res[0];
     var banks = res[1];
+    var timeRows = res[2] || [];
     var questionCount = banks.reduce(function (n, b) { return n + (b.count || 0); }, 0);
     var stats = core().statsOf(records, null);
     var lastResult = core().lastResultMap(records);
@@ -1040,6 +1445,26 @@
         return '<div class="shua-ov-card"><p class="shua-ov-label">' + c.label + '</p><p class="shua-ov-value">' + c.value + '</p></div>';
       }).join('');
     }
+
+    var todayKey = shuaDayKey(Date.now());
+    var todaySec = 0;
+    var totalSec = 0;
+    timeRows.forEach(function (r) {
+      totalSec += r.seconds || 0;
+      if (r.date === todayKey) todaySec += r.seconds || 0;
+    });
+    var tToday = el('shua-time-today');
+    if (tToday) tToday.textContent = shuaFormatMinutes(todaySec);
+    var tAll = el('shua-time-all');
+    if (tAll) tAll.textContent = shuaFormatMinutes(totalSec);
+
+    var byDay = {};
+    records.forEach(function (r) {
+      var k = shuaDayKey(r.at || Date.now());
+      byDay[k] = (byDay[k] || 0) + 1;
+    });
+    renderHeatmap(el('shua-heatmap'), byDay);
+    renderDaily(el('shua-daily-list'), records);
 
     var rank = el('shua-rank-list');
     if (rank) {
@@ -1074,6 +1499,399 @@
     if (side) side.textContent = '共 ' + questionCount + ' 题';
   }
 
+  // ── 题库组 ────────────────────────────────
+  async function renderShuaGroups() {
+    var box = el('shua-group-list');
+    if (!box) return;
+    var groups = await store().getGroups();
+    S.groups = groups;
+    if (!groups.length) { box.innerHTML = ''; return; }
+    var banks = S.banks || [];
+    box.innerHTML = groups.map(function (g) {
+      var members = banks.filter(function (b) { return (g.bankIds || []).indexOf(b.id) >= 0; });
+      var count = members.reduce(function (n, b) { return n + (b.count || 0); }, 0);
+      return '<div class="shua-card p-4 flex items-center gap-3">'
+        + '<button class="flex-1 min-w-0 text-left" onclick="shuaStartGroup(' + g.id + ')">'
+        + '<p class="font-semibold text-sm truncate" style="color: var(--text-primary);">' + esc(g.name) + '</p>'
+        + '<p class="text-xs mt-1" style="color: var(--text-tertiary);">' + members.length + ' 个题库 · ' + count + ' 题</p>'
+        + '</button>'
+        + '<button onclick="shuaOpenGroupManager()" class="shua-pill shrink-0">管理</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  async function shuaStartGroup(id) {
+    var res = await Promise.all([store().getGroups(), store().getBanks()]);
+    var group = res[0].find(function (g) { return g.id === Number(id); });
+    if (!group) return;
+    var members = res[1].filter(function (b) { return (group.bankIds || []).indexOf(b.id) >= 0; });
+    if (!members.length) { toast('组里还没有题库'); return; }
+    var lists = await Promise.all(members.map(function (b) { return store().getQuestions(b.id); }));
+    var questions = [].concat.apply([], lists);
+    S.setup = {
+      groupId: group.id,
+      groupBankIds: (group.bankIds || []).slice(),
+      bankId: null,
+      bank: { name: group.name },
+      questions: questions,
+      mode: 'SEQUENTIAL',
+      status: 'ALL',
+      chapters: [],
+      types: [],
+      subtypes: [],
+      count: questions.length
+    };
+    await loadSetupContext();
+    el('shua-setup-title').textContent = group.name;
+    el('shua-setup-modal').classList.remove('hidden');
+    renderSetupSheet();
+  }
+
+  async function shuaOpenGroupManager() {
+    S.banks = await store().getBanks();
+    S.groups = await store().getGroups();
+    S.groupEdit = null;
+    renderGroupManager();
+    el('shua-group-modal').classList.remove('hidden');
+  }
+
+  function shuaCloseGroupManager() {
+    el('shua-group-modal').classList.add('hidden');
+    S.groupEdit = null;
+  }
+
+  function renderGroupManager() {
+    var box = el('shua-group-body');
+    if (!box) return;
+    if (S.groupEdit) {
+      var edit = S.groupEdit;
+      box.innerHTML = '<label class="shua-field-label">组名</label>'
+        + '<input id="shua-group-name" class="shua-input mb-3" placeholder="例如：内科学" value="' + esc(edit.name) + '" oninput="shuaGroupNameInput(this.value)">'
+        + '<p class="shua-field-label">包含题库</p>'
+        + (S.banks.length ? S.banks.map(function (b) {
+          var on = edit.bankIds.indexOf(b.id) >= 0;
+          return '<button class="shua-menu-btn" onclick="shuaGroupToggleBank(' + b.id + ')" style="'
+            + (on ? 'background: var(--shua-accent-soft); color: var(--shua-accent);' : '') + '">'
+            + (on ? '✓ ' : '') + esc(b.name) + ' <span style="opacity:.6">（' + (b.count || 0) + ' 题）</span></button>';
+        }).join('') : '<p class="text-xs" style="color: var(--text-tertiary);">还没有题库</p>')
+        + '<div class="flex gap-3 mt-3">'
+        + '<button onclick="shuaGroupCancel()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm">取消</button>'
+        + '<button onclick="shuaGroupSave()" class="btn-shua flex-1 py-3 rounded-[20px] text-sm font-semibold">保存</button>'
+        + '</div>';
+      return;
+    }
+    box.innerHTML = (S.groups.length ? S.groups.map(function (g) {
+      return '<div class="flex items-center gap-2 mb-2">'
+        + '<span class="flex-1 min-w-0 truncate text-sm" style="color: var(--text-primary);">' + esc(g.name) + '</span>'
+        + '<button class="shua-pill" onclick="shuaGroupEdit(' + g.id + ')">编辑</button>'
+        + '<button class="shua-pill" onclick="shuaGroupDelete(' + g.id + ')">删除</button>'
+        + '</div>';
+    }).join('') : '<p class="text-xs text-center py-3" style="color: var(--text-tertiary);">还没有题库组</p>')
+      + '<button onclick="shuaGroupNew()" class="btn-shua w-full py-3 rounded-[20px] text-sm font-semibold mt-3">＋ 新建题库组</button>';
+  }
+
+  function shuaGroupNew() {
+    S.groupEdit = { id: null, name: '', bankIds: [] };
+    renderGroupManager();
+  }
+
+  function shuaGroupEdit(id) {
+    var g = (S.groups || []).find(function (x) { return x.id === Number(id); });
+    if (!g) return;
+    S.groupEdit = { id: g.id, name: g.name, bankIds: (g.bankIds || []).slice() };
+    renderGroupManager();
+  }
+
+  function shuaGroupCancel() {
+    S.groupEdit = null;
+    renderGroupManager();
+  }
+
+  function shuaGroupNameInput(v) {
+    if (S.groupEdit) S.groupEdit.name = v;
+  }
+
+  function shuaGroupToggleBank(id) {
+    if (!S.groupEdit) return;
+    var i = S.groupEdit.bankIds.indexOf(id);
+    if (i >= 0) S.groupEdit.bankIds.splice(i, 1); else S.groupEdit.bankIds.push(id);
+    renderGroupManager();
+  }
+
+  async function shuaGroupSave() {
+    if (!S.groupEdit) return;
+    var name = String((el('shua-group-name') || {}).value || '').trim();
+    if (!name) { toast('请填写组名'); return; }
+    if (!S.groupEdit.bankIds.length) { toast('至少选择一个题库'); return; }
+    if (S.groupEdit.id) {
+      await store().updateGroup(S.groupEdit.id, { name: name, bankIds: S.groupEdit.bankIds });
+    } else {
+      await store().addGroup(name, S.groupEdit.bankIds);
+    }
+    S.groupEdit = null;
+    S.groups = await store().getGroups();
+    renderGroupManager();
+    await renderShuaBanks();
+    toast('题库组已保存');
+  }
+
+  async function shuaGroupDelete(id) {
+    if (!await confirmDialog('删除这个题库组？题库本身不会被删除。')) return;
+    await store().removeGroup(id);
+    S.groups = await store().getGroups();
+    renderGroupManager();
+    await renderShuaBanks();
+  }
+
+  // ── 追加题目 / 编辑器 ──────────────────────
+  async function shuaMenuAppend() {
+    var id = shuaMenuBankId();
+    var bank = await store().getBank(id);
+    shuaCloseBankMenu();
+    if (!bank) return;
+    S.importTarget = { bankId: id, name: bank.name };
+    shuaOpenImportPanel();
+  }
+
+  async function shuaMenuEdit() {
+    var id = shuaMenuBankId();
+    shuaCloseBankMenu();
+    await shuaOpenEditor(id);
+  }
+
+  async function shuaOpenEditor(bankId) {
+    var bank = await store().getBank(bankId);
+    if (!bank) return;
+    var list = await store().getQuestions(bankId);
+    S.editor = { bankId: bankId, list: list, qid: null };
+    el('shua-editor-title').textContent = '编辑「' + bank.name + '」';
+    renderEditor();
+    el('shua-editor-modal').classList.remove('hidden');
+  }
+
+  function shuaCloseEditor() {
+    el('shua-editor-modal').classList.add('hidden');
+    S.editor = { bankId: null, list: [], qid: null };
+  }
+
+  function renderEditor() {
+    var box = el('shua-editor-body');
+    var e = S.editor;
+    if (!box || !e || !e.bankId) return;
+
+    if (e.qid) {
+      var q = e.list.find(function (x) { return x.qid === e.qid; });
+      if (!q) { e.qid = null; renderEditor(); return; }
+      box.innerHTML = '<label class="shua-field-label">题干</label>'
+        + '<textarea id="shua-edit-stem" rows="3" class="shua-input mb-2" style="resize:vertical">' + esc(q.stem) + '</textarea>'
+        + '<div class="flex gap-2">'
+        + '<div class="flex-1"><label class="shua-field-label">章节</label><input id="shua-edit-chapter" class="shua-input mb-2" value="' + esc(q.chapter || '') + '"></div>'
+        + '<div class="flex-1"><label class="shua-field-label">题型</label><select id="shua-edit-type" class="shua-input mb-2">'
+        + core().TYPES.map(function (t) { return '<option value="' + t + '"' + (q.type === t ? ' selected' : '') + '>' + typeLabel(t) + '</option>'; }).join('')
+        + '</select></div></div>'
+        + '<label class="shua-field-label">选项（每行一个，如 A. 选项内容；无选项留空）</label>'
+        + '<textarea id="shua-edit-options" rows="4" class="shua-input mb-2" style="resize:vertical">'
+        + esc((q.options || []).map(function (o) { return o.key + '. ' + o.text; }).join('\n')) + '</textarea>'
+        + '<label class="shua-field-label">答案</label>'
+        + '<input id="shua-edit-answer" class="shua-input mb-2" value="' + esc(q.answer || '') + '">'
+        + '<label class="shua-field-label">解析</label>'
+        + '<textarea id="shua-edit-analysis" rows="3" class="shua-input mb-2" style="resize:vertical">' + esc(q.analysis || '') + '</textarea>'
+        + '<div class="flex gap-3 mt-2">'
+        + '<button onclick="shuaEditorBack()" class="flex-1 py-3 rounded-[20px] font-semibold text-gray-500 bg-gray-100 text-sm">返回</button>'
+        + '<button onclick="shuaEditorSave()" class="btn-shua flex-1 py-3 rounded-[20px] text-sm font-semibold">保存</button>'
+        + '</div>';
+      return;
+    }
+
+    var keyword = String(e.filter || '').toLowerCase();
+    var list = e.list.filter(function (q) {
+      if (!keyword) return true;
+      return (q.stem + ' ' + (q.chapter || '')).toLowerCase().indexOf(keyword) >= 0;
+    });
+    box.innerHTML = '<input class="shua-input mb-3" placeholder="搜索题干或章节" value="' + esc(e.filter || '') + '" oninput="shuaEditorFilter(this.value)">'
+      + '<div class="mb-3 max-h-[38vh] overflow-y-auto">'
+      + (list.length ? list.map(function (q) {
+        return '<button class="shua-wrong-item" onclick="shuaEditorPick(' + q.qid + ')">'
+          + '<span class="flex-1 min-w-0 text-left text-xs leading-relaxed" style="color: var(--text-secondary);">' + q.id + '. ' + esc(q.stem.slice(0, 50)) + '</span>'
+          + '<span class="shua-pill shrink-0">' + typeLabel(q.type) + '</span>'
+          + '</button>';
+      }).join('') : '<p class="text-xs text-center py-3" style="color: var(--text-tertiary);">没有匹配的题目</p>')
+      + '</div>'
+      + '<p class="shua-field-label">批量设置章节</p>'
+      + '<div class="flex gap-2 mb-2">'
+      + '<input id="shua-chapter-from" class="shua-input" placeholder="从第几题" inputmode="numeric">'
+      + '<input id="shua-chapter-to" class="shua-input" placeholder="到第几题" inputmode="numeric">'
+      + '</div>'
+      + '<input id="shua-chapter-name" class="shua-input mb-2" placeholder="章节名，如 第二章">'
+      + '<button onclick="shuaChapterApply()" class="shua-plain-btn w-full py-2.5 text-sm">应用到该范围</button>';
+  }
+
+  function shuaEditorFilter(v) {
+    S.editor.filter = v;
+    renderEditor();
+  }
+
+  function shuaEditorPick(qid) {
+    S.editor.qid = Number(qid);
+    renderEditor();
+  }
+
+  function shuaEditorBack() {
+    S.editor.qid = null;
+    renderEditor();
+  }
+
+  async function shuaEditorSave() {
+    var e = S.editor;
+    var q = e.list.find(function (x) { return x.qid === e.qid; });
+    if (!q) return;
+    var stem = el('shua-edit-stem').value.trim();
+    if (!stem) { toast('题干不能为空'); return; }
+    var optionsText = el('shua-edit-options').value.trim();
+    var options = optionsText ? optionsText.split(/\n+/).map(function (line, i) {
+      var m = /^([A-Za-z])\s*[.、．)）:：]?\s*([\s\S]*)$/.exec(line.trim());
+      if (m) return { key: m[1].toUpperCase(), text: m[2].trim() };
+      return { key: String.fromCharCode(65 + i), text: line.trim() };
+    }).filter(function (o) { return o.text; }) : [];
+    var updates = {
+      stem: stem,
+      chapter: el('shua-edit-chapter').value.trim(),
+      answer: el('shua-edit-answer').value.trim(),
+      analysis: el('shua-edit-analysis').value.trim(),
+      type: el('shua-edit-type').value,
+      options: options
+    };
+    await store().updateQuestion(q.qid, updates);
+    Object.assign(q, updates);
+    e.qid = null;
+    renderEditor();
+    toast('已保存');
+  }
+
+  async function shuaChapterApply() {
+    var from = Number(el('shua-chapter-from').value);
+    var to = Number(el('shua-chapter-to').value);
+    var name = el('shua-chapter-name').value.trim();
+    if (!from || !to || !name) { toast('填写题号范围与章节名'); return; }
+    var n = await store().setChapterRange(S.editor.bankId, Math.min(from, to), Math.max(from, to), name);
+    S.editor.list = await store().getQuestions(S.editor.bankId);
+    renderEditor();
+    toast('已更新 ' + n + ' 题');
+  }
+
+  // ── 全库搜索 ──────────────────────────────
+  var searchTimer = null;
+
+  function shuaSearch(term) {
+    clearTimeout(searchTimer);
+    var q = String(term || '').trim();
+    var box = el('shua-search-results');
+    if (!box) return;
+    if (!q) { box.innerHTML = ''; return; }
+    searchTimer = setTimeout(function () { runShuaSearch(q); }, 220);
+  }
+
+  async function runShuaSearch(term) {
+    var box = el('shua-search-results');
+    if (!S.searchCache) {
+      var banks = await store().getBanks();
+      var lists = await Promise.all(banks.map(function (b) { return store().getQuestions(b.id); }));
+      S.searchCache = banks.map(function (b, i) { return { bank: b, questions: lists[i] }; });
+    }
+    var low = term.toLowerCase();
+    var hits = [];
+    S.searchCache.forEach(function (entry) {
+      entry.questions.forEach(function (q) {
+        if (hits.length >= 30) return;
+        var hay = (q.stem + ' ' + (q.analysis || '') + ' ' + (q.options || []).map(function (o) { return o.text; }).join(' ')).toLowerCase();
+        if (hay.indexOf(low) >= 0) hits.push({ q: q, bank: entry.bank });
+      });
+    });
+    if (!hits.length) {
+      box.innerHTML = '<p class="text-xs text-center py-2" style="color: var(--text-tertiary);">没有匹配的题目</p>';
+      return;
+    }
+    box.innerHTML = hits.map(function (h) {
+      return '<button class="shua-wrong-item" onclick="shuaOpenDetail(' + h.q.qid + ',' + h.bank.id + ')">'
+        + '<span class="flex-1 min-w-0 text-left text-xs leading-relaxed" style="color: var(--text-secondary);">' + esc(h.q.stem.slice(0, 60)) + '</span>'
+        + '<span class="shua-pill shrink-0">' + esc(h.bank.name.slice(0, 6)) + '</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  // ── 全量导出 / 导入 ──────────────────────
+  async function shuaExportAllData() {
+    try {
+      var text = await store().exportAll();
+      var blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'shua-data-' + shuaDayKey(Date.now()).replace(/-/g, '') + '.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+      toast('已导出全部刷题数据');
+    } catch (e) {
+      toast('导出失败：' + (e.message || '未知错误'));
+    }
+  }
+
+  function shuaImportAllOpen() {
+    var input = el('shua-all-file');
+    if (input) input.click();
+  }
+
+  function shuaImportAllChosen(input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    input.value = '';
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = JSON.parse(String(reader.result || ''));
+        if (!data || data.app !== 'shiyongbujian-shua') throw new Error('不是本 App 导出的刷题数据');
+        S.pendingImport = data;
+        var bankCount = (data.banks || []).length;
+        var qCount = (data.questions || []).length;
+        var rCount = (data.records || []).length;
+        el('shua-data-summary').textContent = '共 ' + bankCount + ' 个题库、' + qCount + ' 道题'
+          + (rCount ? '、' + rCount + ' 条作答记录' : '') + '。追加导入只添加题库内容，覆盖导入会先清空现有题库与进度。';
+        el('shua-data-modal').classList.remove('hidden');
+      } catch (e) {
+        toast('读取失败：' + (e.message || '格式错误'));
+      }
+    };
+    reader.onerror = function () { toast('读取文件失败'); };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function shuaCloseDataModal() {
+    el('shua-data-modal').classList.add('hidden');
+    S.pendingImport = null;
+  }
+
+  async function shuaImportAll(mode) {
+    var data = S.pendingImport;
+    if (!data) return;
+    if (mode === 'replace' && !await confirmDialog('覆盖导入会清空现有题库、进度与标记，确定继续？')) return;
+    try {
+      await store().importAll(data, mode);
+      if (mode === 'replace') {
+        store().saveSession(null);
+        S.session = null;
+        S.current = null;
+      }
+      shuaCloseDataModal();
+      await renderShuaBanks();
+      await refreshShuaHeader();
+      toast(mode === 'replace' ? '已覆盖导入' : '已追加导入');
+    } catch (e) {
+      toast('导入失败：' + (e.message || '未知错误'));
+    }
+  }
+
   // ── 导出到全局（供 onclick 调用）────────────
   window.initShua = initShua;
   window.renderShua = renderShua;
@@ -1082,6 +1900,16 @@
   window.renderShuaWrong = renderShuaWrong;
   window.renderShuaStats = renderShuaStats;
   window.shuaPauseAutoNext = shuaPauseAutoNext;
+  window.shuaFlushSessionTime = shuaFlushSessionTime;
+  window.shuaToggleAutoPause = shuaToggleAutoPause;
+  window.shuaSetSpeed = shuaSetSpeed;
+  window.shuaSwipeStart = shuaSwipeStart;
+  window.shuaSwipeMove = shuaSwipeMove;
+  window.shuaSwipeEnd = shuaSwipeEnd;
+  window.shuaOpenDetail = shuaOpenDetail;
+  window.shuaCloseDetail = shuaCloseDetail;
+  window.shuaDetailFlag = shuaDetailFlag;
+  window.shuaToggleStar = shuaToggleStar;
   window.shuaOpenImport = shuaOpenImport;
   window.shuaCloseImportGuide = shuaCloseImportGuide;
   window.shuaCopyImportPrompt = shuaCopyImportPrompt;
@@ -1106,6 +1934,7 @@
   window.shuaSetStatus = shuaSetStatus;
   window.shuaToggleChapter = shuaToggleChapter;
   window.shuaToggleType = shuaToggleType;
+  window.shuaToggleSubtype = shuaToggleSubtype;
   window.shuaBeginStudy = shuaBeginStudy;
   window.shuaSelectOption = shuaSelectOption;
   window.shuaConfirmMulti = shuaConfirmMulti;
@@ -1124,4 +1953,37 @@
   window.shuaCloseExam = shuaCloseExam;
   window.shuaOpenWrong = shuaOpenWrong;
   window.shuaRetryWrong = shuaRetryWrong;
+  window.shuaStartGroup = shuaStartGroup;
+  window.shuaOpenGroupManager = shuaOpenGroupManager;
+  window.shuaCloseGroupManager = shuaCloseGroupManager;
+  window.shuaGroupNew = shuaGroupNew;
+  window.shuaGroupEdit = shuaGroupEdit;
+  window.shuaGroupCancel = shuaGroupCancel;
+  window.shuaGroupNameInput = shuaGroupNameInput;
+  window.shuaGroupToggleBank = shuaGroupToggleBank;
+  window.shuaGroupSave = shuaGroupSave;
+  window.shuaGroupDelete = shuaGroupDelete;
+  window.shuaMenuAppend = shuaMenuAppend;
+  window.shuaMenuEdit = shuaMenuEdit;
+  window.shuaOpenEditor = shuaOpenEditor;
+  window.shuaCloseEditor = shuaCloseEditor;
+  window.shuaEditorFilter = shuaEditorFilter;
+  window.shuaEditorPick = shuaEditorPick;
+  window.shuaEditorBack = shuaEditorBack;
+  window.shuaEditorSave = shuaEditorSave;
+  window.shuaChapterApply = shuaChapterApply;
+  window.shuaSearch = shuaSearch;
+  window.shuaExportAllData = shuaExportAllData;
+  window.shuaImportAllOpen = shuaImportAllOpen;
+  window.shuaImportAllChosen = shuaImportAllChosen;
+  window.shuaCloseDataModal = shuaCloseDataModal;
+  window.shuaImportAll = shuaImportAll;
+
+  window.shuaSetHeatWeeks = shuaSetHeatWeeks;
+  window.shuaRetryDay = shuaRetryDay;
+
+  // 切到后台时把本次刷题时长补记到当天
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') shuaFlushSessionTime();
+  });
 })();
