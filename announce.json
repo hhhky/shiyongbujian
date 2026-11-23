@@ -1,18 +1,18 @@
 {
   "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。usageEndpoint 写匿名使用统计的上报地址（留空则完全不上报）。",
-  "id": 21,
-  "title": "v1.2.8 已发布",
-  "body": "备忘支持完成勾选与日历色条，刷题可导入 Excel，新增暖色调主题。",
-  "notes": "备忘新增完成勾选，已完成沉底，可切换淡显 / 隐藏\n备忘按开始日期分组，点标题收起展开\n日历改为区间色条，跨周自动分段、同周自动堆叠，点色条直接编辑\n日历选中某天新建默认是当天任务；备忘页新建默认无截止\n修复未开启自动删除却显示自动删除、历史数据误删的问题\n备忘改用深绿渐变主色，子导航调整为「日历 → 备忘」\n刷题导入前先看说明，可复制豆包提示词，支持 Excel 与 CSV\n所有弹窗统一米白底、黄渐变主按钮与新的升降动画\n新增「暖色调」主题，全部页面适配",
+  "id": 22,
+  "title": "v1.2.9 已发布",
+  "body": "刷题支持滑动切题、题目详情与题库组，统计和导入也一并增强。",
+  "notes": "刷题支持左右滑动切题与题目详情，速刷 1–10 秒可调并可暂停\n新增刷题时长、8/16/32 周热力图、每日明细与「当日错题」重刷\n测试报告新增分章节正确率，错题可点开看解析\n新增题库组、追加题目、题目与章节编辑、全库搜索\n新增重点标记与 A1/A2/A3/B 亚型筛选\n支持导入文字型 Word 与 PDF，支持全量数据导出与恢复\n下载更新改用更快的加速线路，修复低速线路被误判放弃的问题",
   "button": "",
-  "url": "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.8/shiyongbujian-v1.2.8.apk",
+  "url": "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk",
   "urls": [
-    "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.8/shiyongbujian-v1.2.8.apk",
-    "https://gh-proxy.org/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.8/shiyongbujian-v1.2.8.apk",
+    "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk",
+    "https://gh-proxy.org/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.8/shiyongbujian-v1.2.8.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk"
   ],
-  "version": "1.2.8",
+  "version": "1.2.9",
   "minVersion": "",
   "force": false,
   "usageEndpoint": ""
