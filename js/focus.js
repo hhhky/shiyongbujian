@@ -798,6 +798,338 @@ function setFocusCustomRange() {
   renderStats();
 }
 
+// ── 数据分析增强：目标 / 效率 / 周同比 / 时段 / 任务 ──
+var focusGoals = { dailyMin: 0, weeklyMin: 0 };
+var focusTaskInsightExpanded = false;
+
+function loadFocusGoals() {
+  try {
+    var g = JSON.parse(localStorage.getItem('focus-goals') || '{}');
+    focusGoals.dailyMin = Math.max(0, Number(g.dailyMin) || 0);
+    focusGoals.weeklyMin = Math.max(0, Number(g.weeklyMin) || 0);
+  } catch (e) {
+    focusGoals = { dailyMin: 0, weeklyMin: 0 };
+  }
+}
+
+function focusDayKey(ts) {
+  var d = new Date(ts);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function focusDayKeyTs(key) {
+  var p = key.split('-');
+  return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])).getTime();
+}
+
+function focusMetricHtml(label, value, sub) {
+  return '<div><p class="focus-metric-label">' + label + '</p>'
+    + '<p class="focus-metric-value">' + value + '</p>'
+    + (sub ? '<p class="text-[11px] mt-0.5 truncate" style="color: var(--text-tertiary);">' + esc(sub) + '</p>' : '')
+    + '</div>';
+}
+
+function renderFocusGoalCard() {
+  var box = document.getElementById('focus-goal-card');
+  if (!box) return;
+  var s = focusSummary();
+  var dailyMin = focusGoals.dailyMin;
+  var weeklyMin = focusGoals.weeklyMin;
+  var todayMin = Math.round(s.todaySec / 60);
+  var weekMin = Math.round(s.weekSec / 60);
+  var hasGoal = dailyMin > 0;
+  var pct = hasGoal ? Math.min(100, Math.round(todayMin / dailyMin * 100)) : 0;
+  var deg = Math.round(pct * 3.6);
+  var ring = hasGoal
+    ? 'conic-gradient(var(--focus-accent) 0deg ' + deg + 'deg, rgba(128,128,128,0.16) ' + deg + 'deg 360deg)'
+    : 'conic-gradient(rgba(128,128,128,0.16) 0deg 360deg)';
+
+  box.innerHTML = '<div class="focus-panel flex items-center gap-4">'
+    + '<div class="focus-goal-ring" style="background:' + ring + '"><span>' + (hasGoal ? pct + '%' : '—') + '</span></div>'
+    + '<div class="flex-1 min-w-0">'
+      + '<p class="text-sm font-bold" style="color: var(--text-primary);">专注目标</p>'
+      + (hasGoal
+        ? '<p class="text-xs mt-1" style="color: var(--text-secondary);">今日 ' + todayMin + ' / ' + dailyMin + ' 分钟</p>'
+        : '<p class="text-xs mt-1" style="color: var(--text-secondary);">还没有设定每日目标</p>')
+      + (weeklyMin > 0
+        ? '<p class="text-xs mt-0.5" style="color: var(--text-tertiary);">本周 ' + weekMin + ' / ' + weeklyMin + ' 分钟</p>'
+        : '')
+      + '<button onclick="openFocusGoalModal()" class="text-[11px] font-semibold mt-2" style="color: var(--focus-accent);">'
+        + (hasGoal || weeklyMin > 0 ? '调整目标' : '设定目标') + '</button>'
+    + '</div></div>';
+}
+
+function renderFocusEfficiencyCard() {
+  var box = document.getElementById('focus-efficiency-card');
+  if (!box) return;
+  var total = 0;
+  var upSec = 0;
+  var downSec = 0;
+  var manualSec = 0;
+  var longest = null;
+  var downCount = 0;
+  var downDone = 0;
+  focusSessions.forEach(function (s) {
+    var sec = s.durationSec || 0;
+    total += sec;
+    if (!longest || sec > (longest.durationSec || 0)) longest = s;
+    if (s.mode === 'manual') manualSec += sec;
+    else if (s.mode === 'down') { downSec += sec; downCount++; if (s.completed) downDone++; }
+    else upSec += sec;
+  });
+  var count = focusSessions.length;
+  var avg = count ? Math.round(total / count) : 0;
+  var tomatoRate = downCount ? Math.round(downDone / downCount * 100) : 0;
+  var pct = function (v) { return total > 0 ? Math.round(v / total * 100) : 0; };
+
+  box.innerHTML = '<div class="focus-panel">'
+    + '<h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">效率指标</h3>'
+    + '<div class="grid grid-cols-2 gap-3">'
+      + focusMetricHtml('专注次数', count + ' 次')
+      + focusMetricHtml('平均单次', count ? formatFocusDuration(avg) : '—')
+      + focusMetricHtml('最长单次', longest ? formatFocusDuration(longest.durationSec || 0) : '—', longest ? (longest.taskName || '未命名任务') : '')
+      + focusMetricHtml('番茄完成率', downCount ? tomatoRate + '%' : '—')
+    + '</div>'
+    + '<div class="focus-stack mt-3">'
+      + '<i style="width:' + pct(upSec) + '%;background:#f0522d"></i>'
+      + '<i style="width:' + pct(downSec) + '%;background:#f59e0b"></i>'
+      + '<i style="width:' + pct(manualSec) + '%;background:#94a3b8"></i>'
+    + '</div>'
+    + '<div class="flex items-center gap-3 mt-2 text-[11px]" style="color: var(--text-tertiary);">'
+      + '<span>正计时 ' + formatFocusDuration(upSec) + '</span>'
+      + '<span>番茄 ' + formatFocusDuration(downSec) + '</span>'
+      + '<span>补录 ' + formatFocusDuration(manualSec) + '</span>'
+    + '</div>'
+  + '</div>';
+}
+
+function focusPercentText(cur, prev) {
+  if (prev <= 0) return '上周无记录';
+  var diff = Math.round((cur - prev) / prev * 100);
+  return (diff >= 0 ? '+' : '') + diff + '%';
+}
+
+function focusStreakInfo() {
+  var days = {};
+  focusSessions.forEach(function (s) {
+    var ts = focusSessionTs(s);
+    if (ts) days[focusDayKey(ts)] = true;
+  });
+  var keys = Object.keys(days).sort();
+  var longest = 0;
+  var run = 0;
+  var prevTs = null;
+  keys.forEach(function (k) {
+    var t = focusDayKeyTs(k);
+    run = (prevTs !== null && t - prevTs === 86400000) ? run + 1 : 1;
+    if (run > longest) longest = run;
+    prevTs = t;
+  });
+  var current = 0;
+  var cursor = focusDayKeyTs(focusDayKey(Date.now()));
+  if (!days[focusDayKey(cursor)]) cursor -= 86400000;
+  while (days[focusDayKey(cursor)]) {
+    current++;
+    cursor -= 86400000;
+  }
+  return { current: current, longest: longest };
+}
+
+function renderFocusWeekCard() {
+  var box = document.getElementById('focus-week-card');
+  if (!box) return;
+  var now = Date.now();
+  var today0 = startOfDay(now);
+  var mondayOffset = (new Date().getDay() + 6) % 7;
+  var weekStart = today0 - mondayOffset * 86400000;
+  var elapsed = now - weekStart;
+  var lastStart = weekStart - 7 * 86400000;
+  var lastEnd = lastStart + elapsed;
+
+  var cur = { sec: 0, count: 0 };
+  var prev = { sec: 0, count: 0 };
+  focusSessions.forEach(function (s) {
+    var ts = focusSessionTs(s);
+    if (!ts) return;
+    var sec = s.durationSec || 0;
+    if (ts >= weekStart && ts <= now) { cur.sec += sec; cur.count++; }
+    else if (ts >= lastStart && ts < lastEnd) { prev.sec += sec; prev.count++; }
+  });
+
+  var streak = focusStreakInfo();
+  var secText = prev.sec > 0 ? focusPercentText(cur.sec, prev.sec) : '上周无记录';
+  var cntText = prev.count > 0 ? focusPercentText(cur.count, prev.count) : '上周无记录';
+
+  box.innerHTML = '<div class="focus-panel">'
+    + '<h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">本周对比</h3>'
+    + '<div class="grid grid-cols-2 gap-3">'
+      + focusMetricHtml('时长', secText, '本周 ' + formatFocusDuration(cur.sec))
+      + focusMetricHtml('次数', cntText, '本周 ' + cur.count + ' 次')
+    + '</div>'
+    + '<div class="flex items-center justify-between mt-3 text-xs" style="color: var(--text-secondary);">'
+      + '<span>连续专注 <b style="color: var(--focus-accent);">' + streak.current + '</b> 天</span>'
+      + '<span>最长 <b style="color: var(--text-primary);">' + streak.longest + '</b> 天</span>'
+    + '</div>'
+  + '</div>';
+}
+
+function renderFocusHourInsight() {
+  var box = document.getElementById('focus-hour-insight');
+  if (!box) return;
+  var hours = new Array(24);
+  for (var i = 0; i < 24; i++) hours[i] = 0;
+  var weekday = { sec: 0, count: 0, days: {} };
+  var weekend = { sec: 0, count: 0, days: {} };
+
+  focusSessions.forEach(function (s) {
+    var ts = focusSessionTs(s);
+    if (!ts) return;
+    var d = new Date(ts);
+    var sec = s.durationSec || 0;
+    hours[d.getHours()] += sec;
+    var bucket = (d.getDay() === 0 || d.getDay() === 6) ? weekend : weekday;
+    bucket.sec += sec;
+    bucket.count++;
+    bucket.days[focusDayKey(ts)] = true;
+  });
+
+  var peak = 0;
+  for (var h = 1; h < 24; h++) if (hours[h] > hours[peak]) peak = h;
+  var max = Math.max.apply(null, hours.concat([1]));
+  var peakText = hours[peak] > 0
+    ? String(peak).padStart(2, '0') + ':00–' + String((peak + 1) % 24).padStart(2, '0') + ':00，累计 ' + Math.round(hours[peak] / 60) + ' 分钟'
+    : '暂无足够记录';
+
+  var bars = hours.map(function (sec, idx) {
+    var hgt = Math.max(2, Math.round(sec / max * 56));
+    var color = idx === peak && sec > 0 ? 'var(--focus-accent)' : 'rgba(240,82,45,0.32)';
+    return '<div title="' + idx + ':00 ' + Math.round(sec / 60) + ' 分钟" style="flex:1;display:flex;align-items:flex-end;height:60px;">'
+      + '<div style="width:100%;height:' + hgt + 'px;background:' + color + ';border-radius:3px 3px 0 0;"></div></div>';
+  }).join('');
+
+  var avgText = function (b) {
+    var n = Object.keys(b.days).length;
+    return n ? formatFocusDuration(Math.round(b.sec / n)) : '—';
+  };
+
+  box.innerHTML = '<div class="focus-panel">'
+    + '<div class="flex items-center justify-between gap-2 mb-1">'
+      + '<h3 class="text-sm font-bold" style="color: var(--text-primary);">时段洞察</h3>'
+      + '<span class="text-[11px]" style="color: var(--text-tertiary);">累计</span>'
+    + '</div>'
+    + '<p class="text-xs mb-2" style="color: var(--text-secondary);">峰值 ' + peakText + '</p>'
+    + '<div class="flex items-end gap-0.5 mb-3">' + bars + '</div>'
+    + '<div class="grid grid-cols-2 gap-3">'
+      + focusMetricHtml('工作日', formatFocusDuration(weekday.sec), weekday.count + ' 次 · 日均 ' + avgText(weekday))
+      + focusMetricHtml('周末', formatFocusDuration(weekend.sec), weekend.count + ' 次 · 日均 ' + avgText(weekend))
+    + '</div>'
+  + '</div>';
+}
+
+function focusToggleTaskInsight() {
+  focusTaskInsightExpanded = !focusTaskInsightExpanded;
+  renderFocusTaskInsight();
+}
+
+function renderFocusTaskInsight() {
+  var box = document.getElementById('focus-task-insight');
+  if (!box) return;
+  var map = {};
+  focusSessions.forEach(function (s) {
+    var key = s.taskId ? ('id:' + s.taskId) : ('name:' + (s.taskName || '未命名任务'));
+    var item = map[key];
+    if (!item) {
+      item = map[key] = { name: s.taskName || '未命名任务', taskId: s.taskId || null, sec: 0, count: 0, last: 0 };
+    }
+    item.sec += s.durationSec || 0;
+    item.count++;
+    item.last = Math.max(item.last, focusSessionTs(s));
+  });
+  var rows = Object.keys(map).map(function (k) { return map[k]; })
+    .sort(function (a, b) { return b.sec - a.sec; });
+  if (!rows.length) {
+    box.innerHTML = '<div class="focus-panel"><h3 class="text-sm font-bold mb-2" style="color: var(--text-primary);">任务洞察</h3>'
+      + '<p class="text-xs" style="color: var(--text-tertiary);">还没有专注记录</p></div>';
+    return;
+  }
+  var maxSec = Math.max(1, rows[0].sec);
+  var shown = focusTaskInsightExpanded ? rows : rows.slice(0, 5);
+  var html = shown.map(function (r) {
+    var task = (r.taskId && typeof focusTaskById === 'function') ? focusTaskById(r.taskId) : null;
+    var color = (task && task.color) || '#94a3b8';
+    var avg = Math.round(r.sec / r.count);
+    var lastText = r.last ? (new Date(r.last).getMonth() + 1) + '-' + new Date(r.last).getDate() : '—';
+    return '<div class="mb-3 last:mb-0">'
+      + '<div class="flex items-center gap-2 mb-1">'
+        + '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>'
+        + '<span class="flex-1 min-w-0 truncate text-xs" style="color: var(--text-primary);">' + esc(r.name) + '</span>'
+        + '<span class="text-xs font-semibold shrink-0" style="color: var(--text-secondary);">' + formatFocusDuration(r.sec) + '</span>'
+      + '</div>'
+      + '<p class="text-[11px] mb-1" style="color: var(--text-tertiary);margin-left:16px;">'
+        + r.count + ' 次 · 平均 ' + formatFocusDuration(avg) + ' · 最近 ' + lastText
+      + '</p>'
+      + '<div class="shua-bar" style="margin-left:16px;"><div class="shua-bar-fill" style="width:' + Math.round(r.sec / maxSec * 100) + '%;background:' + color + ';"></div></div>'
+    + '</div>';
+  }).join('');
+
+  box.innerHTML = '<div class="focus-panel">'
+    + '<div class="flex items-center justify-between gap-2 mb-3">'
+      + '<h3 class="text-sm font-bold" style="color: var(--text-primary);">任务洞察</h3>'
+      + (rows.length > 5
+        ? '<button onclick="focusToggleTaskInsight()" class="text-[11px] font-semibold" style="color: var(--focus-accent);">'
+          + (focusTaskInsightExpanded ? '收起' : '展开全部（' + rows.length + '）') + '</button>'
+        : '')
+    + '</div>'
+    + html
+  + '</div>';
+}
+
+function renderFocusGoalModalValues() {
+  loadFocusGoals();
+  var d = document.getElementById('focus-goal-daily');
+  var w = document.getElementById('focus-goal-weekly');
+  if (d) d.value = focusGoals.dailyMin || '';
+  if (w) w.value = focusGoals.weeklyMin || '';
+}
+
+function openFocusGoalModal() {
+  renderFocusGoalModalValues();
+  var modal = document.getElementById('focus-goal-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function hideFocusGoalModal() {
+  var modal = document.getElementById('focus-goal-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function setFocusGoalQuick(kind, minutes) {
+  var input = document.getElementById(kind === 'daily' ? 'focus-goal-daily' : 'focus-goal-weekly');
+  if (input) input.value = minutes;
+}
+
+function saveFocusGoals() {
+  var d = Math.max(0, Number(document.getElementById('focus-goal-daily').value) || 0);
+  var w = Math.max(0, Number(document.getElementById('focus-goal-weekly').value) || 0);
+  try {
+    localStorage.setItem('focus-goals', JSON.stringify({ dailyMin: d, weeklyMin: w }));
+  } catch (e) { /* ignore */ }
+  focusGoals = { dailyMin: d, weeklyMin: w };
+  hideFocusGoalModal();
+  renderFocusGoalCard();
+  toast('目标已保存');
+}
+
+function renderFocusInsights() {
+  if (!focusDataReady) return;
+  loadFocusGoals();
+  renderFocusGoalCard();
+  renderFocusEfficiencyCard();
+  renderFocusWeekCard();
+  renderFocusHourInsight();
+  renderFocusTaskInsight();
+}
+
 function renderStats() {
   if (!focusDataReady) return;
   if (!document.getElementById('page-stats')) return;
@@ -810,6 +1142,7 @@ function renderStats() {
   drawHourChart();
   drawHeatmap();
   drawMonthlyChart();
+  renderFocusInsights();
 }
 
 function updateStatsRangeUI() {

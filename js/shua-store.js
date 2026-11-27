@@ -6,7 +6,7 @@
   'use strict';
 
   const DB_NAME = 'ReviewAppDB';
-  const DB_VERSION = 7;
+  const DB_VERSION = (typeof window.__DB_VERSION === 'number') ? window.__DB_VERSION : 8;
   const SESSION_KEY = 'shua-session';
   const RECORD_LIMIT = 6000;
 
@@ -396,6 +396,30 @@
     return getAll('shua_time');
   }
 
+  // ── 删除作答记录 ─────────────────────────
+  function deleteRecordsByBank(bankId) {
+    const id = Number(bankId);
+    return getByIndex('shua_records', 'bankId', id).then(function (rows) {
+      return openDBReq().then(function (db) {
+        return new Promise(function (resolve, reject) {
+          const tx = db.transaction('shua_records', 'readwrite');
+          const store = tx.objectStore('shua_records');
+          rows.forEach(function (r) { store.delete(r.id); });
+          tx.oncomplete = function () { db.close(); resolve(rows.length); };
+          tx.onerror = function () { db.close(); reject(tx.error); };
+        });
+      });
+    });
+  }
+
+  function deleteAllRecords() {
+    return op('shua_records', 'readonly', function (s) { return s.count(); }).then(function (count) {
+      return op('shua_records', 'readwrite', function (s) { return s.clear(); }).then(function () {
+        return count || 0;
+      });
+    });
+  }
+
   // ── 全量导出 / 导入 ───────────────────────
   function exportAll() {
     return Promise.all([
@@ -472,6 +496,7 @@
     getBanks, getBank, addBank, renameBank, removeBank, getQuestions,
     addQuestions, updateQuestion, setChapterRange,
     getRecords, getRecordsByBank, addRecord,
+    deleteRecordsByBank, deleteAllRecords,
     getFlags, getFlag, setFlag,
     getGroups, addGroup, updateGroup, removeGroup,
     addStudySeconds, getStudyTime,

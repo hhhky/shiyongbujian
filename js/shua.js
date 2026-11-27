@@ -1429,6 +1429,8 @@
     var records = res[0];
     var banks = res[1];
     var timeRows = res[2] || [];
+    var recordCountEl = el('shua-record-count');
+    if (recordCountEl) recordCountEl.textContent = '共 ' + records.length + ' 条';
     var questionCount = banks.reduce(function (n, b) { return n + (b.count || 0); }, 0);
     var stats = core().statsOf(records, null);
     var lastResult = core().lastResultMap(records);
@@ -1819,6 +1821,42 @@
     }).join('');
   }
 
+  // ── 作答记录批量删除 ─────────────────────
+  async function shuaOpenDeleteRecords() {
+    var res = await Promise.all([store().getBanks(), store().getRecords()]);
+    var banks = res[0];
+    var records = res[1];
+    var sel = el('shua-records-bank');
+    if (sel) {
+      sel.innerHTML = '<option value="">全部题库</option>' + banks.map(function (b) {
+        return '<option value="' + b.id + '">' + esc(b.name) + '（' + (b.count || 0) + ' 题）</option>';
+      }).join('');
+    }
+    var summary = el('shua-records-summary');
+    if (summary) summary.textContent = '当前共 ' + records.length + ' 条作答记录，可选择按题库删除或全部清空。';
+    el('shua-records-modal').classList.remove('hidden');
+  }
+
+  function shuaCloseDeleteRecords() {
+    el('shua-records-modal').classList.add('hidden');
+  }
+
+  async function shuaConfirmDeleteRecords() {
+    var raw = el('shua-records-bank').value;
+    var count = 0;
+    try {
+      if (raw) count = await store().deleteRecordsByBank(Number(raw));
+      else count = await store().deleteAllRecords();
+    } catch (e) {
+      toast('删除失败：' + (e.message || '未知错误'));
+      return;
+    }
+    shuaCloseDeleteRecords();
+    toast('已删除 ' + count + ' 条作答记录');
+    await renderShuaStats();
+    await renderShuaWrong();
+  }
+
   // ── 全量导出 / 导入 ──────────────────────
   async function shuaExportAllData() {
     try {
@@ -1978,6 +2016,9 @@
   window.shuaImportAllChosen = shuaImportAllChosen;
   window.shuaCloseDataModal = shuaCloseDataModal;
   window.shuaImportAll = shuaImportAll;
+  window.shuaOpenDeleteRecords = shuaOpenDeleteRecords;
+  window.shuaCloseDeleteRecords = shuaCloseDeleteRecords;
+  window.shuaConfirmDeleteRecords = shuaConfirmDeleteRecords;
 
   window.shuaSetHeatWeeks = shuaSetHeatWeeks;
   window.shuaRetryDay = shuaRetryDay;

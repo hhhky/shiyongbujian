@@ -1,5 +1,7 @@
 const DB_NAME = 'ReviewAppDB';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
+// 其他模块（如刷题存储）共用同一个版本号，避免各处写死后不一致
+window.__DB_VERSION = DB_VERSION;
 
 // 统一的数据库结构升级逻辑（openDB / dbOp 共用）
 function upgradeSchema(db, oldVersion, tx) {
@@ -85,6 +87,27 @@ function upgradeSchema(db, oldVersion, tx) {
     }
     if (!db.objectStoreNames.contains('shua_groups')) {
       db.createObjectStore('shua_groups', { keyPath: 'id', autoIncrement: true });
+    }
+  }
+
+  // v8：自定义背景图资源表 + 备忘提醒字段
+  if (oldVersion < 8) {
+    if (!db.objectStoreNames.contains('app_assets')) {
+      db.createObjectStore('app_assets', { keyPath: 'key' });
+    }
+    // 旧备忘补 null，不删字段、不重排；读路径 normalizeMemo 还会再兜底一次
+    if (tx && db.objectStoreNames.contains('memos')) {
+      const memoStore = tx.objectStore('memos');
+      memoStore.openCursor().onsuccess = function (e) {
+        const cursor = e.target.result;
+        if (!cursor) return;
+        const m = cursor.value;
+        if (m.remindAt === undefined) m.remindAt = null;
+        if (m.remindOffsetMin === undefined) m.remindOffsetMin = null;
+        if (m.remindFiredAt === undefined) m.remindFiredAt = null;
+        cursor.update(m);
+        cursor.continue();
+      };
     }
   }
 }
@@ -203,10 +226,14 @@ function normalizeMemo(m) {
   m.startDate = (typeof m.startDate === 'number' && m.startDate > 0) ? m.startDate : created;
   // 历史数据里可能存成 "false" / 0 / "0"，只有明确 true 才允许自动删除
   m.autoDelete = m.autoDelete === true;
+  // 提醒字段：老数据没有就给 null，避免 NaN 参与比较
+  m.remindAt = (typeof m.remindAt === 'number' && m.remindAt > 0) ? m.remindAt : null;
+  m.remindOffsetMin = (typeof m.remindOffsetMin === 'number') ? m.remindOffsetMin : null;
+  m.remindFiredAt = (typeof m.remindFiredAt === 'number' && m.remindFiredAt > 0) ? m.remindFiredAt : null;
   return m;
 }
 
-async function addMemo(title, content, deadline, autoDelete, courseId, startDate) {
+async function addMemo(title, content, deadline, autoDelete, courseId, startDate, remindAt, remindOffsetMin) {
   return dbOp('memos', 'readwrite', (s) => s.add({
     title: title,
     content: content,
@@ -215,6 +242,9 @@ async function addMemo(title, content, deadline, autoDelete, courseId, startDate
     done: false,
     doneAt: null,
     startDate: (typeof startDate === 'number' && startDate > 0) ? startDate : Date.now(),
+    remindAt: (typeof remindAt === 'number' && remindAt > 0) ? remindAt : null,
+    remindOffsetMin: (typeof remindOffsetMin === 'number') ? remindOffsetMin : null,
+    remindFiredAt: null,
     courseId: courseId || null,
     meta: {},
     createdAt: Date.now()
@@ -252,6 +282,13 @@ async function updateMemo(id, updates) {
           memo.doneAt = memo.done ? Date.now() : null;
         }
         if (updates.doneAt !== undefined) memo.doneAt = updates.doneAt || null;
+        if (updates.remindAt !== undefined) {
+          const next = (typeof updates.remindAt === 'number' && updates.remindAt > 0) ? updates.remindAt : null;
+          if (next !== memo.remindAt) memo.remindFiredAt = null; // 提醒时间变了就重新触发
+          memo.remindAt = next;
+        }
+        if (updates.remindOffsetMin !== undefined) memo.remindOffsetMin = updates.remindOffsetMin;
+        if (updates.remindFiredAt !== undefined) memo.remindFiredAt = updates.remindFiredAt || null;
         store.put(normalizeMemo(memo));
       };
       getReq.onerror = function() { db.close(); reject(getReq.error); };
@@ -466,4 +503,18 @@ async function deleteCourse(id) {
 async function getMemosByCourse(courseId) {
   const memos = await dbOp('memos', 'readonly', (s) => s.getAll());
   return (memos || []).map(normalizeMemo).filter((m) => m.courseId === courseId);
+}
+
+// ── App assets（自定义背景图等）──────────────
+// 只存 Blob，不进 localStorage，避免占用 main-thread 的 5MB 配额
+async function putAppAsset(key, blob) {
+  return dbOp('app_assets', 'readwrite', (s) => s.put({ key: key, blob: blob, updatedAt: Date.now() }));
+}
+
+async function getAppAsset(key) {
+  return dbOp('app_assets', 'readonly', (s) => s.get(key));
+}
+
+async function deleteAppAsset(key) {
+  return dbOp('app_assets', 'readwrite', (s) => s.delete(key));
 }

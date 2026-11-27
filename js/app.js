@@ -94,7 +94,10 @@ const WIDGETS = [
 let currentWidget = null;
 let currentWorkflowId = null;
 let editingMemoId = null;
-let memoFilter = 'all'; // all | linked
+let memoFilter = 'all'; // all | linked | due
+let memoDueCount = 0;      // 已到提醒时间（含已处理）
+let memoUnfiredCount = 0;  // 其中还没弹过窗的
+let memoRemindShown = [];  // 当前弹窗里展示了 id，关闭时统一标记已提醒
 let workflowModalMode = null;
 let editingNodeId = null;
 let calendarYear = null;
@@ -113,7 +116,10 @@ function renderWidgets() {
   }
   var filesCount = 0;
   grid.innerHTML = WIDGETS.map(function(w) {
+    var dueBadge = (w.id === 'memo' && memoUnfiredCount > 0)
+      ? '<span class="widget-due-badge">' + memoUnfiredCount + '</span>' : '';
     return `<div onclick="enterWidget('${w.id}')" class="widget-card-outer rounded-[24px] p-4 cursor-pointer card-hover">
+      ${dueBadge}
       <div class="widget-icon-wrap mb-2">${w.icon}</div>
       <h3 class="font-bold text-[15px] mb-1 leading-snug" style="color: var(--card-text);">${esc(w.name)}</h3>
       <p class="text-[11px] leading-relaxed widget-card-desc" style="color: var(--card-subtext);">${w.desc}</p>
@@ -218,6 +224,9 @@ function androidBackCloseOverlay() {
     ['shua-group-modal', 'shuaCloseGroupManager'],
     ['shua-editor-modal', 'shuaCloseEditor'],
     ['shua-data-modal', 'shuaCloseDataModal'],
+    ['memo-remind-modal', 'memoRemindDismiss'],
+    ['focus-goal-modal', 'hideFocusGoalModal'],
+    ['shua-records-modal', 'shuaCloseDeleteRecords'],
     ['shua-detail-modal', 'shuaCloseDetail'],
     ['shua-rename-modal', 'shuaCancelRename'],
     ['shua-bank-menu-modal', 'shuaCloseBankMenu'],
@@ -403,10 +412,108 @@ function hideAiBetaModal() {
   mask.classList.remove('flex');
 }
 
+// ── 自定义背景图 ──────────────────────────
+// 图片压缩后以 Blob 存 app_assets，渲染时用 objectURL，卸载时释放
+var customBgUrl = null;
+
+function compressBackgroundImage(file, maxSide, quality) {
+  return new Promise(function(resolve, reject) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var w = img.naturalWidth || img.width;
+      var h = img.naturalHeight || img.height;
+      if (!w || !h) { reject(new Error('图片尺寸异常')); return; }
+      var scale = Math.min(1, maxSide / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * scale));
+      var ch = Math.max(1, Math.round(h * scale));
+      var canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.drawImage(img, 0, 0, cw, ch);
+      canvas.toBlob(function(blob) {
+        if (blob) resolve(blob); else reject(new Error('压缩失败'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('图片无法读取'));
+    };
+    img.src = url;
+  });
+}
+
+function applyCustomBackgroundBlob(blob) {
+  if (customBgUrl) {
+    URL.revokeObjectURL(customBgUrl);
+    customBgUrl = null;
+  }
+  customBgUrl = URL.createObjectURL(blob);
+  var layer = document.getElementById('custom-bg');
+  if (layer) layer.style.backgroundImage = 'url("' + customBgUrl + '")';
+  document.documentElement.setAttribute('data-custom-bg', '1');
+  var status = document.getElementById('bg-status');
+  if (status) status.textContent = '已设置自定义背景图';
+}
+
+function clearCustomBackgroundUI() {
+  if (customBgUrl) {
+    URL.revokeObjectURL(customBgUrl);
+    customBgUrl = null;
+  }
+  var layer = document.getElementById('custom-bg');
+  if (layer) layer.style.backgroundImage = '';
+  document.documentElement.removeAttribute('data-custom-bg');
+  var status = document.getElementById('bg-status');
+  if (status) status.textContent = '当前未设置背景图';
+}
+
+async function loadCustomBackground() {
+  try {
+    var asset = await getAppAsset('bg');
+    if (asset && asset.blob) applyCustomBackgroundBlob(asset.blob);
+    else clearCustomBackgroundUI();
+  } catch (e) {
+    clearCustomBackgroundUI();
+  }
+}
+
+async function pickCustomBackground(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  input.value = '';
+  try {
+    var blob = await compressBackgroundImage(file, 1600, 0.7);
+    await putAppAsset('bg', blob);
+    applyCustomBackgroundBlob(blob);
+    toast('背景图已更新');
+  } catch (e) {
+    toast('图片处理失败，换一张试试');
+  }
+}
+
+async function removeCustomBackground() {
+  try {
+    await deleteAppAsset('bg');
+  } catch (e) {
+    /* 删除失败也让界面先恢复 */
+  }
+  clearCustomBackgroundUI();
+  toast('已移除背景图');
+}
+
+window.addEventListener('unload', function() {
+  if (customBgUrl) URL.revokeObjectURL(customBgUrl);
+});
+
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('app-theme', theme);
-  var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e', warm: '#fdf7f0' };
+  var colors = { glass: '#edeff4', white: '#ffffff', dark: '#1c1c1e', warm: '#fdf7f0', sky: '#eaf6ff', grass: '#eefaf0', cherry: '#fff2f7' };
   document.querySelector('meta[name="theme-color"]').setAttribute('content', colors[theme] || '#e5e5ea');
   // 系统栏（状态栏/导航栏）图标黑白与底色跟随主题
   if (typeof window.syncSystemBars === 'function') window.syncSystemBars(theme);
@@ -423,7 +530,7 @@ function applyTheme(theme) {
 
 function updateThemeSelection() {
   var current = document.documentElement.getAttribute('data-theme') || 'glass';
-  ['glass', 'white', 'dark', 'warm'].forEach(function(t) {
+  ['glass', 'white', 'dark', 'warm', 'sky', 'grass', 'cherry'].forEach(function(t) {
     var opt = document.getElementById('theme-opt-' + t);
     if (opt) {
       var active = current === t;
@@ -434,13 +541,21 @@ function updateThemeSelection() {
   // 关于首页条目上显示当前主题
   var entry = document.getElementById('about-theme-entry');
   if (entry) {
-    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '暗黑 · 护眼深色', warm: '暖色调 · 米杏暖光' };
+    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '暗黑 · 护眼深色', warm: '暖色调 · 米杏暖光', sky: '天空蓝 · 清透晴空', grass: '青草绿 · 清新草甸', cherry: '樱花粉 · 柔和樱色' };
     entry.textContent = names[current] || names.glass;
   }
 }
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.3.0': [
+    '新增天空蓝、青草绿、樱花粉三套主题，并支持设置自定义背景图',
+    '备忘新增到期提醒：应用内弹窗、首页角标、到期横幅与「已到期」筛选',
+    '专注统计新增目标进度、效率指标、周同比与连续天数、时段洞察、任务洞察',
+    '刷题统计支持按题库批量删除作答记录，删除后自动刷新正确率与错题本',
+    '关于页改为纵向列表，条目更易点按',
+    '修复刷题模块数据库版本写死导致应用升级后打不开题库的问题'
+  ],
   '1.2.9': [
     '刷题支持左右滑动切题、题目详情查看，速刷间隔可在 1–10 秒间调整并暂停',
     '刷题新增刷题时长、8/16/32 周热力图、每日明细与「当日错题」重刷，测试报告可看分章节正确率',
@@ -587,6 +702,9 @@ async function init() {
   el = document.getElementById('page-home'); if (el) el.classList.add('active');
   if (document.getElementById('sidebar-tabs-container')) document.getElementById('sidebar-tabs-container').innerHTML = '';
   if (document.getElementById('bottom-nav-tabs-container')) document.getElementById('bottom-nav-tabs-container').innerHTML = '';
+  // 自定义背景图与备忘到期提醒都在启动时恢复一次
+  if (typeof loadCustomBackground === 'function') await loadCustomBackground();
+  if (typeof checkMemoReminders === 'function') checkMemoReminders();
 }
 
 async function refreshAll() {
@@ -1518,8 +1636,10 @@ function memoCardHtml(m) {
       + '<span>' + esc(course ? course.name : '关联课程已删除') + '</span></button></div>';
   }
   var dateLabel = new Date(memoStartTs(m)).toLocaleDateString('zh-CN');
+  var isDue = !m.done && m.remindAt && m.remindAt <= Date.now();
   return '<div class="theme-card rounded-[20px] p-4 card-hover memo-card' + (m.done ? ' is-done' : '') + '">'
     + '<div class="flex items-start gap-2.5">'
+      + (isDue ? '<span class="memo-due-dot"></span>' : '')
       + '<button onclick="event.stopPropagation();toggleMemoDone(' + m.id + ', ' + (m.done ? 'false' : 'true') + ')" class="memo-check' + (m.done ? ' on' : '') + '" title="' + (m.done ? '标记为未完成' : '标记为完成') + '">'
         + '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>'
       + '</button>'
@@ -1548,6 +1668,7 @@ async function toggleMemoDone(id, done) {
   await updateMemo(id, { done: done === true });
   if (done === true && memoDoneView === 'hide') toast('已完成，已按设置隐藏');
   await renderMemos();
+  if (typeof refreshMemoReminders === 'function') await refreshMemoReminders();
   var activePage = document.querySelector('.page.active');
   if (activePage && activePage.id === 'page-calendar') renderCalendar();
   var memos = await getMemos();
@@ -1568,6 +1689,11 @@ function showAddMemo(courseId) {
   // 日历页新建默认是当天任务：开始与截止都是选中的那一天
   document.getElementById('memo-deadline-input').value = onCalendar ? startKey + 'T23:59' : '';
   document.getElementById('memo-autodelete-check').checked = false;
+  var remindCheck = document.getElementById('memo-remind-check');
+  if (remindCheck) remindCheck.checked = false;
+  var remindOffset = document.getElementById('memo-remind-offset');
+  if (remindOffset) remindOffset.value = '0';
+  memoRemindSync();
   populateMemoCourseOptions(courseId || '');
   document.getElementById('memo-modal').classList.remove('hidden');
   document.getElementById('memo-title-input').focus();
@@ -1600,6 +1726,12 @@ function showEditMemo(id) {
       document.getElementById('memo-deadline-input').value = '';
     }
     document.getElementById('memo-autodelete-check').checked = !!m.autoDelete;
+    var hasRemind = m.remindAt != null;
+    var remindCheck = document.getElementById('memo-remind-check');
+    if (remindCheck) remindCheck.checked = hasRemind;
+    var remindOffset = document.getElementById('memo-remind-offset');
+    if (remindOffset) remindOffset.value = hasRemind ? String(m.remindOffsetMin || 0) : '0';
+    memoRemindSync();
     document.getElementById('memo-modal').classList.remove('hidden');
     document.getElementById('memo-title-input').focus();
   });
@@ -1608,6 +1740,113 @@ function showEditMemo(id) {
 function hideMemoModal() {
   document.getElementById('memo-modal').classList.add('hidden');
   editingMemoId = null;
+}
+
+// ── 备忘到期提醒（仅应用内展示，不发系统通知）──
+function formatRemindTime(ts) {
+  var d = new Date(ts);
+  return (d.getMonth() + 1) + '月' + d.getDate() + '日 '
+    + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+// 截止时间 / 开关 / 偏移变化时，更新可用状态与预览文案
+function memoRemindSync() {
+  var deadlineEl = document.getElementById('memo-deadline-input');
+  var check = document.getElementById('memo-remind-check');
+  var offset = document.getElementById('memo-remind-offset');
+  var hint = document.getElementById('memo-remind-hint');
+  if (!deadlineEl || !check || !offset || !hint) return;
+
+  var hasDeadline = !!deadlineEl.value;
+  if (!hasDeadline) {
+    check.checked = false;
+    check.disabled = true;
+    offset.disabled = true;
+    hint.textContent = '设置截止时间后才能开启提醒';
+    return;
+  }
+  check.disabled = false;
+  offset.disabled = !check.checked;
+  if (!check.checked) {
+    hint.textContent = '';
+    return;
+  }
+  var mins = Number(offset.value) || 0;
+  var when = new Date(deadlineEl.value).getTime() - mins * 60000;
+  hint.textContent = '将在 ' + formatRemindTime(when) + ' 提醒';
+}
+
+function updateMemoBanner() {
+  var banner = document.getElementById('memo-remind-banner');
+  if (!banner) return;
+  if (memoDueCount > 0) {
+    banner.classList.remove('hidden');
+    banner.textContent = memoDueCount + ' 条备忘已到提醒时间';
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function updateMemoDueBadge() {
+  if (currentWidget === null && typeof renderWidgets === 'function') renderWidgets();
+}
+
+async function refreshMemoReminders() {
+  try {
+    var memos = await getMemos();
+    var now = Date.now();
+    var due = memos.filter(function(m) { return !m.done && m.remindAt && m.remindAt <= now; });
+    memoDueCount = due.length;
+    memoUnfiredCount = due.filter(function(m) { return !m.remindFiredAt; }).length;
+    updateMemoBanner();
+    updateMemoDueBadge();
+  } catch (e) { /* 静默 */ }
+}
+
+// 启动与回到前台时检查；已展示的批次不再重复弹
+async function checkMemoReminders() {
+  var memos;
+  try { memos = await getMemos(); } catch (e) { return; }
+  var now = Date.now();
+  var due = memos.filter(function(m) { return !m.done && m.remindAt && m.remindAt <= now; });
+  memoDueCount = due.length;
+  var unfired = due.filter(function(m) { return !m.remindFiredAt; });
+  memoUnfiredCount = unfired.length;
+  updateMemoBanner();
+  updateMemoDueBadge();
+  if (memoRemindShown.length || !unfired.length) return;
+
+  var shown = unfired.slice(0, 3);
+  memoRemindShown = shown.map(function(m) { return m.id; });
+  var list = document.getElementById('memo-remind-list');
+  if (!list) return;
+  list.innerHTML = shown.map(function(m) {
+    return '<div class="flex items-center gap-2 py-1.5">'
+      + '<span class="memo-due-dot" style="margin-top:0"></span>'
+      + '<span class="flex-1 min-w-0 truncate text-sm" style="color: var(--text-primary);">' + esc(m.title) + '</span>'
+      + '<span class="text-[11px] shrink-0" style="color: var(--text-tertiary);">' + formatRemindTime(m.remindAt) + '</span>'
+      + '</div>';
+  }).join('') + (memoUnfiredCount > 3
+    ? '<p class="text-[11px] mt-1" style="color: var(--text-tertiary);">还有 ' + (memoUnfiredCount - 3) + ' 条未展示</p>'
+    : '');
+  var modal = document.getElementById('memo-remind-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+async function memoRemindDismiss(goto) {
+  var ids = memoRemindShown.slice();
+  memoRemindShown = [];
+  var modal = document.getElementById('memo-remind-modal');
+  if (modal) modal.classList.add('hidden');
+  for (var i = 0; i < ids.length; i++) {
+    try { await updateMemo(ids[i], { remindFiredAt: Date.now() }); } catch (e) { /* 忽略单条失败 */ }
+  }
+  await refreshMemoReminders();
+  if (goto) {
+    if (currentWidget !== 'memo') enterWidget('memo');
+    switchTab('memos');
+    setMemoFilter('due');
+  }
 }
 
 async function confirmMemo() {
@@ -1620,18 +1859,23 @@ async function confirmMemo() {
   var startDate = startVal ? new Date(startVal + 'T00:00:00').getTime() : Date.now();
   if (deadline && deadline < startDate) deadline = startDate;
   var autoDelete = document.getElementById('memo-autodelete-check').checked;
+  var remindCheck = document.getElementById('memo-remind-check');
+  var remindOn = !!deadline && !!(remindCheck && remindCheck.checked);
+  var remindOffsetMin = remindOn ? (Number(document.getElementById('memo-remind-offset').value) || 0) : null;
+  var remindAt = remindOn ? (deadline - remindOffsetMin * 60000) : null;
   var courseIdVal = document.getElementById('memo-course-input').value;
   var courseId = courseIdVal ? Number(courseIdVal) : null;
 
   if (editingMemoId) {
-    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete, courseId: courseId, startDate: startDate });
+    await updateMemo(editingMemoId, { title: title, content: content, deadline: deadline, autoDelete: autoDelete, courseId: courseId, startDate: startDate, remindAt: remindAt, remindOffsetMin: remindOffsetMin });
     toast('备忘录已更新');
   } else {
-    await addMemo(title, content, deadline, autoDelete, courseId, startDate);
+    await addMemo(title, content, deadline, autoDelete, courseId, startDate, remindAt, remindOffsetMin);
     toast('备忘录已创建');
   }
   hideMemoModal();
   await refreshAll();
+  if (typeof checkMemoReminders === 'function') checkMemoReminders();
   if (currentWidget === 'schedule' && typeof renderCourseDetail === 'function' && scheduleDetailCourseId) renderCourseDetail();
 }
 
@@ -1683,17 +1927,14 @@ function getDaysInfo(memo) {
 }
 
 function setMemoFilter(mode) {
-  memoFilter = mode === 'linked' ? 'linked' : 'all';
-  var all = document.getElementById('memo-filter-all');
-  var linked = document.getElementById('memo-filter-linked');
-  if (all) {
-    all.style.background = memoFilter === 'all' ? 'var(--memo-accent-soft)' : 'transparent';
-    all.style.color = memoFilter === 'all' ? 'var(--memo-accent)' : 'var(--text-secondary)';
-  }
-  if (linked) {
-    linked.style.background = memoFilter === 'linked' ? 'var(--memo-accent-soft)' : 'transparent';
-    linked.style.color = memoFilter === 'linked' ? 'var(--memo-accent)' : 'var(--text-secondary)';
-  }
+  memoFilter = (mode === 'linked' || mode === 'due') ? mode : 'all';
+  [['all', 'memo-filter-all'], ['linked', 'memo-filter-linked'], ['due', 'memo-filter-due']].forEach(function(pair) {
+    var btn = document.getElementById(pair[1]);
+    if (!btn) return;
+    var active = memoFilter === pair[0];
+    btn.style.background = active ? 'var(--memo-accent-soft)' : 'transparent';
+    btn.style.color = active ? 'var(--memo-accent)' : 'var(--text-secondary)';
+  });
   renderMemos();
 }
 
@@ -1704,14 +1945,29 @@ async function renderMemos() {
     try { scheduleCourses = await getCourses(); } catch (e) { /* ignore */ }
   }
   updateMemoDoneViewUI();
+  var now = Date.now();
+  memoDueCount = memos.filter(function(m) { return !m.done && m.remindAt && m.remindAt <= now; }).length;
+  memoUnfiredCount = memos.filter(function(m) { return !m.done && m.remindAt && m.remindAt <= now && !m.remindFiredAt; }).length;
+  var banner = document.getElementById('memo-remind-banner');
+  if (banner) {
+    if (memoDueCount > 0) {
+      banner.classList.remove('hidden');
+      banner.textContent = memoDueCount + ' 条备忘已到提醒时间';
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
   // 已完成：淡显保留在列表里，隐藏则整条剔除
   if (memoDoneView === 'hide') memos = memos.filter(function(m) { return !m.done; });
   if (memoFilter === 'linked') memos = memos.filter(function(m) { return !!m.courseId; });
+  if (memoFilter === 'due') memos = memos.filter(function(m) { return !m.done && m.remindAt && m.remindAt <= now; });
   var container = document.getElementById('memos-list');
   if (!container) return;
   if (memos.length === 0) {
     container.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">'
-      + (memoFilter === 'linked' ? '还没有关联课程的备忘录，新建时可以选择课程' : '还没有备忘录，点击上方按钮创建')
+      + (memoFilter === 'linked' ? '还没有关联课程的备忘录，新建时可以选择课程'
+        : memoFilter === 'due' ? '没有到期的备忘'
+        : '还没有备忘录，点击上方按钮创建')
       + '</div>';
     return;
   }
@@ -2990,4 +3246,11 @@ function esc(str) {
 init().catch(function(e) {
   console.error('Init failed:', e);
   toast('初始化失败，请刷新页面: ' + (e && e.message ? e.message : String(e)));
+});
+
+// 回到前台时再检查一次到期提醒
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && typeof checkMemoReminders === 'function') {
+    checkMemoReminders();
+  }
 });
