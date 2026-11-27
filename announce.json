@@ -1,18 +1,18 @@
 {
   "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。usageEndpoint 写匿名使用统计的上报地址（留空则完全不上报）。",
-  "id": 22,
-  "title": "v1.2.9 已发布",
-  "body": "刷题支持滑动切题、题目详情与题库组，统计和导入也一并增强。",
-  "notes": "刷题支持左右滑动切题与题目详情，速刷 1–10 秒可调并可暂停\n新增刷题时长、8/16/32 周热力图、每日明细与「当日错题」重刷\n测试报告新增分章节正确率，错题可点开看解析\n新增题库组、追加题目、题目与章节编辑、全库搜索\n新增重点标记与 A1/A2/A3/B 亚型筛选\n支持导入文字型 Word 与 PDF，支持全量数据导出与恢复\n下载更新改用更快的加速线路，修复低速线路被误判放弃的问题",
+  "id": 23,
+  "title": "v1.3.0 已发布",
+  "body": "新增三套主题与自定义背景图、备忘到期提醒，专注与刷题统计也更完整。",
+  "notes": "新增天空蓝、青草绿、樱花粉三套主题，可设置自定义背景图\n备忘新增到期提醒：弹窗、首页角标、到期横幅与「已到期」筛选\n专注统计新增目标进度、效率指标、周同比与连续天数、时段洞察、任务洞察\n刷题统计支持按题库批量删除作答记录，删除后自动刷新正确率与错题本\n关于页改为纵向列表\n修复刷题模块数据库版本写死导致升级后题库打不开的问题",
   "button": "",
-  "url": "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk",
+  "url": "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk",
   "urls": [
-    "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk",
-    "https://gh-proxy.org/https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk",
+    "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk",
+    "https://gh-proxy.org/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.2.9/shiyongbujian-v1.2.9.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk"
   ],
-  "version": "1.2.9",
+  "version": "1.3.0",
   "minVersion": "",
   "force": false,
   "usageEndpoint": ""
