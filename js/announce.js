@@ -102,12 +102,6 @@ async function checkAnnouncement() {
   if (!res || !res.ok) return;
   var data;
   try { data = await res.json(); } catch (e) { return; }
-  // 使用统计地址由远程公告下发，改 announce.json 即可开启/关闭，无需再发版
-  var cfg = Array.isArray(data) ? (data[0] || {}) : (data || {});
-  if (cfg && typeof cfg.usageEndpoint === 'string') {
-    window.ANNOUNCE_USAGE_ENDPOINT = cfg.usageEndpoint.trim();
-    if (typeof updateUsageToggleUI === 'function') updateUsageToggleUI();
-  }
   var items = Array.isArray(data) ? data : [data];
   var picked = announcePick(items);
   if (picked) showAnnouncement(picked);

@@ -41,7 +41,8 @@
     searchResults: [],
     stats: null,
     statsBanks: [],
-    heatWeeks: 8
+    heatYear: new Date().getFullYear(),
+    heatMonth: new Date().getMonth()
   };
 
   try {
@@ -1316,14 +1317,6 @@
 
   // ── 统计 ──────────────────────────────────
   // ── 统计：时长 / 热力图 / 每日明细 ─────────
-  var HEAT_LEVELS = [
-    'rgba(128,128,128,0.14)',
-    'rgba(139,92,246,0.22)',
-    'rgba(139,92,246,0.42)',
-    'rgba(139,92,246,0.66)',
-    'rgba(124,58,237,0.92)'
-  ];
-
   function shuaDayKey(ts) {
     var d = new Date(ts || Date.now());
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -1338,46 +1331,130 @@
     return h + ' 小时' + (m % 60 ? ' ' + (m % 60) + ' 分' : '');
   }
 
-  function shuaHeatLevel(n) {
-    if (!n) return 0;
-    if (n <= 5) return 1;
-    if (n <= 15) return 2;
-    if (n <= 30) return 3;
-    return 4;
+  function shuaCssVar(name, fallback) {
+    try {
+      var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+      return (v && v.trim()) || fallback;
+    } catch (e) {
+      return fallback;
+    }
   }
 
-  function shuaSetHeatWeeks(w) {
-    S.heatWeeks = Number(w) || 8;
+  function shuaAccentRgba(alpha) {
+    var hex = shuaCssVar('--shua-accent', '#7c3aed');
+    var m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return 'rgba(124,58,237,' + alpha + ')';
+    var n = parseInt(m[1], 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + alpha + ')';
+  }
+
+  // 答题量分档，配色与专注热力图同一套强度
+  function shuaHeatLevel(n) {
+    if (!n) return { bg: 'rgba(128,128,128,0.10)', strong: false };
+    if (n <= 5) return { bg: shuaAccentRgba(0.18), strong: false };
+    if (n <= 15) return { bg: shuaAccentRgba(0.34), strong: false };
+    if (n <= 30) return { bg: shuaAccentRgba(0.50), strong: false };
+    if (n <= 60) return { bg: shuaAccentRgba(0.66), strong: true };
+    if (n <= 100) return { bg: shuaAccentRgba(0.82), strong: true };
+    return { bg: shuaAccentRgba(0.96), strong: true };
+  }
+
+  function shuaHeatPrev() {
+    S.heatMonth--;
+    if (S.heatMonth < 0) { S.heatMonth = 11; S.heatYear--; }
     renderShuaStats();
   }
 
-  function renderHeatmap(box, byDay) {
-    if (!box) return;
-    var weeks = S.heatWeeks || 8;
-    var today = new Date();
-    var start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay() - (weeks - 1) * 7);
-    var html = '<div class="flex gap-1">';
-    for (var w = 0; w < weeks; w++) {
-      html += '<div class="flex flex-col gap-1">';
-      for (var d = 0; d < 7; d++) {
-        var day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d);
-        var key = shuaDayKey(day.getTime());
-        var n = byDay[key] || 0;
-        var future = day.getTime() > today.getTime();
-        html += '<div title="' + key + '：' + n + ' 题" style="width:10px;height:10px;border-radius:2px;background:'
-          + (future ? 'transparent' : HEAT_LEVELS[shuaHeatLevel(n)]) + '"></div>';
-      }
-      html += '</div>';
+  function shuaHeatNext() {
+    S.heatMonth++;
+    if (S.heatMonth > 11) { S.heatMonth = 0; S.heatYear++; }
+    renderShuaStats();
+  }
+
+  function shuaRoundRect(ctx, x, y, w, h, r) {
+    if (w < 0) w = 0;
+    if (h < 0) h = 0;
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // 与专注页的打卡热力图同一种画法：按月排布、圆角格子、越深表示越多
+  function drawShuaHeatmap(byDay) {
+    var c = el('shua-heatmap');
+    if (!c) return;
+    var y = S.heatYear;
+    var m = S.heatMonth;
+    var label = el('shua-heat-label');
+    if (label) label.textContent = y + ' 年 ' + (m + 1) + ' 月';
+
+    var dayCount = new Date(y, m + 1, 0).getDate();
+    var firstDow = (new Date(y, m, 1).getDay() + 6) % 7;
+    var rows = Math.ceil((firstDow + dayCount) / 7);
+    var parent = c.parentElement;
+    var W = Math.floor((parent && parent.clientWidth) || c.clientWidth || 320);
+    if (W < 120) W = 320;
+    var gap = 4;
+    var top = 20;
+    var bottom = 4;
+    var cell = Math.floor((W - gap * 6) / 7);
+    cell = Math.max(18, Math.min(38, cell));
+    var H = top + rows * (cell + gap) + bottom;
+
+    var dpr = window.devicePixelRatio || 1;
+    c.style.width = '100%';
+    c.style.height = H + 'px';
+    c.width = Math.round(W * dpr);
+    c.height = Math.round(H * dpr);
+    var ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    var gridW = 7 * cell + 6 * gap;
+    var ox = Math.max(0, (W - gridW) / 2);
+    var oy = 18;
+    var textColor = shuaCssVar('--text-tertiary', '#8e8e93');
+    var primary = shuaCssVar('--text-primary', '#1d1d1f');
+    var todayKey = shuaDayKey(Date.now());
+
+    ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = textColor;
+    var wd = ['一', '二', '三', '四', '五', '六', '日'];
+    for (var w = 0; w < 7; w++) {
+      ctx.fillText(wd[w], ox + w * (cell + gap) + cell / 2, 8);
     }
-    html += '</div>';
-    box.innerHTML = html;
-    var range = el('shua-heat-range');
-    if (range) {
-      Array.prototype.forEach.call(range.children, function (b) {
-        b.classList.toggle('is-on', Number(b.dataset.w) === weeks);
-      });
+
+    for (var d = 1; d <= dayCount; d++) {
+      var key = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      var n = byDay[key] || 0;
+      var idx = firstDow + d - 1;
+      var x = ox + (idx % 7) * (cell + gap);
+      var yy = oy + Math.floor(idx / 7) * (cell + gap);
+      var lvl = shuaHeatLevel(n);
+      ctx.fillStyle = lvl.bg;
+      shuaRoundRect(ctx, x, yy, cell, cell, 4);
+      ctx.fill();
+
+      ctx.font = (cell >= 30 ? '11px' : '9px') + ' -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillStyle = lvl.strong ? '#ffffff' : (n > 0 ? primary : textColor);
+      ctx.fillText(String(d), x + cell / 2, yy + cell / 2 + 0.5);
+
+      if (key === todayKey) {
+        ctx.strokeStyle = lvl.strong ? 'rgba(255,255,255,0.95)' : shuaAccentRgba(0.95);
+        ctx.lineWidth = 1.5;
+        shuaRoundRect(ctx, x - 1, yy - 1, cell + 2, cell + 2, 5);
+        ctx.stroke();
+      }
     }
   }
+
 
   function renderDaily(box, records) {
     if (!box) return;
@@ -1465,7 +1542,7 @@
       var k = shuaDayKey(r.at || Date.now());
       byDay[k] = (byDay[k] || 0) + 1;
     });
-    renderHeatmap(el('shua-heatmap'), byDay);
+    drawShuaHeatmap(byDay);
     renderDaily(el('shua-daily-list'), records);
 
     var rank = el('shua-rank-list');
@@ -2020,7 +2097,8 @@
   window.shuaCloseDeleteRecords = shuaCloseDeleteRecords;
   window.shuaConfirmDeleteRecords = shuaConfirmDeleteRecords;
 
-  window.shuaSetHeatWeeks = shuaSetHeatWeeks;
+  window.shuaHeatPrev = shuaHeatPrev;
+  window.shuaHeatNext = shuaHeatNext;
   window.shuaRetryDay = shuaRetryDay;
 
   // 切到后台时把本次刷题时长补记到当天

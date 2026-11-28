@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#e5e5ea">
-  <title>实用部件</title>
+  <title>卷王课桌</title>
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
   <link rel="apple-touch-icon" href="./icon-180.png">
   <script src="js/tailwind.js"></script>
@@ -211,7 +211,7 @@
       --glass-highlight: none;
     }
 
-    /* ====== Theme: Dark ====== */
+    /* ====== Theme: Dark —— 曜石黑 ====== */
     [data-theme="dark"] {
       --bg-body: #1c1c1e;
       --header-bg: rgba(28,28,30,0.72);
@@ -490,11 +490,9 @@
       background: linear-gradient(180deg, #fff5f8 0%, #ffe4ee 55%, #fff2f7 100%);
     }
 
-    /* 自定义背景图：隐藏主题底色，露出图片与蒙层 */
-    html[data-custom-bg] { background: transparent !important; }
-    html[data-custom-bg] body { background: transparent !important; }
-    html[data-custom-bg] body::before,
-    html[data-custom-bg] body::after { display: none; }
+    /* 自定义背景图已移除：清掉旧版本可能残留的透明背景标记 */
+    html[data-custom-bg] { background: revert !important; }
+    html[data-custom-bg] body { background: var(--bg-body) !important; }
 
     body { overscroll-behavior: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Roboto, sans-serif; }
     .page { display: none; }
@@ -1581,10 +1579,6 @@
 <body style="background: var(--bg-body);">
   <script src="js/statusbar.js"></script>
 
-  <!-- 自定义背景图：图层在内容之下，蒙层保证文字可读 -->
-  <div id="custom-bg" style="position:fixed;inset:0;z-index:-3;background-size:cover;background-position:center;background-repeat:no-repeat;"></div>
-  <div id="custom-bg-mask" style="position:fixed;inset:0;z-index:-2;background:rgba(255,255,255,0.45);pointer-events:none;"></div>
-
   <div id="app" class="flex flex-col h-screen overflow-hidden md:max-w-none">
 
     <!-- Header -->
@@ -1594,7 +1588,7 @@
         <button onclick="goBack()" id="header-back-btn" class="hidden hover:opacity-80 btn-jelly transition-all p-0.5 -ml-1" style="color: var(--header-text); opacity: 0.6;">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <h1 class="text-lg font-bold tracking-wide" id="header-title" style="color: var(--header-text);">实用部件</h1>
+        <h1 class="text-lg font-bold tracking-wide" id="header-title" style="color: var(--header-text);">卷王课桌</h1>
       </div>
       <span class="text-xs px-3 py-1 rounded-full font-medium relative z-10 backdrop-blur-lg" style="background: var(--header-badge-bg); color: var(--header-badge-text);" id="header-badge">1 个部件</span>
     </header>
@@ -1607,7 +1601,7 @@
         <nav class="flex flex-col p-3 gap-1 flex-1" id="sidebar-nav">
           <button onclick="goBack()" id="sidebar-back-btn" class="hidden flex items-center gap-2 px-3 py-2 rounded-[20px] text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-            <span class="hidden lg:inline" id="sidebar-back-label">实用部件</span>
+            <span class="hidden lg:inline" id="sidebar-back-label">卷王课桌</span>
           </button>
           <div id="sidebar-tabs-container" class="flex flex-col gap-1"></div>
         </nav>
@@ -1660,14 +1654,6 @@
               </div>
               <svg class="w-4 h-4 shrink-0" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
-            <button onclick="gotoAboutItem('opensource')" class="about-row widget-card-outer w-full flex items-center gap-3 rounded-[20px] p-4 text-left">
-              <div class="widget-icon-wrap shrink-0"><svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
-              <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-[15px] leading-snug" style="color: var(--card-text);">开源</h3>
-                <p class="text-[11px] leading-relaxed mt-0.5 widget-card-desc" style="color: var(--card-subtext);">GitHub 源码仓库</p>
-              </div>
-              <svg class="w-4 h-4 shrink-0" style="color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
           </div>
         </div>
 
@@ -1690,8 +1676,8 @@
             </button>
             <button onclick="applyTheme('dark')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: #1c1c1e;" data-theme="dark" id="theme-opt-dark">
               <div class="w-full h-10 rounded-xl mb-2" style="background: rgba(255,255,255,0.1); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.12);"></div>
-              <p class="text-sm font-semibold text-white">暗黑</p>
-              <p class="text-xs text-gray-400">护眼深色</p>
+              <p class="text-sm font-semibold text-white">曜石黑</p>
+              <p class="text-xs text-gray-400">深邃护眼</p>
             </button>
             <button onclick="applyTheme('warm')" class="theme-option rounded-2xl p-4 text-left border-2 transition-all" style="background: linear-gradient(180deg,#fdf7f0 0%,#f7eee2 55%,#faf3ea 100%);" data-theme="warm" id="theme-opt-warm">
               <div class="w-full h-10 rounded-xl mb-2" style="background: linear-gradient(150deg, rgba(255,253,250,0.9), rgba(255,247,238,0.7)); border: 0.5px solid rgba(255,255,255,0.8); box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 6px 14px -6px rgba(140,105,70,0.22);"></div>
@@ -1713,17 +1699,6 @@
               <p class="text-sm font-semibold" style="color:#3d2731;">樱花粉</p>
               <p class="text-xs" style="color:#a86b85;">柔和樱色</p>
             </button>
-          </div>
-
-          <div class="mt-5 max-w-sm rounded-[20px] p-4" style="background: var(--card-bg); border: var(--card-border); box-shadow: var(--card-box-shadow);">
-            <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">自定义背景图</h3>
-            <p class="text-xs mb-3 leading-relaxed" style="color: var(--text-secondary);">选择一张图片作为所有页面的背景，会自动压缩到最长边 1600px 后存在本机。切换主题不会影响背景图。</p>
-            <div class="flex gap-2">
-              <input type="file" id="bg-file-input" accept="image/*" class="hidden" onchange="pickCustomBackground(this)">
-              <button onclick="document.getElementById('bg-file-input').click()" class="btn-memo flex-1 py-2.5 rounded-full text-xs font-semibold">选择图片</button>
-              <button onclick="removeCustomBackground()" class="flex-1 py-2.5 rounded-full text-xs font-semibold btn-jelly" style="background: rgba(128,128,128,0.12); color: var(--text-primary);">移除</button>
-            </div>
-            <p id="bg-status" class="text-[11px] mt-2" style="color: var(--text-tertiary);">当前未设置背景图</p>
           </div>
         </div>
 
@@ -1765,7 +1740,7 @@
             <p class="text-xs text-gray-400 mt-0.5">这个 App 是做什么的</p>
           </div>
           <div class="rounded-[24px] p-5 max-w-xl" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
-            <p class="text-sm leading-relaxed mb-4" style="color: var(--card-text);">实用部件是一款本地优先的效率工具集合，把学习与整理中常用的小工具收进一个 App，数据只保存在你自己的设备上。</p>
+            <p class="text-sm leading-relaxed mb-4" style="color: var(--card-text);">卷王课桌是一款本地优先的效率工具集合，把学习与整理中常用的小工具收进一个 App，数据只保存在你自己的设备上。</p>
             <ul class="text-sm leading-relaxed space-y-2.5" style="color: var(--card-subtext);">
               <li><strong style="color: var(--card-text);">专注</strong>：正计时与番茄钟、任务管理、学习时长统计、打卡日历与热力图。</li>
               <li><strong style="color: var(--card-text);">资料管理</strong>：分类整理并预览 PDF、图片、Word、Excel 等资料。</li>
@@ -1773,26 +1748,7 @@
               <li><strong style="color: var(--card-text);">思维导图</strong>：梳理工作流与知识结构，可导出图片分享。</li>
               <li><strong style="color: var(--card-text);">AI 小助手</strong>：正在测试中，敬请期待。</li>
             </ul>
-            <p class="text-sm leading-relaxed mt-4" style="color: var(--card-subtext);">提供玻璃、白色、暗黑、暖色调四套主题，支持安装为 PWA，也可以直接使用 Android 安装包；版本更新可在 App 内后台下载并跳转安装。</p>
-            <div class="mt-4 pt-4 flex items-start justify-between gap-3" style="border-top: 0.5px solid rgba(128,128,128,0.18);">
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold" style="color: var(--card-text);">发送匿名使用统计</p>
-                <p class="text-xs mt-1 leading-relaxed" style="color: var(--card-subtext);">只上报随机生成的设备编号、App 版本号和各部件的打开次数，用来了解使用情况。不含任何备忘录、课程、题库内容，也不含账号或位置；关闭后完全不发送。</p>
-              </div>
-              <button onclick="toggleUsageStats()" id="usage-toggle" class="shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold btn-jelly" style="background: rgba(128,128,128,0.16); color: var(--text-secondary);">已开启</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- About: Open source -->
-        <div id="page-about-opensource" class="page p-4 md:p-6 lg:p-8">
-          <div class="mb-5 md:mb-7">
-            <h2 style="color: var(--text-primary);" class="title-gradient text-lg md:text-xl font-bold">开源</h2>
-            <p class="text-xs text-gray-400 mt-0.5">项目源码托管在 GitHub</p>
-          </div>
-          <div class="rounded-[24px] p-5 max-w-xl" style="background: var(--card-bg); backdrop-filter: var(--card-backdrop); -webkit-backdrop-filter: var(--card-backdrop); border: var(--card-border); box-shadow: var(--card-box-shadow);">
-            <p class="text-sm mb-3 leading-relaxed" style="color: var(--card-subtext);">欢迎查看源码、提交 Issue 或参与改进。</p>
-            <a href="https://github.com/hhhky/shiyongbujian" target="_blank" class="text-sm font-semibold underline" style="color: var(--text-primary);">github.com/hhhky/shiyongbujian</a>
+            <p class="text-sm leading-relaxed mt-4" style="color: var(--card-subtext);">提供玻璃、白色、暖色调、天空蓝、青草绿、樱花粉与曜石黑多套主题，支持安装为 PWA，也可以直接使用 Android 安装包；版本更新可在 App 内后台下载并跳转安装。</p>
           </div>
         </div>
 
@@ -2104,13 +2060,13 @@
             <div class="shua-card p-5 mb-4">
               <div class="flex items-center justify-between gap-2 mb-3">
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">刷题热力图</h3>
-                <div class="flex gap-1.5" id="shua-heat-range">
-                  <button onclick="shuaSetHeatWeeks(8)" data-w="8" class="shua-chip">8 周</button>
-                  <button onclick="shuaSetHeatWeeks(16)" data-w="16" class="shua-chip">16 周</button>
-                  <button onclick="shuaSetHeatWeeks(32)" data-w="32" class="shua-chip">32 周</button>
+                <div class="flex items-center gap-1.5">
+                  <button onclick="shuaHeatPrev()" class="shua-icon-btn" style="width:28px;height:28px;" aria-label="上个月">‹</button>
+                  <span id="shua-heat-label" class="text-xs font-semibold min-w-[76px] text-center" style="color: var(--text-primary);"></span>
+                  <button onclick="shuaHeatNext()" class="shua-icon-btn" style="width:28px;height:28px;" aria-label="下个月">›</button>
                 </div>
               </div>
-              <div id="shua-heatmap" class="overflow-x-auto pb-1"></div>
+              <canvas id="shua-heatmap" height="250" style="width:100%;display:block;"></canvas>
               <p class="text-[11px] mt-2" style="color: var(--text-tertiary);">颜色越深表示当天作答越多</p>
             </div>
             <div class="shua-card p-5 mb-4">
@@ -2972,7 +2928,6 @@
 
   <script src="js/db.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/usage.js"></script>
   <script src="js/chat.js"></script>
   <script src="js/focus.js"></script>
   <script src="js/schedule.js"></script>

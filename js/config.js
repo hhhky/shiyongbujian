@@ -7,7 +7,3 @@ var CONST_DEEPSEEK_MODEL = "deepseek-reasoner";
 
 // API 地址
 var CONST_DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-
-// 匿名使用统计地址：填 Cloudflare Worker 的完整地址（如 https://xxx.workers.dev/api/usage）
-// 留空则完全不发送任何统计请求
-var CONST_USAGE_ENDPOINT = "";

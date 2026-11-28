@@ -1,6 +1,6 @@
 {
-  "name": "实用部件",
-  "short_name": "实用部件",
+  "name": "卷王课桌",
+  "short_name": "卷王课桌",
   "description": "资料管理、备忘录、思维导图、AI 聊天 — 一站式效率工具",
   "start_url": "./index.html",
   "scope": "./",

@@ -507,10 +507,6 @@ async function getMemosByCourse(courseId) {
 
 // ── App assets（自定义背景图等）──────────────
 // 只存 Blob，不进 localStorage，避免占用 main-thread 的 5MB 配额
-async function putAppAsset(key, blob) {
-  return dbOp('app_assets', 'readwrite', (s) => s.put({ key: key, blob: blob, updatedAt: Date.now() }));
-}
-
 async function getAppAsset(key) {
   return dbOp('app_assets', 'readonly', (s) => s.get(key));
 }

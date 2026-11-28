@@ -132,7 +132,6 @@ function enterWidget(id) {
   currentAboutItem = null;
   var w = WIDGETS.find(function(x){ return x.id === id; });
   if (!w) return;
-  if (typeof usageTrackWidget === 'function') usageTrackWidget(id);
 
   // Show widget pages
   document.getElementById('page-home').classList.remove('active');
@@ -186,7 +185,7 @@ function goHome() {
 
   // Header
   document.getElementById('header-back-btn').classList.add('hidden');
-  document.getElementById('header-title').textContent = '实用部件';
+  document.getElementById('header-title').textContent = '卷王课桌';
   document.getElementById('header-badge').style.display = '';
   updateHomeBadge();
 
@@ -199,7 +198,7 @@ function goHome() {
 
   // Sidebar
   document.getElementById('sidebar-back-btn').classList.add('hidden');
-  document.getElementById('sidebar-back-label').textContent = '实用部件';
+  document.getElementById('sidebar-back-label').textContent = '卷王课桌';
   document.getElementById('sidebar-footer').classList.add('hidden');
   document.getElementById('sidebar-tabs-container').innerHTML = '';
   document.getElementById('bottom-nav-tabs-container').innerHTML = '';
@@ -276,8 +275,7 @@ function handleAndroidBack() {
 var ABOUT_ITEMS = [
   { id: 'theme', name: '主题样式', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>' },
   { id: 'version', name: '版本更新', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>' },
-  { id: 'intro', name: '介绍', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>' },
-  { id: 'opensource', name: '开源', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>' }
+  { id: 'intro', name: '介绍', svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>' }
 ];
 
 // 顶部 / 侧边栏返回按钮：关于二级页回关于首页，其余回首页
@@ -326,7 +324,7 @@ function backToAbout() {
 
   // Header
   document.getElementById('header-back-btn').classList.add('hidden');
-  document.getElementById('header-title').textContent = '实用部件';
+  document.getElementById('header-title').textContent = '卷王课桌';
   document.getElementById('header-badge').style.display = '';
   updateHomeBadge();
 
@@ -335,7 +333,7 @@ function backToAbout() {
 
   // Sidebar
   document.getElementById('sidebar-back-btn').classList.add('hidden');
-  document.getElementById('sidebar-back-label').textContent = '实用部件';
+  document.getElementById('sidebar-back-label').textContent = '卷王课桌';
   document.getElementById('sidebar-footer').classList.add('hidden');
   document.getElementById('sidebar-tabs-container').innerHTML = '';
   document.getElementById('bottom-nav-tabs-container').innerHTML = '';
@@ -412,103 +410,14 @@ function hideAiBetaModal() {
   mask.classList.remove('flex');
 }
 
-// ── 自定义背景图 ──────────────────────────
-// 图片压缩后以 Blob 存 app_assets，渲染时用 objectURL，卸载时释放
-var customBgUrl = null;
-
-function compressBackgroundImage(file, maxSide, quality) {
-  return new Promise(function(resolve, reject) {
-    var img = new Image();
-    var url = URL.createObjectURL(file);
-    img.onload = function() {
-      URL.revokeObjectURL(url);
-      var w = img.naturalWidth || img.width;
-      var h = img.naturalHeight || img.height;
-      if (!w || !h) { reject(new Error('图片尺寸异常')); return; }
-      var scale = Math.min(1, maxSide / Math.max(w, h));
-      var cw = Math.max(1, Math.round(w * scale));
-      var ch = Math.max(1, Math.round(h * scale));
-      var canvas = document.createElement('canvas');
-      canvas.width = cw;
-      canvas.height = ch;
-      var ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, cw, ch);
-      ctx.drawImage(img, 0, 0, cw, ch);
-      canvas.toBlob(function(blob) {
-        if (blob) resolve(blob); else reject(new Error('压缩失败'));
-      }, 'image/jpeg', quality);
-    };
-    img.onerror = function() {
-      URL.revokeObjectURL(url);
-      reject(new Error('图片无法读取'));
-    };
-    img.src = url;
-  });
-}
-
-function applyCustomBackgroundBlob(blob) {
-  if (customBgUrl) {
-    URL.revokeObjectURL(customBgUrl);
-    customBgUrl = null;
-  }
-  customBgUrl = URL.createObjectURL(blob);
-  var layer = document.getElementById('custom-bg');
-  if (layer) layer.style.backgroundImage = 'url("' + customBgUrl + '")';
-  document.documentElement.setAttribute('data-custom-bg', '1');
-  var status = document.getElementById('bg-status');
-  if (status) status.textContent = '已设置自定义背景图';
-}
-
-function clearCustomBackgroundUI() {
-  if (customBgUrl) {
-    URL.revokeObjectURL(customBgUrl);
-    customBgUrl = null;
-  }
-  var layer = document.getElementById('custom-bg');
-  if (layer) layer.style.backgroundImage = '';
-  document.documentElement.removeAttribute('data-custom-bg');
-  var status = document.getElementById('bg-status');
-  if (status) status.textContent = '当前未设置背景图';
-}
-
-async function loadCustomBackground() {
+// 自定义背景图功能已移除：启动时清掉旧版本留下的图片与标记
+async function cleanupLegacyBackground() {
+  document.documentElement.removeAttribute("data-custom-bg");
   try {
-    var asset = await getAppAsset('bg');
-    if (asset && asset.blob) applyCustomBackgroundBlob(asset.blob);
-    else clearCustomBackgroundUI();
-  } catch (e) {
-    clearCustomBackgroundUI();
-  }
+    var asset = await getAppAsset("bg");
+    if (asset) await deleteAppAsset("bg");
+  } catch (e) { /* 旧数据不存在或删除失败都不影响启动 */ }
 }
-
-async function pickCustomBackground(input) {
-  var file = input.files && input.files[0];
-  if (!file) return;
-  input.value = '';
-  try {
-    var blob = await compressBackgroundImage(file, 1600, 0.7);
-    await putAppAsset('bg', blob);
-    applyCustomBackgroundBlob(blob);
-    toast('背景图已更新');
-  } catch (e) {
-    toast('图片处理失败，换一张试试');
-  }
-}
-
-async function removeCustomBackground() {
-  try {
-    await deleteAppAsset('bg');
-  } catch (e) {
-    /* 删除失败也让界面先恢复 */
-  }
-  clearCustomBackgroundUI();
-  toast('已移除背景图');
-}
-
-window.addEventListener('unload', function() {
-  if (customBgUrl) URL.revokeObjectURL(customBgUrl);
-});
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
@@ -541,13 +450,20 @@ function updateThemeSelection() {
   // 关于首页条目上显示当前主题
   var entry = document.getElementById('about-theme-entry');
   if (entry) {
-    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '暗黑 · 护眼深色', warm: '暖色调 · 米杏暖光', sky: '天空蓝 · 清透晴空', grass: '青草绿 · 清新草甸', cherry: '樱花粉 · 柔和樱色' };
+    var names = { glass: '玻璃 · iOS 风格', white: '白色 · 清爽纯白', dark: '曜石黑 · 深邃护眼', warm: '暖色调 · 米杏暖光', sky: '天空蓝 · 清透晴空', grass: '青草绿 · 清新草甸', cherry: '樱花粉 · 柔和樱色' };
     entry.textContent = names[current] || names.glass;
   }
 }
 
 // 各版本的更新内容：版本页展示当前安装版本对应的条目
 var APP_CHANGELOG = {
+  '1.3.1': [
+    '软件正式更名为「卷王课桌」',
+    '移除自定义背景图功能，修复暗黑主题文字看不清的问题，并更名为「曜石黑」',
+    '关于页移除「开源」入口',
+    '移除匿名使用统计开关及相关代码，App 不再包含任何统计上报逻辑',
+    '刷题热力图改为与专注页一致的月历画布视图，可按月切换'
+  ],
   '1.3.0': [
     '新增天空蓝、青草绿、樱花粉三套主题，并支持设置自定义背景图',
     '备忘新增到期提醒：应用内弹窗、首页角标、到期横幅与「已到期」筛选',
@@ -694,7 +610,7 @@ async function init() {
   await cleanupExpiredMemos();
   var el;
   el = document.getElementById('header-back-btn'); if (el) el.classList.add('hidden');
-  el = document.getElementById('header-title'); if (el) el.textContent = '实用部件';
+  el = document.getElementById('header-title'); if (el) el.textContent = '卷王课桌';
   el = document.getElementById('bottom-nav'); if (el) el.classList.add('hidden');
   el = document.querySelector('.main-content'); if (el) el.classList.remove('has-nav');
   el = document.getElementById('sidebar-back-btn'); if (el) el.classList.add('hidden');
@@ -702,8 +618,8 @@ async function init() {
   el = document.getElementById('page-home'); if (el) el.classList.add('active');
   if (document.getElementById('sidebar-tabs-container')) document.getElementById('sidebar-tabs-container').innerHTML = '';
   if (document.getElementById('bottom-nav-tabs-container')) document.getElementById('bottom-nav-tabs-container').innerHTML = '';
-  // 自定义背景图与备忘到期提醒都在启动时恢复一次
-  if (typeof loadCustomBackground === 'function') await loadCustomBackground();
+  // 清掉旧版本可能留下的背景图数据，再检查备忘到期提醒
+  if (typeof cleanupLegacyBackground === 'function') await cleanupLegacyBackground();
   if (typeof checkMemoReminders === 'function') checkMemoReminders();
 }
 
