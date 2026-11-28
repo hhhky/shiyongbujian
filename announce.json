@@ -1,19 +1,18 @@
 {
-  "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。usageEndpoint 写匿名使用统计的上报地址（留空则完全不上报）。",
-  "id": 23,
-  "title": "v1.3.0 已发布",
-  "body": "新增三套主题与自定义背景图、备忘到期提醒，专注与刷题统计也更完整。",
-  "notes": "新增天空蓝、青草绿、樱花粉三套主题，可设置自定义背景图\n备忘新增到期提醒：弹窗、首页角标、到期横幅与「已到期」筛选\n专注统计新增目标进度、效率指标、周同比与连续天数、时段洞察、任务洞察\n刷题统计支持按题库批量删除作答记录，删除后自动刷新正确率与错题本\n关于页改为纵向列表\n修复刷题模块数据库版本写死导致升级后题库打不开的问题",
+  "_help": "改完提交即可推送到客户端。id 变化才算一条新公告；title 为空则不显示；minVersion 表示只在低于该版本的客户端上显示；version 写新版本号、notes 写该版本更新内容（版本页展示，换行分隔）、urls 写下载地址数组（按顺序尝试，第一个最快）时，旧版本客户端会在公告里看到「发现新版本」，版本页会显示更新内容和安装按钮。",
+  "id": 24,
+  "title": "v1.3.1 已发布",
+  "body": "软件更名「卷王课桌」，修复曜石黑主题，刷题热力图换成月历视图。",
+  "notes": "软件正式更名为「卷王课桌」\n移除自定义背景图功能，修复暗黑主题文字看不清的问题，并更名为「曜石黑」\n关于页移除「开源」入口\n移除匿名使用统计开关及相关代码，App 不再包含任何统计上报逻辑\n刷题热力图改为与专注页一致的月历画布视图，可按月切换",
   "button": "",
-  "url": "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk",
+  "url": "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.1/shiyongbujian-v1.3.1.apk",
   "urls": [
-    "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk",
-    "https://gh-proxy.org/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk",
+    "https://ghfast.top/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.1/shiyongbujian-v1.3.1.apk",
+    "https://gh-proxy.org/https://github.com/hhhky/shiyongbujian/releases/download/v1.3.1/shiyongbujian-v1.3.1.apk",
     "https://hhhky.github.io/shiyongbujian/apk/latest.apk",
-    "https://github.com/hhhky/shiyongbujian/releases/download/v1.3.0/shiyongbujian-v1.3.0.apk"
+    "https://github.com/hhhky/shiyongbujian/releases/download/v1.3.1/shiyongbujian-v1.3.1.apk"
   ],
-  "version": "1.3.0",
+  "version": "1.3.1",
   "minVersion": "",
-  "force": false,
-  "usageEndpoint": ""
+  "force": false
 }
